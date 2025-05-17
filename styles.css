@@ -1,0 +1,455 @@
+:root {
+    --primary-red: #e10600;
+    --background: #000000;
+    --text-color: #ffffff;
+    --grid-color: rgba(225, 6, 0, 0.15);
+    --light-off: rgba(169, 0, 0, 0.2);
+    --light-on: rgb(255, 0, 0);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: var(--background);
+    color: var(--text-color);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+nav {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    padding: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+}
+
+.logo {
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+}
+
+.f1-logo-img {
+    height: 30px;
+    margin-right: 10px;
+}
+
+.sign-in {
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 0.5rem 1.5rem;
+    border: 1px solid var(--text-color);
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.sign-in:hover {
+    background: var(--text-color);
+    color: var(--background);
+}
+
+.hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 2rem;
+    background: linear-gradient(
+        to bottom,
+        var(--background) 0%,
+        var(--background) 85%,
+        rgba(225, 6, 0, 0.2) 100%
+    );
+}
+
+.grid-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    grid-template-rows: repeat(20, 1fr);
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.grid-background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, transparent 0%, var(--background) 70%);
+}
+
+.content {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+.title {
+    font-size: 5rem;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.title-row {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem 0;
+}
+
+.lights-row {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: clamp(0.5rem, 2vw, 1rem);
+}
+
+.lights-row.top {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.lights-row.bottom {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.title span {
+    display: block;
+    opacity: 0;
+    transform: translateY(20px);
+    mix-blend-mode: screen;
+    position: relative;
+    z-index: 2;
+}
+
+.description {
+    width: 100%;
+    text-align: center;
+    margin-top: 0.8rem;
+}
+
+.description p {
+    font-size: 1.5rem;
+    margin: 0.5rem 0;
+    opacity: 0;
+    transform: translateY(20px);
+    text-align: center;
+}
+
+.next-race {
+    margin-top: 2rem;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+    position: relative;
+}
+
+.track-container {
+    position: relative;
+    width: 250%;
+    max-width: 1000px;
+    height: 300px;
+    margin: 2rem auto;
+    transform: translateX(-50%);
+    left: 50%;
+    overflow: visible;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.track-svg {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.motion-path {
+    stroke-dasharray: 0;
+    stroke-dashoffset: 0;
+    stroke: var(--primary-red);
+    stroke-width: 2;
+    stroke-opacity: 1;
+    filter: drop-shadow(0 0 6px var(--primary-red)) drop-shadow(0 0 10px rgba(225, 6, 0, 0.7));
+}
+
+.track-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin: 0.8rem auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.track-wrapper svg {
+    width: 100%;
+    height: auto;
+}
+
+.track-bg-car-img {
+    position: absolute;
+    bottom: -200%;
+    left: 50%;
+    transform: translateX(-50%);
+
+    opacity: 0.15;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.car-dot {
+    width: 24px;
+    height: 12px;
+    background: var(--primary-red);
+    border-radius: 6px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-shadow: 
+        0 0 20px var(--primary-red),
+        0 0 35px var(--primary-red);
+    transform-origin: center;
+    pointer-events: none;
+}
+
+.car-dot::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    width: 6px;
+    height: 6px;
+    background: rgba(225, 6, 0, 0.3);
+    border-radius: 50%;
+    transform: translateY(-50%);
+}
+
+.next-race h2 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+.next-race h2 span {
+    color: var(--primary-red);
+}
+
+.race-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.track-icon {
+    width: 48px;
+    height: 48px;
+}
+
+.race-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.date {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.time {
+    font-size: 1rem;
+    opacity: 0.8;
+}
+
+.cta-button {
+    background: var(--primary-red);
+    color: var(--text-color);
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    width: 100%;
+}
+
+.cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(225, 6, 0, 0.2);
+}
+
+.cursor-follower {
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    background: var(--primary-red);
+    border-radius: 50%;
+    pointer-events: none;
+    mix-blend-mode: difference;
+    z-index: 9999;
+    opacity: 0;
+}
+
+.starting-lights {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto 4rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 1000px;
+}
+
+.lights-container {
+    width: fit-content;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    transform: rotateX(15deg);
+    transform-style: preserve-3d;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 1.5rem 0.5rem;
+    border-radius: 0.5rem;
+    border: 2px solid #222;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.lights-container > * {
+    position: relative;
+}
+
+#debug-spacer {
+    width: 80%;
+    height: 20px;
+    background-color: green;
+    color: white;
+    text-align: center;
+    font-size: 10px;
+    line-height: 20px;
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.lights-row.row2 {
+    margin-top: 0;
+}
+
+.light {
+    width: clamp(1.5rem, 3vw, 2.5rem);
+    height: clamp(1.5rem, 3vw, 2.5rem);
+    border-radius: 50%;
+    background: var(--light-off);
+    border: 2px solid rgba(255, 0, 0, 0.7);
+    box-shadow: 
+        0 0 10px var(--light-off),
+        inset 0 0 15px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+    position: static;
+    margin: 2px;
+}
+
+.light.on {
+    background: var(--light-on);
+    box-shadow:
+        0 0 30px var(--light-on),
+        0 0 50px var(--light-on),
+        inset 0 0 15px rgba(255, 255, 255, 0.8);
+}
+
+.title-container {
+    text-align: center;
+    width: 100%;
+    margin-bottom: 0.8rem;
+}
+
+.title {
+    font-size: clamp(3rem, 8vw, 5rem);
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 1rem;
+}
+
+.subtitle {
+    font-size: clamp(1.5rem, 4vw, 3rem);
+    font-weight: 700;
+    margin-top: 0.5rem;
+}
+
+.title span {
+    display: block;
+}
+
+/* Update animation classes */
+.animate-text {
+    opacity: 0;
+    transform: translateY(20px);
+    display: block;
+}
+
+/* Animated background */
+.grid-background::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        linear-gradient(45deg, transparent 0%, rgba(225, 6, 0, 0.05) 50%, transparent 100%);
+    background-size: 200% 200%;
+    animation: gradient 15s ease infinite;
+    pointer-events: none;
+}
+
+@keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+} 

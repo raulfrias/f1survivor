@@ -1,124 +1,76 @@
-# Anime.js
+# F1 Survivor - Survive the Grid
 
 <p align="center">
-  <picture align="center">
-    <source media="(prefers-color-scheme: dark)" srcset="./assets/images/animejs-v4-logo-animation-dark.gif">
-    <img align="center" alt="Anime.js V4 logo animation" src="./assets/images/animejs-v4-logo-animation.gif" width="560">
-  </picture>
+  <!-- Consider adding a custom logo for your game here -->
+  <img src="./assets/images/F1-Logo.png" alt="F1 Survivor Game" width="150"> 
 </p>
 
-<p align="center">
-  <strong>
-  <em>Anime.js</em> is a fast, multipurpose and lightweight JavaScript animation library with a simple, yet powerful API.<br>
-  It works with CSS properties, SVG, DOM attributes and JavaScript Objects.
-  </strong>
-</p>
+Welcome to **F1 Survivor**, a web-based game where your Formula 1 knowledge and a bit of luck will determine if you can outlast the competition and survive the entire F1 season!
 
-<p align="center">
-  <img alt="NPM Downloads" src="https://img.shields.io/npm/dm/animejs?style=flat-square&logo=npm">
-  <img alt="jsDelivr hits (npm)" src="https://img.shields.io/jsdelivr/npm/hm/animejs?style=flat-square&logo=jsdeliver">
-  <img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/juliangarnier?style=flat-square&logo=github">
-</p>
+## How to Play
 
-## Usage
+The rules are designed to be simple yet challenging:
 
-Anime.js V4 works by importing ES modules like so:
+1.  **Pick a Driver:** Before each Grand Prix, choose one driver from the official grid.
+2.  **No Repeats:** You cannot pick the same driver more than once throughout the season. Strategic planning is key!
+3.  **Top 10 Finish:** If your chosen driver finishes in the top 10 in that Grand Prix, you survive and advance to the next race.
+4.  **Forgot to Pick?** If you forget to make a selection for a Grand Prix, the system will automatically assign you the driver who qualified in 15th place (P15) for that race.
+5.  **Elimination:** If your chosen (or auto-assigned P15) driver finishes outside the top 10 (or does not finish - DNF), you're out of the game!
+6.  **Last One Standing:** The goal is to be the last player surviving in the league.
 
-<table>
-<tr>
-  <td>
+## Features
 
-```javascript
-import {
-  animate,
-  stagger,
-} from 'animejs';
+*   **Interactive Gameplay:** Engaging user interface for making your driver picks.
+*   **Dynamic Animations:** Smooth and thematic animations powered by [Anime.js](https://animejs.com/) to enhance the F1 experience, including:
+    *   F1 starting lights sequence.
+    *   Animated text and UI elements.
+    *   Visual representation of a race track and car movement.
+*   **Single League System:** (Planned/In Development) A persistent league where your progress is tracked across multiple Grands Prix.
+*   **F1 Data Integration:** (Planned/In Development) Leverages an external F1 data API (like OpenF1) to fetch race schedules, driver information, qualifying results (for the P15 rule), and final race classifications.
 
-animate('.square', {
-  x: 320,
-  rotate: { from: -180 },
-  duration: 1250,
-  delay: stagger(65, { from: 'center' }),
-  ease: 'inOutQuint',
-  loop: true,
-  alternate: true
-});
-```
+## Running the Game
 
-  </td>
-  <td>
-    <img align="center" alt="Anime.js code example" src="./assets/images/usage-example-result.gif">
-  </td>
-</tr>
-</table>
+Currently, the game is a frontend application:
 
-## V4 Documentation
+1.  Ensure you have a modern web browser.
+2.  Open the `index.html` file in your browser to start playing.
 
-The full documentation is available [here](https://animejs.com/documentation).
+*(As the project develops, if a build step or local server becomes necessary, instructions will be updated here.)*
 
-## V3 Migration guide
+## Technologies Used
 
-You can find the v3 to v4 migration guide [here](https://github.com/juliangarnier/anime/wiki/Migrating-from-v3-to-v4).
+*   **Frontend:**
+    *   HTML5
+    *   CSS3
+    *   JavaScript
+*   **Animations:**
+    *   [Anime.js](https://animejs.com/) (included via CDN)
+*   **F1 Data Source (Planned):**
+    *   [OpenF1 API](https://openf1.org/) (or a similar public F1 data API) - for fetching real-time and historical F1 data.
 
-## NPM development scripts
+## Development Notes
 
-First, run `npm i` to install all the necessary packages.
-Then, execute the following scripts with `npm run <script>`.
+This project is built as a client-side web application. The core game logic is managed in `app.js`, styling in `styles.css`, and the main structure in `index.html`.
 
-| script | action |
-| ------ | ------ |
-| `dev` | Watch any changes in `src/` and compiles the esm version to `lib/anime.esm.js` |
-| `dev-types` | Same as `dev`, but also run TypeScript and generate the `types/index.d.ts` file |
-| `build` | Generate types definition and compiles ESM / UMD / IIFE versions to `lib/` |
-| `test-browser` | Start a local server and start all browser related tests |
-| `test-node` | Start all Node related tests |
-| `open-examples` | Start a local server to browse the examples locally |
+### Fetching F1 Data
 
-## Our sponsors
+The game will rely on an external API like OpenF1 to provide up-to-date information for race events, driver lineups, qualifying positions (specifically P15), and final race results. This involves:
+1.  Identifying the correct API endpoints from the chosen F1 data provider.
+2.  Using the JavaScript `fetch` API in `app.js` to make asynchronous requests to these endpoints.
+3.  Receiving and parsing the JSON data returned by the API.
+4.  Integrating this data into the game logic to automate updates for player survival, P15 auto-picks, etc.
 
-Anime.js is 100% free and is only made possible with the help of our sponsors.
-Help the project become sustainable by sponsoring us on <a target="_blank" href="https://github.com/sponsors/juliangarnier">GitHub Sponsors</a>.
+Potential challenges include handling API rate limits, data availability timings (e.g., when official classifications are published), and ensuring robust error handling for API requests.
 
-### Platinum sponsors
+## Future Ideas & Enhancements
 
-<table>
-  <tr>
-    <td>
-      <a target="_blank" href="https://huly.io/?ref=animejs">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="./assets/sponsors/huly-logomark.svg">
-          <img align="center" src="./assets/sponsors/huly-logomark-dark.svg" width="128">
-        </picture>
-      </a>
-    </td>
-    <td>
-      <a target="_blank" href="https://ice.io/?ref=animejs">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="./assets/sponsors/ice-open-network-logomark.svg">
-          <img align="center" src="./assets/sponsors/ice-open-network-logomark-dark.svg" width="128">
-        </picture>
-      </a>
-    </td>
-    <td>
-      <a target="_blank" href="https://github.com/sponsors/juliangarnier">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="./assets/sponsors/placeholder.svg">
-          <img align="center" src="./assets/sponsors/placeholder-dark.svg" width="128">
-        </picture>
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <a target="_blank" href="https://huly.io/?ref=animejs">Huly</a>
-    </td>
-    <td align="center">
-      <a target="_blank" href="https://ice.io/?ref=animejs">Ice Open Network</a>
-    </td>
-    <td align="center">
-      <a target="_blank" href="https://github.com/sponsors/juliangarnier">Your logo here</a>
-    </td>
-  </tr>
-</table>
+*   **User Authentication & Profiles:** Allow users to sign up and have their progress saved.
+*   **Multiple Leagues:** Ability for users to create or join private leagues with friends.
+*   **Global Leaderboards:** See how you stack up against all F1 Survivor players.
+*   **Detailed Driver/Team Stats:** Display more F1 statistics within the game.
+*   **Automated Race Event Creation:** Pull upcoming race calendars automatically.
+*   **Notification System:** Reminders for players to make their picks before a race weekend.
 
-© [Julian Garnier](http://juliangarnier.com) | [MIT License](LICENSE.md)
+## Disclaimer
+
+F1 Survivor is an unofficial project and is not affiliated with Formula 1 companies. All F1-related trademarks are owned by Formula One Licensing B.V.

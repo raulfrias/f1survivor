@@ -26,7 +26,7 @@ The rules are designed to be simple yet challenging:
     *   Animated text and UI elements.
     *   Visual representation of a race track and car movement.
 *   **Single League System:** (Planned/In Development) A persistent league where your progress is tracked across multiple Grands Prix.
-*   **F1 Data Integration:** (Planned/In Development) Leverages an external F1 data API (like OpenF1) to fetch race schedules, driver information, qualifying results (for the P15 rule), and final race classifications.
+*   **F1 Data Integration:** (Planned/In Development) Leverages an external F1 data API (like OpenF1) to fetch race schedules, driver information, qualifying results (for the 4th rule), and final race classifications.
 
 ## Running the Game
 

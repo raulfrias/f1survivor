@@ -472,21 +472,21 @@ nav {
 
 .driver-selection-content {
     background-color: #1a1a1a;
-    padding: 2rem;
+    padding: 1.5rem;
     border-radius: 12px;
     border: 1px solid var(--primary-red);
     box-shadow: 0 0 30px rgba(225, 6, 0, 0.3);
     width: 100%;
-    max-width: 900px;
-    max-height: 90vh;
+    max-width: 1000px;
+    max-height: 85vh;
     display: flex;
     flex-direction: column;
     position: relative;
 }
 
 .driver-selection-content h2 {
-    font-size: 2rem;
-    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    margin-bottom: 0.8rem;
     text-align: center;
     color: var(--text-color);
 }
@@ -495,13 +495,14 @@ nav {
     text-align: center;
     color: var(--text-color);
     opacity: 0.8;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
 }
 
 #driver-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.8rem;
     overflow-y: auto;
     min-height: 300px;
     padding: 1rem;
@@ -515,55 +516,73 @@ nav {
     background-color: #2a2a2a;
     border: 2px solid transparent;
     border-radius: 8px;
-    padding: 1rem;
+    padding: 0.8rem;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 180px;
+    display: grid;
+    grid-template-areas:
+        "photo"
+        "name"
+        "team";
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
+    min-height: 140px;
     position: relative;
+    box-shadow: none;
 }
 
 .driver-card img {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     object-fit: cover;
-    margin-bottom: 0.75rem;
+    margin: 0 auto;
     background-color: #555;
+    grid-area: photo;
+    justify-self: center;
+}
+
+.driver-card .driver-number {
+    display: none;
 }
 
 .driver-card .driver-name {
     font-weight: bold;
-    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+    margin: 0;
+    grid-area: name;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .driver-card .driver-team {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     opacity: 0.8;
-    margin-bottom: 0.25rem;
-}
-
-.driver-card .driver-number {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: var(--primary-red);
+    margin: 0;
+    grid-area: team;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .driver-card:hover {
-    transform: translateY(-5px);
-    border-color: var(--primary-red);
-    box-shadow: 0 5px 15px rgba(225, 6, 0, 0.2);
+    transform: translateY(-3px);
+    border-color: var(--team-color, var(--primary-red));
+    box-shadow: 
+        0 0 10px var(--team-color, var(--primary-red)),
+        0 0 20px var(--team-color-alpha, rgba(225, 6, 0, 0.2));
 }
 
 .driver-card.selected {
-    border-color: var(--primary-red);
+    border-color: var(--team-color, var(--primary-red));
     background-color: #333;
-    box-shadow: 0 0 15px var(--primary-red);
-    transform: scale(1.05);
+    box-shadow: 
+        0 0 15px var(--team-color, var(--primary-red)),
+        0 0 30px var(--team-color-alpha, rgba(225, 6, 0, 0.3)),
+        inset 0 0 10px var(--team-color-alpha, rgba(225, 6, 0, 0.1));
+    transform: scale(1.03);
 }
 
 .driver-card.picked {
@@ -571,10 +590,12 @@ nav {
     cursor: not-allowed;
     background-color: #444;
     border-color: #555;
+    box-shadow: none;
 }
 
 .driver-card.picked:hover {
     transform: none;
+    box-shadow: none;
 }
 
 .close-btn {
@@ -626,4 +647,104 @@ nav {
     opacity: 1;
 }
 
-/* Add JavaScript positioning instead of CSS positioning */ 
+/* Add JavaScript positioning instead of CSS positioning */
+
+/* Loading States */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    z-index: 10;
+}
+
+.loading-overlay.active {
+    display: flex;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid transparent;
+    border-top-color: var(--primary-red);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error States */
+.error-message {
+    background-color: rgba(255, 0, 0, 0.1);
+    border: 1px solid var(--primary-red);
+    color: var(--primary-red);
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 8px;
+    text-align: center;
+    display: none;
+}
+
+.error-message.active {
+    display: block;
+}
+
+/* Button States */
+.cta-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Driver Grid Loading State */
+#driver-grid.loading {
+    min-height: 300px;
+    position: relative;
+}
+
+#driver-grid.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 3px solid transparent;
+    border-top-color: var(--primary-red);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Driver Card Loading Skeleton */
+.driver-card.skeleton {
+    background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+.driver-card.skeleton img {
+    background-color: #333;
+}
+
+.driver-card.skeleton .driver-name,
+.driver-card.skeleton .driver-team {
+    background-color: #333;
+    color: transparent;
+    border-radius: 4px;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+} 

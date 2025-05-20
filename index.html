@@ -72,40 +72,21 @@
             <button id="close-selection-btn" class="close-btn">&times;</button>
             <h2>Pick Your Driver for <span id="current-gp-name">[Upcoming Grand Prix]</span></h2>
             <p class="deadline">Selection deadline: <span id="selection-deadline">[Date and Time]</span></p>
-            <div id="driver-grid" class="driver-grid">
-                <!-- Mock driver cards for testing -->
-                <div class="driver-card">
-                    <img src="assets/images/drivers/default.svg" alt="Max Verstappen">
-                    <div class="driver-name">Max Verstappen</div>
-                    <div class="driver-team">Red Bull Racing</div>
-                    <div class="driver-number">1</div>
-                </div>
-                <div class="driver-card picked" data-tooltip="Already picked in a previous race">
-                    <img src="assets/images/drivers/default.svg" alt="Lewis Hamilton">
-                    <div class="driver-name">Lewis Hamilton</div>
-                    <div class="driver-team">Mercedes</div>
-                    <div class="driver-number">44</div>
-                    <div class="tooltip">Already picked in a previous race</div>
-                </div>
-                <div class="driver-card">
-                    <img src="assets/images/drivers/default.svg" alt="Charles Leclerc">
-                    <div class="driver-name">Charles Leclerc</div>
-                    <div class="driver-team">Ferrari</div>
-                    <div class="driver-number">16</div>
-                </div>
-                <div class="driver-card">
-                    <img src="assets/images/drivers/default.svg" alt="Lando Norris">
-                    <div class="driver-name">Lando Norris</div>
-                    <div class="driver-team">McLaren</div>
-                    <div class="driver-number">4</div>
-                </div>
-                <div class="driver-card">
-                    <img src="assets/images/drivers/default.svg" alt="Fernando Alonso">
-                    <div class="driver-name">Fernando Alonso</div>
-                    <div class="driver-team">Aston Martin</div>
-                    <div class="driver-number">14</div>
-                </div>
+            
+            <!-- Add error message container -->
+            <div id="error-message" class="error-message">
+                An error occurred while loading drivers. Please try again.
             </div>
+            
+            <!-- Add loading overlay -->
+            <div id="loading-overlay" class="loading-overlay">
+                <div class="loading-spinner"></div>
+            </div>
+            
+            <div id="driver-grid" class="driver-grid">
+                <!-- Driver cards will be dynamically inserted here -->
+            </div>
+            
             <button id="confirm-pick-btn" class="cta-button">Confirm Pick</button>
         </div>
     </section>

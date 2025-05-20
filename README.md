@@ -18,24 +18,69 @@ The rules are designed to be simple yet challenging:
 5.  **Elimination:** If your chosen (or auto-assigned P15) driver finishes outside the top 10 (or does not finish - DNF), you're out of the game!
 6.  **Last One Standing:** The goal is to be the last player surviving in the league.
 
-## Features
+## Development Setup
 
-*   **Interactive Gameplay:** Engaging user interface for making your driver picks.
-*   **Dynamic Animations:** Smooth and thematic animations powered by [Anime.js](https://animejs.com/) to enhance the F1 experience, including:
-    *   F1 starting lights sequence.
-    *   Animated text and UI elements.
-    *   Visual representation of a race track and car movement.
-*   **Single League System:** (Planned/In Development) A persistent league where your progress is tracked across multiple Grands Prix.
-*   **F1 Data Integration:** (Planned/In Development) Leverages an external F1 data API (like OpenF1) to fetch race schedules, driver information, qualifying results (for the 4th rule), and final race classifications.
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/yourusername/f1survivor.git
+   cd f1survivor
+   ```
 
-## Running the Game
+2. **Install Dependencies:**
+   - No dependencies to install for the frontend prototype
+   - Backend dependencies will be added in future phases
 
-Currently, the game is a frontend application:
+3. **Download Driver Images:**
+   ```bash
+   chmod +x download_driver_images.sh
+   ./download_driver_images.sh
+   ```
 
-1.  Ensure you have a modern web browser.
-2.  Open the `index.html` file in your browser to start playing.
+4. **Run the Application:**
+   - Open `index.html` in your browser
+   - For development, use a local server:
+     ```bash
+     python -m http.server 8000
+     # or
+     npx serve
+     ```
 
-*(As the project develops, if a build step or local server becomes necessary, instructions will be updated here.)*
+## Project Structure
+
+```
+f1survivor/
+├── assets/
+│   └── images/
+│       ├── drivers/    # Driver profile images
+│       └── F1-Logo.png
+├── docs/              # Project documentation
+│   ├── ROADMAP.md     # Development roadmap
+│   └── ...           # Additional documentation
+├── app.js            # Core game logic
+├── index.html        # Main HTML structure
+├── styles.css        # Styling
+└── README.md
+```
+
+## Current Features
+
+✅ **Interactive UI:**
+  - Modern, F1-themed design
+  - Dynamic animations and transitions
+  - Responsive grid layout
+  - Team-colored driver cards
+
+✅ **Driver Selection:**
+  - Complete driver grid with team grouping
+  - Visual feedback for selection states
+  - Loading states and error handling
+  - Pick validation logic
+
+🔄 **In Progress:**
+  - Backend integration
+  - User authentication
+  - League management
+  - Race result processing
 
 ## Technologies Used
 
@@ -48,28 +93,21 @@ Currently, the game is a frontend application:
 *   **F1 Data Source (Planned):**
     *   [OpenF1 API](https://openf1.org/) (or a similar public F1 data API) - for fetching real-time and historical F1 data.
 
-## Development Notes
+## Development Roadmap
 
-This project is built as a client-side web application. The core game logic is managed in `app.js`, styling in `styles.css`, and the main structure in `index.html`.
+See [ROADMAP.md](docs/ROADMAP.md) for detailed development plans and upcoming features.
 
-### Fetching F1 Data
+## Contributing
 
-The game will rely on an external API like OpenF1 to provide up-to-date information for race events, driver lineups, qualifying positions (specifically P15), and final race results. This involves:
-1.  Identifying the correct API endpoints from the chosen F1 data provider.
-2.  Using the JavaScript `fetch` API in `app.js` to make asynchronous requests to these endpoints.
-3.  Receiving and parsing the JSON data returned by the API.
-4.  Integrating this data into the game logic to automate updates for player survival, P15 auto-picks, etc.
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/YourFeature`
+3. Commit your changes: `git commit -m 'Add YourFeature'`
+4. Push to the branch: `git push origin feature/YourFeature`
+5. Submit a pull request
 
-Potential challenges include handling API rate limits, data availability timings (e.g., when official classifications are published), and ensuring robust error handling for API requests.
+## License
 
-## Future Ideas & Enhancements
-
-*   **User Authentication & Profiles:** Allow users to sign up and have their progress saved.
-*   **Multiple Leagues:** Ability for users to create or join private leagues with friends.
-*   **Global Leaderboards:** See how you stack up against all F1 Survivor players.
-*   **Detailed Driver/Team Stats:** Display more F1 statistics within the game.
-*   **Automated Race Event Creation:** Pull upcoming race calendars automatically.
-*   **Notification System:** Reminders for players to make their picks before a race weekend.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Disclaimer
 

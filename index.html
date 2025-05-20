@@ -60,12 +60,55 @@
                 <p class="animate-text">Last player standing wins.</p>
             </div>
             <div class="next-race">
-                <button class="cta-button">LOG IN / SIGN UP</button>
+                <button class="cta-button" id="make-pick-btn">MAKE YOUR PICK</button>
             </div>
         </div>
         
         <div class="cursor-follower"></div>
     </main>
+
+    <section id="driver-selection-screen">
+        <div class="driver-selection-content">
+            <button id="close-selection-btn" class="close-btn">&times;</button>
+            <h2>Pick Your Driver for <span id="current-gp-name">[Upcoming Grand Prix]</span></h2>
+            <p class="deadline">Selection deadline: <span id="selection-deadline">[Date and Time]</span></p>
+            <div id="driver-grid" class="driver-grid">
+                <!-- Mock driver cards for testing -->
+                <div class="driver-card">
+                    <img src="assets/images/drivers/default.svg" alt="Max Verstappen">
+                    <div class="driver-name">Max Verstappen</div>
+                    <div class="driver-team">Red Bull Racing</div>
+                    <div class="driver-number">1</div>
+                </div>
+                <div class="driver-card picked" data-tooltip="Already picked in a previous race">
+                    <img src="assets/images/drivers/default.svg" alt="Lewis Hamilton">
+                    <div class="driver-name">Lewis Hamilton</div>
+                    <div class="driver-team">Mercedes</div>
+                    <div class="driver-number">44</div>
+                    <div class="tooltip">Already picked in a previous race</div>
+                </div>
+                <div class="driver-card">
+                    <img src="assets/images/drivers/default.svg" alt="Charles Leclerc">
+                    <div class="driver-name">Charles Leclerc</div>
+                    <div class="driver-team">Ferrari</div>
+                    <div class="driver-number">16</div>
+                </div>
+                <div class="driver-card">
+                    <img src="assets/images/drivers/default.svg" alt="Lando Norris">
+                    <div class="driver-name">Lando Norris</div>
+                    <div class="driver-team">McLaren</div>
+                    <div class="driver-number">4</div>
+                </div>
+                <div class="driver-card">
+                    <img src="assets/images/drivers/default.svg" alt="Fernando Alonso">
+                    <div class="driver-name">Fernando Alonso</div>
+                    <div class="driver-team">Aston Martin</div>
+                    <div class="driver-number">14</div>
+                </div>
+            </div>
+            <button id="confirm-pick-btn" class="cta-button">Confirm Pick</button>
+        </div>
+    </section>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <script src="app.js"></script>

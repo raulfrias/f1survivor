@@ -342,6 +342,15 @@ const initializeDriverSelection = () => {
                         driver.isAlreadyPicked = true;
                     }
                 });
+                
+                // Update the button text with the most recent pick
+                const lastPick = savedPicks[savedPicks.length - 1];
+                const lastPickedDriver = mockDrivers.find(d => d.id === lastPick.driverId);
+                if (lastPickedDriver) {
+                    const makePickBtn = document.getElementById('make-pick-btn');
+                    makePickBtn.textContent = `PICKED: ${lastPickedDriver.name.split(' ')[1].toUpperCase()}`;
+                }
+                
                 console.log('Loaded user picks from localStorage:', savedPicks);
             }
         } catch (error) {
@@ -349,14 +358,9 @@ const initializeDriverSelection = () => {
         }
     }
 
-    // Create the driver selection screen
-    const driverSelectionScreen = document.createElement('div');
-    driverSelectionScreen.id = 'driver-selection-screen';
-    driverSelectionScreen.style.display = 'none';
-    document.body.appendChild(driverSelectionScreen);
-
     // Get UI elements
     const makePickBtn = document.getElementById('make-pick-btn');
+    const driverSelectionScreen = document.getElementById('driver-selection-screen');
     const closeSelectionBtn = document.getElementById('close-selection-btn');
     confirmPickBtn = document.getElementById('confirm-pick-btn');
     loadingOverlay = document.getElementById('loading-overlay');
@@ -364,7 +368,15 @@ const initializeDriverSelection = () => {
     driverGrid = document.getElementById('driver-grid');
 
     if (!makePickBtn || !driverSelectionScreen || !closeSelectionBtn || !confirmPickBtn || !loadingOverlay || !errorMessage || !driverGrid) {
-        console.error('Some elements not found');
+        console.error('Some elements not found:', {
+            makePickBtn: !!makePickBtn,
+            driverSelectionScreen: !!driverSelectionScreen,
+            closeSelectionBtn: !!closeSelectionBtn,
+            confirmPickBtn: !!confirmPickBtn,
+            loadingOverlay: !!loadingOverlay,
+            errorMessage: !!errorMessage,
+            driverGrid: !!driverGrid
+        });
         return;
     }
 
@@ -375,8 +387,10 @@ const initializeDriverSelection = () => {
     // Open modal and render grid
     makePickBtn.addEventListener('click', () => {
         console.log('Make pick button clicked');
+        console.log('Current display style:', driverSelectionScreen.style.display);
         selectedDriverId = null;
         driverSelectionScreen.style.display = 'flex';
+        console.log('New display style:', driverSelectionScreen.style.display);
         renderDriverGrid();
     });
 

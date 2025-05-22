@@ -456,18 +456,17 @@ nav {
 
 /* Driver Selection Modal Styles */
 #driver-selection-screen {
-    display: none; /* Initial state */
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(5px);
-    z-index: 9999; /* Ensure it's above everything */
-    align-items: center;
+    background: rgba(0, 0, 0, 0.9);
+    display: none;
     justify-content: center;
+    align-items: center;
     z-index: 1000;
+    padding: 2rem;
 }
 
 .driver-selection-content {

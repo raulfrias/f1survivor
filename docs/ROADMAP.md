@@ -10,7 +10,7 @@ This document outlines the development phases and tasks for the F1 Survivor game
 - [x] Add selection and hover states for driver cards
 - [x] Prevent selecting previously picked drivers
 - [x] Add loading states and error handling
-- [ ] Implement local storage for saving user picks
+- [x] Implement local storage for saving user picks
 - [ ] Enhance pick confirmation with styled modal (replace current alert with detailed driver card)
 
 ### Race Countdown & Auto-Pick

@@ -1,4 +1,18 @@
+// Import storage utilities
+import { saveUserPicks, loadUserPicks, isDriverAlreadyPicked, clearPickData, getCurrentSeason } from './storage-utils.js';
+
 console.log('app.js loaded - start');
+
+// Check localStorage availability
+let localStorageAvailable = true;
+try {
+    const testKey = '__test__';
+    localStorage.setItem(testKey, testKey);
+    localStorage.removeItem(testKey);
+} catch (e) {
+    localStorageAvailable = false;
+    console.warn('localStorage is not available. User picks will not be saved between sessions.');
+}
 
 // Constants
 const GRID_SIZE = 20; // Move to top level
@@ -316,9 +330,33 @@ async function renderDriverGrid() {
 const initializeDriverSelection = () => {
     console.log('Initializing driver selection...');
     
+    // Load user picks from localStorage if available
+    if (localStorageAvailable) {
+        try {
+            const savedPicks = loadUserPicks();
+            if (savedPicks && savedPicks.length > 0) {
+                // Update the mockDrivers array with previously picked drivers
+                savedPicks.forEach(pick => {
+                    const driver = mockDrivers.find(d => d.id === pick.driverId);
+                    if (driver) {
+                        driver.isAlreadyPicked = true;
+                    }
+                });
+                console.log('Loaded user picks from localStorage:', savedPicks);
+            }
+        } catch (error) {
+            console.error('Failed to load picks from localStorage:', error);
+        }
+    }
+
+    // Create the driver selection screen
+    const driverSelectionScreen = document.createElement('div');
+    driverSelectionScreen.id = 'driver-selection-screen';
+    driverSelectionScreen.style.display = 'none';
+    document.body.appendChild(driverSelectionScreen);
+
     // Get UI elements
     const makePickBtn = document.getElementById('make-pick-btn');
-    const driverSelectionScreen = document.getElementById('driver-selection-screen');
     const closeSelectionBtn = document.getElementById('close-selection-btn');
     confirmPickBtn = document.getElementById('confirm-pick-btn');
     loadingOverlay = document.getElementById('loading-overlay');
@@ -391,28 +429,33 @@ const initializeDriverSelection = () => {
             showLoading();
             hideError();
             
-            // BACKEND_INTEGRATION: Submit pick to server
-            // const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.USER_PICKS}`, {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //         'Authorization': `Bearer ${getUserToken()}`
-            //     },
-            //     body: JSON.stringify({
-            //         driverId: selectedDriverId,
-            //         raceId: currentGP.id
-            //     })
-            // });
-            // 
-            // if (!response.ok) throw new Error('Failed to submit pick');
-            // const result = await response.json();
-            
             // Simulate API delay
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Add to user picks and mark as picked
+            // Create pick object
+            const newPick = {
+                raceId: currentGP.name.toLowerCase().replace(/\s+/g, '-') + '-2025', // Create a race ID using current season
+                driverId: selectedDriverId,
+                timestamp: new Date().toISOString(),
+                isAutoPick: false
+            };
+            
+            // Add to user picks array
             userPicks.push(selectedDriverId);
             
+            // Save to localStorage if available
+            if (localStorageAvailable) {
+                const allPicks = loadUserPicks();
+                allPicks.push(newPick);
+                const saveSuccess = saveUserPicks(allPicks);
+                
+                if (!saveSuccess) {
+                    console.warn('Failed to save pick to localStorage, but continuing...');
+                }
+            }
+            
+            // Update UI
+            selectedDriver.isAlreadyPicked = true;
             alert(`You picked ${selectedDriver.name}!`);
             makePickBtn.textContent = `PICKED: ${selectedDriver.name.split(' ')[1].toUpperCase()}`;
             driverSelectionScreen.style.display = 'none';
@@ -645,5 +688,24 @@ try {
 } catch (error) {
     console.error('Error in anime.js animations:', error);
 }
+
+// Debug/Testing Tools
+function clearAllPicksData() {
+    if (confirm('Are you sure you want to clear all your pick data? This cannot be undone.')) {
+        if (localStorageAvailable) {
+            clearPickData();
+        }
+        userPicks = [];
+        mockDrivers.forEach(driver => {
+            driver.isAlreadyPicked = false;
+        });
+        alert('All pick data has been cleared.');
+        // Refresh the page to show changes
+        window.location.reload();
+    }
+}
+
+// Make it available in the global scope for testing
+window.clearAllPicksData = clearAllPicksData;
 
 console.log('app.js loaded - end');

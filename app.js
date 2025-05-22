@@ -73,7 +73,7 @@ const mockDrivers = [
         team: "Ferrari",
         teamColor: "#E80020",
         imageUrl: "assets/images/drivers/hamilton.png",
-        isAlreadyPicked: true
+        isAlreadyPicked: false
     },
     // Mercedes
     {
@@ -263,11 +263,6 @@ async function renderDriverGrid() {
         showLoading();
         hideError();
         
-        // BACKEND_INTEGRATION: Replace with API call
-        // const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DRIVERS}`);
-        // if (!response.ok) throw new Error('Failed to fetch drivers');
-        // const drivers = await response.json();
-        
         driverGrid.innerHTML = ''; // Clear existing content
         
         // Show loading skeletons
@@ -286,6 +281,12 @@ async function renderDriverGrid() {
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         driverGrid.innerHTML = ''; // Clear skeletons
+        
+        // Debug: Log state before rendering (keeping this as essential debug info)
+        console.log('Rendering grid with drivers:', mockDrivers.map(d => ({
+            name: d.name,
+            isAlreadyPicked: d.isAlreadyPicked
+        })));
         
         mockDrivers.forEach(driver => {
             const card = document.createElement('div');
@@ -329,6 +330,10 @@ async function renderDriverGrid() {
 // Update the driver selection initialization
 const initializeDriverSelection = () => {
     console.log('Initializing driver selection...');
+    
+    // Make variables available globally for debugging
+    window.mockDrivers = mockDrivers;
+    window.userPicks = userPicks;
     
     // Load user picks from localStorage if available
     if (localStorageAvailable) {
@@ -719,7 +724,24 @@ function clearAllPicksData() {
     }
 }
 
-// Make it available in the global scope for testing
+// Debug function to check driver state (keeping this as it's useful for troubleshooting)
+function checkDriverState(driverName) {
+    const driver = mockDrivers.find(d => d.name === driverName);
+    if (driver) {
+        console.log(`Driver state for ${driverName}:`, {
+            id: driver.id,
+            isAlreadyPicked: driver.isAlreadyPicked,
+            team: driver.team,
+            number: driver.number
+        });
+    } else {
+        console.log(`Driver ${driverName} not found`);
+    }
+    return driver;
+}
+
+// Make debug functions available globally
 window.clearAllPicksData = clearAllPicksData;
+window.checkDriverState = checkDriverState;
 
 console.log('app.js loaded - end');

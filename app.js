@@ -419,10 +419,20 @@ async function renderDriverGrid() {
         
         // Load user picks and update driver states
         if (localStorageAvailable) {
-            const picks = loadUserPicks();
-            mockDrivers.forEach(driver => {
-                driver.isAlreadyPicked = picks.some(pick => pick.driverId === driver.id);
-            });
+            try {
+                const picks = loadUserPicks();
+                console.log('Loaded picks for grid:', picks);
+                
+                if (Array.isArray(picks)) {
+                    mockDrivers.forEach(driver => {
+                        driver.isAlreadyPicked = picks.some(pick => pick.driverId === driver.id);
+                    });
+                } else {
+                    console.error('Picks is not an array:', picks);
+                }
+            } catch (error) {
+                console.error('Error loading picks:', error);
+            }
         }
         
         // Debug: Log state before rendering

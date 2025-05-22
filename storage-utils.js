@@ -38,14 +38,35 @@ function saveUserPicks(driverId) {
 function loadUserPicks() {
   try {
     const picksData = localStorage.getItem(STORAGE_KEYS.USER_PICKS);
-    if (!picksData) return [];
+    console.log('Raw picks data from localStorage:', picksData);
     
-    const userData = JSON.parse(picksData);
-    // Ensure we're only loading picks from the current season
-    if (userData.currentSeason !== getCurrentSeason()) {
+    if (!picksData) {
+      console.log('No picks data found in localStorage');
       return [];
     }
-    return Array.isArray(userData.picks) ? userData.picks : [];
+    
+    const userData = JSON.parse(picksData);
+    console.log('Parsed user data:', userData);
+    
+    // Ensure we're only loading picks from the current season
+    if (userData.currentSeason !== getCurrentSeason()) {
+      console.log('Picks are from a different season, returning empty array');
+      return [];
+    }
+    
+    // Ensure picks is an array
+    if (!userData.picks) {
+      console.log('No picks array in user data, returning empty array');
+      return [];
+    }
+    
+    if (!Array.isArray(userData.picks)) {
+      console.log('Picks is not an array, converting to array:', userData.picks);
+      return [userData.picks];
+    }
+    
+    console.log('Returning picks array:', userData.picks);
+    return userData.picks;
   } catch (error) {
     console.error('Failed to load picks from localStorage:', error);
     return [];

@@ -1,136 +1,183 @@
 # F1 Survivor Development Roadmap
 
-This document outlines the development phases and future plans for the F1 Survivor game. Each phase builds upon the previous one, gradually adding features and complexity.
+This document outlines the development phases and tasks for the F1 Survivor game, organized into small, manageable features.
 
-## Phase 1: Frontend Foundation ✅
+## Phase 1: User Flow Foundation ⚡
 
-### UI Implementation
-- [x] Basic HTML structure
-- [x] F1-themed styling with CSS
-- [x] Responsive design
-- [x] Dynamic animations with Anime.js
+### Driver Selection Refinement
+- [x] Create interactive driver selection grid
+- [x] Implement team-colored driver cards with images
+- [x] Add selection and hover states for driver cards
+- [x] Prevent selecting previously picked drivers
+- [x] Add loading states and error handling
+- [ ] Implement local storage for saving user picks
+- [ ] Add pick confirmation modal with driver details
 
-### Driver Selection UI
-- [x] Driver grid layout
-- [x] Team-colored cards
-- [x] Selection states and feedback
-- [x] Loading states and error handling
-- [x] Mock data integration
+### Race Countdown & Auto-Pick
+- [ ] Create race countdown timer component
+- [ ] Implement pick deadline logic (lock selections)
+- [ ] Build P15 auto-pick fallback system
+- [ ] Add pick change functionality before deadline
 
-## Phase 2: Backend Foundation 🔄
+### User Dashboard Mockup
+- [ ] Design player status dashboard wireframe
+- [ ] Create static league standings component
+- [ ] Build pick history visualization
+- [ ] Implement dashboard navigation structure
 
-### API Development
-- [ ] Set up Node.js/Express backend
-- [ ] Design RESTful API endpoints
-- [ ] Database schema design (PostgreSQL)
-- [ ] OpenF1 API integration
-- [ ] Error handling middleware
+### League System Prototype
+- [ ] Create league creation form interface
+- [ ] Build league joining form with code entry
+- [ ] Implement local storage for league data
+- [ ] Add league member list component
 
-### Authentication System
-- [ ] User registration
-- [ ] Login/logout functionality
-- [ ] JWT token management
-- [ ] Password reset flow
-- [ ] Email verification
+## Phase 2: Backend Foundation 🔌
 
-### Data Models
-- [ ] User profiles
-- [ ] Leagues
-- [ ] Race events
-- [ ] Driver picks
-- [ ] Race results
+### Basic API Setup
+- [ ] Set up Node.js/Express project structure
+- [ ] Create API route configuration
+- [ ] Implement CORS and basic middleware
+- [ ] Set up error handling framework
 
-## Phase 3: Core Game Logic 📝
+### Google Authentication
+- [ ] Set up Google OAuth integration
+- [ ] Create authentication middleware
+- [ ] Implement JWT token handling
+- [ ] Add protected routes
 
-### Race Management
-- [ ] F1 calendar integration
-- [ ] Race status tracking
-- [ ] Qualifying results processing
-- [ ] Race results processing
-- [ ] P15 auto-pick system
+### Database Models
+- [ ] Design and implement User model
+- [ ] Create League model with relations
+- [ ] Build DriverPick model for selections
+- [ ] Implement RaceResult model
 
-### Pick System
-- [ ] Pick validation
-- [ ] Deadline management
-- [ ] Pick history tracking
-- [ ] Driver availability checking
-- [ ] Pick confirmation system
+### API Endpoints
+- [ ] Create user endpoints (profile, settings)
+- [ ] Build league endpoints (create, join, list)
+- [ ] Implement pick endpoints (submit, change, view)
+- [ ] Add race data endpoints
 
-### League System
-- [ ] League creation
-- [ ] Player invitations
-- [ ] League standings
-- [ ] Elimination tracking
-- [ ] League history
+## Phase 3: Core Game Logic 🎮
 
-## Phase 4: Enhanced Features 🎯
+### League Management
+- [ ] Connect league creation form to API
+- [ ] Implement league invitation system
+- [ ] Build league admin controls
+- [ ] Add league settings management
 
-### User Experience
-- [ ] Email notifications
-- [ ] Push notifications
-- [ ] Real-time updates
-- [ ] Progressive Web App (PWA)
-- [ ] Mobile optimization
+### Pick System Integration
+- [ ] Connect driver selection UI to backend
+- [ ] Implement pick validation against deadline
+- [ ] Add pick history API integration
+- [ ] Build pick confirmation workflow
 
-### Statistics & Analytics
-- [ ] Player statistics
-- [ ] League analytics
-- [ ] Pick trends
-- [ ] Success rate tracking
-- [ ] Historical data analysis
+### F1 Data Integration
+- [ ] Set up OpenF1 API client
+- [ ] Create race calendar integration
+- [ ] Implement driver grid data sync
+- [ ] Build qualifying results fetcher
+
+### Results Processing
+- [ ] Create race results processor
+- [ ] Implement survival calculation logic
+- [ ] Build elimination notification system
+- [ ] Add league standings updater
+
+## Phase 4: User Experience 🚀
+
+### Email Notifications
+- [ ] Set up email delivery service
+- [ ] Create email templates for key events
+- [ ] Implement race results notification
+- [ ] Build elimination notice
+
+### Dashboard Enhancements
+- [ ] Create interactive league standings
+- [ ] Build player statistics component
+- [ ] Implement race countdown widget
+- [ ] Add driver performance stats
+
+### Mobile Optimization
+- [ ] Optimize responsive layouts
+- [ ] Implement touch-friendly controls
+- [ ] Add mobile navigation improvements
+- [ ] Create offline capabilities
 
 ### Social Features
-- [ ] Friend system
-- [ ] League chat
-- [ ] Pick discussions
-- [ ] Share functionality
-- [ ] Social media integration
+- [ ] Add league chat functionality
+- [ ] Implement social sharing
+- [ ] Build friend invitation system
+- [ ] Create league activity feed
 
-## Phase 5: Advanced Features 🚀
+## Technical Implementation Notes
 
-### Advanced League Options
-- [ ] Custom league rules
-- [ ] Private/public leagues
-- [ ] League templates
-- [ ] Season replays
-- [ ] Multi-season leagues
+### Local Storage Schema (Phase 1)
+```javascript
+// User data structure
+const userData = {
+  id: "user123",
+  name: "Player Name",
+  email: "player@example.com",
+  leagues: ["league1", "league2"],
+  picks: {
+    "race1": { driverId: 5, result: "survived" },
+    "race2": { driverId: 9, result: "eliminated" }
+  }
+};
 
-### Gamification
-- [ ] Achievement system
-- [ ] Badges and rewards
-- [ ] Global leaderboards
-- [ ] Seasonal rankings
-- [ ] Player tiers
+// League data structure
+const leagueData = {
+  id: "league1",
+  name: "My F1 League",
+  owner: "user123",
+  members: ["user123", "user456"],
+  inviteCode: "F1LEAGUE2024"
+};
+```
 
-### Premium Features
-- [ ] Pro subscription tier
-- [ ] Advanced analytics
-- [ ] League administration tools
-- [ ] Custom branding options
-- [ ] API access
+### Database Schema (Phase 2)
+```sql
+-- Users
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  google_id VARCHAR(255) UNIQUE,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  display_name VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-## Technical Improvements
+-- Leagues
+CREATE TABLE leagues (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  owner_id INTEGER REFERENCES users(id),
+  invite_code VARCHAR(20) UNIQUE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-### Performance
-- [ ] Caching system
-- [ ] Database optimization
-- [ ] CDN integration
-- [ ] Image optimization
-- [ ] API rate limiting
+-- League Members
+CREATE TABLE league_members (
+  id SERIAL PRIMARY KEY,
+  league_id INTEGER REFERENCES leagues(id),
+  user_id INTEGER REFERENCES users(id),
+  is_alive BOOLEAN DEFAULT TRUE,
+  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(league_id, user_id)
+);
 
-### DevOps
-- [ ] CI/CD pipeline
-- [ ] Automated testing
-- [ ] Monitoring system
-- [ ] Logging system
-- [ ] Backup strategy
-
-### Security
-- [ ] Security audit
-- [ ] Rate limiting
-- [ ] DDOS protection
-- [ ] Input validation
-- [ ] Data encryption
+-- Driver Picks
+CREATE TABLE driver_picks (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  league_id INTEGER REFERENCES leagues(id),
+  race_id VARCHAR(50) NOT NULL,
+  driver_id INTEGER NOT NULL,
+  is_auto_pick BOOLEAN DEFAULT FALSE,
+  result VARCHAR(20),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, league_id, race_id)
+);
+```
 
 ## Future Considerations
 
@@ -154,7 +201,6 @@ This document outlines the development phases and future plans for the F1 Surviv
 - **Phase 2:** Q2 2024 (2-3 months)
 - **Phase 3:** Q3 2024 (2-3 months)
 - **Phase 4:** Q4 2024 (3-4 months)
-- **Phase 5:** Q1 2025 (3-4 months)
 - **Technical Improvements:** Ongoing
 
 ## Integration Points

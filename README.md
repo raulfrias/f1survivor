@@ -75,12 +75,43 @@ f1survivor/
   - Visual feedback for selection states
   - Loading states and error handling
   - Pick validation logic
+  - Prevention of selecting previously picked drivers
 
 🔄 **In Progress:**
-  - Backend integration
-  - User authentication
-  - League management
-  - Race result processing
+  - Local storage for user picks
+  - Race countdown timer
+  - League management prototype
+  - Player dashboard
+
+## Development Roadmap
+
+Our development is organized into manageable phases:
+
+1. **User Flow Foundation** (Current Focus)
+   - Refining driver selection process
+   - Implementing race countdown and auto-pick
+   - Creating user dashboard prototype
+   - Building league system foundation
+
+2. **Backend Foundation**
+   - Setting up Node.js/Express backend
+   - Implementing Google Authentication
+   - Creating core data models
+   - Building API endpoints
+
+3. **Core Game Logic**
+   - League management functionality
+   - Driver pick system integration
+   - F1 data integration (OpenF1 API)
+   - Race results processing
+
+4. **User Experience Enhancements**
+   - Email notifications
+   - Dashboard improvements
+   - Mobile optimization
+   - Social features
+
+See [ROADMAP.md](docs/ROADMAP.md) for detailed development plans.
 
 ## Technologies Used
 
@@ -91,11 +122,11 @@ f1survivor/
 *   **Animations:**
     *   [Anime.js](https://animejs.com/) (included via CDN)
 *   **F1 Data Source (Planned):**
-    *   [OpenF1 API](https://openf1.org/) (or a similar public F1 data API) - for fetching real-time and historical F1 data.
-
-## Development Roadmap
-
-See [ROADMAP.md](docs/ROADMAP.md) for detailed development plans and upcoming features.
+    *   [OpenF1 API](https://openf1.org/) (or a similar public F1 data API)
+*   **Backend (Planned):**
+    *   Node.js/Express
+    *   Google OAuth
+    *   PostgreSQL
 
 ## Contributing
 

@@ -417,7 +417,15 @@ async function renderDriverGrid() {
         
         driverGrid.innerHTML = ''; // Clear skeletons
         
-        // Debug: Log state before rendering (keeping this as essential debug info)
+        // Load user picks and update driver states
+        if (localStorageAvailable) {
+            const picks = loadUserPicks();
+            mockDrivers.forEach(driver => {
+                driver.isAlreadyPicked = picks.some(pick => pick.driverId === driver.id);
+            });
+        }
+        
+        // Debug: Log state before rendering
         console.log('Rendering grid with drivers:', mockDrivers.map(d => ({
             name: d.name,
             isAlreadyPicked: d.isAlreadyPicked

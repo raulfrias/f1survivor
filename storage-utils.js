@@ -5,14 +5,28 @@ const STORAGE_KEYS = {
 };
 
 // Save user picks to localStorage
-function saveUserPicks(picks) {
+function saveUserPicks(driverId) {
   try {
+    // Load existing picks first
+    const existingPicks = loadUserPicks();
+    
+    // Create new pick object
+    const newPick = {
+      driverId: driverId,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Add new pick to existing picks
+    existingPicks.push(newPick);
+    
     const userPicksData = {
       userId: "local-user",
       currentSeason: getCurrentSeason(),
-      picks: picks || []
+      picks: existingPicks
     };
+    
     localStorage.setItem(STORAGE_KEYS.USER_PICKS, JSON.stringify(userPicksData));
+    console.log('Saved picks:', userPicksData);
     return true;
   } catch (error) {
     console.error('Failed to save picks to localStorage:', error);
@@ -31,7 +45,7 @@ function loadUserPicks() {
     if (userData.currentSeason !== getCurrentSeason()) {
       return [];
     }
-    return userData.picks || [];
+    return Array.isArray(userData.picks) ? userData.picks : [];
   } catch (error) {
     console.error('Failed to load picks from localStorage:', error);
     return [];
@@ -45,8 +59,19 @@ function getCurrentSeason() {
 
 // Check if a driver has already been picked
 function isDriverAlreadyPicked(driverId) {
-  const picks = loadUserPicks();
-  return picks.some(pick => pick.driverId === driverId);
+  try {
+    const picks = loadUserPicks();
+    if (!Array.isArray(picks)) {
+      console.error('Picks is not an array:', picks);
+      return false;
+    }
+    const isPicked = picks.some(pick => pick.driverId === driverId);
+    console.log(`Checking if driver ${driverId} is picked:`, isPicked);
+    return isPicked;
+  } catch (error) {
+    console.error('Error checking if driver is picked:', error);
+    return false;
+  }
 }
 
 // Clear all pick data (e.g., for a new season)

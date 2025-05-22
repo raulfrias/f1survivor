@@ -91,6 +91,35 @@
         </div>
     </section>
 
+    <!-- Driver Pick Confirmation Modal -->
+    <div id="confirmation-modal" class="confirmation-modal">
+        <div class="confirmation-modal-content">
+            <button id="close-confirmation-modal-btn" class="close-btn">&times;</button>
+            <h3>Confirm Your Pick</h3>
+            
+            <div class="driver-confirmation-card">
+                <div class="driver-image-container">
+                    <img id="confirmation-driver-image" src="" alt="Selected Driver">
+                </div>
+                
+                <div class="driver-details">
+                    <h4 id="confirmation-driver-name"></h4>
+                    <p>Team: <span id="confirmation-driver-team"></span></p>
+                    <p>Number: <span id="confirmation-driver-number"></span></p>
+                    
+                    <div class="confirmation-warning">
+                        <p><strong>Remember:</strong> Once confirmed, you cannot pick this driver again this season.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="confirmation-buttons">
+                <button id="cancel-pick-btn" class="cancel-btn">Cancel</button>
+                <button id="final-confirm-btn" class="cta-button">Confirm Pick</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <script type="module" src="app.js"></script>
 </body>

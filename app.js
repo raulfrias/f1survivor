@@ -258,6 +258,114 @@ function hideError() {
     errorMessage.classList.remove('active');
 }
 
+// Modal elements
+let confirmationModal, confirmationDriverImage, confirmationDriverName, 
+    confirmationDriverTeam, confirmationDriverNumber, finalConfirmBtn, cancelPickBtn;
+
+// Initialize confirmation modal elements
+function initializeConfirmationModal() {
+    confirmationModal = document.getElementById('confirmation-modal');
+    confirmationDriverImage = document.getElementById('confirmation-driver-image');
+    confirmationDriverName = document.getElementById('confirmation-driver-name');
+    confirmationDriverTeam = document.getElementById('confirmation-driver-team');
+    confirmationDriverNumber = document.getElementById('confirmation-driver-number');
+    finalConfirmBtn = document.getElementById('final-confirm-btn');
+    cancelPickBtn = document.getElementById('cancel-pick-btn');
+    const closeConfirmationModalBtn = document.getElementById('close-confirmation-modal-btn');
+    
+    // Add event listeners
+    closeConfirmationModalBtn.addEventListener('click', hideConfirmationModal);
+    cancelPickBtn.addEventListener('click', hideConfirmationModal);
+    
+    // Final confirmation button handling
+    finalConfirmBtn.addEventListener('click', async () => {
+        try {
+            hideConfirmationModal();
+            showLoading();
+            hideError();
+            
+            // Add to user picks
+            if (localStorageAvailable) {
+                saveUserPicks(selectedDriverId);
+            }
+            
+            // Update UI
+            const selectedDriver = mockDrivers.find(d => d.id === selectedDriverId);
+            makePickBtn.textContent = `PICKED: ${selectedDriver.name.split(' ')[1].toUpperCase()}`;
+            driverSelectionScreen.style.display = 'none';
+            
+            // Add animation using Anime.js
+            anime({
+                targets: makePickBtn,
+                scale: [1.1, 1],
+                duration: 400,
+                easing: 'easeOutElastic(1, .8)'
+            });
+        } catch (error) {
+            console.error('Failed to submit pick:', error);
+            showError('Failed to submit your pick. Please try again.');
+        } finally {
+            hideLoading();
+        }
+    });
+}
+
+// Show confirmation modal with driver details
+function showConfirmationModal(driver) {
+    if (!confirmationModal) return;
+    
+    // Set driver details
+    confirmationDriverImage.src = driver.imageUrl;
+    confirmationDriverImage.alt = driver.name;
+    confirmationDriverName.textContent = driver.name;
+    confirmationDriverTeam.textContent = driver.team;
+    confirmationDriverTeam.style.color = driver.teamColor;
+    confirmationDriverNumber.textContent = driver.number;
+    
+    // Apply team color to some elements
+    confirmationModal.style.setProperty('--accent-color', driver.teamColor);
+    
+    // Show modal
+    confirmationModal.classList.add('active');
+    
+    // Add escape key listener
+    document.addEventListener('keydown', handleConfirmationEscapeKey);
+    
+    // Add animations using Anime.js
+    anime({
+        targets: '.confirmation-modal-content',
+        scale: [0.9, 1],
+        opacity: [0, 1],
+        duration: 400,
+        easing: 'easeOutElastic(1, .8)'
+    });
+    
+    anime({
+        targets: '#confirmation-driver-image',
+        translateY: [20, 0],
+        opacity: [0, 1],
+        delay: 200,
+        duration: 500,
+        easing: 'easeOutQuad'
+    });
+}
+
+// Hide confirmation modal
+function hideConfirmationModal() {
+    if (!confirmationModal) return;
+    confirmationModal.classList.remove('active');
+    
+    // Remove escape key listener
+    document.removeEventListener('keydown', handleConfirmationEscapeKey);
+}
+
+// Handle escape key press
+function handleConfirmationEscapeKey(e) {
+    if (e.key === 'Escape') {
+        hideConfirmationModal();
+    }
+}
+
 async function renderDriverGrid() {
     try {
         showLoading();
@@ -439,51 +547,13 @@ const initializeDriverSelection = () => {
             return;
         }
 
-        if (userPicks.includes(selectedDriverId)) {
+        if (localStorageAvailable && isDriverAlreadyPicked(selectedDriverId)) {
             showError('You have already picked this driver in a previous race!');
             return;
         }
 
-        try {
-            showLoading();
-            hideError();
-            
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Create pick object
-            const newPick = {
-                raceId: currentGP.name.toLowerCase().replace(/\s+/g, '-') + '-2025', // Create a race ID using current season
-                driverId: selectedDriverId,
-                timestamp: new Date().toISOString(),
-                isAutoPick: false
-            };
-            
-            // Add to user picks array
-            userPicks.push(selectedDriverId);
-            
-            // Save to localStorage if available
-            if (localStorageAvailable) {
-                const allPicks = loadUserPicks();
-                allPicks.push(newPick);
-                const saveSuccess = saveUserPicks(allPicks);
-                
-                if (!saveSuccess) {
-                    console.warn('Failed to save pick to localStorage, but continuing...');
-                }
-            }
-            
-            // Update UI
-            selectedDriver.isAlreadyPicked = true;
-            alert(`You picked ${selectedDriver.name}!`);
-            makePickBtn.textContent = `PICKED: ${selectedDriver.name.split(' ')[1].toUpperCase()}`;
-            driverSelectionScreen.style.display = 'none';
-        } catch (error) {
-            console.error('Failed to submit pick:', error);
-            showError('Failed to submit your pick. Please try again.');
-        } finally {
-            hideLoading();
-        }
+        // Instead of directly proceeding, show confirmation modal
+        showConfirmationModal(selectedDriver);
     });
 
     console.log('Driver selection initialized successfully');

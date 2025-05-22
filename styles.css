@@ -746,4 +746,133 @@ nav {
 @keyframes loading {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
+}
+
+/* Confirmation Modal Styles */
+.confirmation-modal {
+    display: none;
+    position: fixed;
+    z-index: 1100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    justify-content: center;
+    align-items: center;
+}
+
+.confirmation-modal.active {
+    display: flex;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.confirmation-modal-content {
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    border: 2px solid var(--accent-color);
+    width: 90%;
+    max-width: 500px;
+    padding: 20px;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.4s ease-out;
+}
+
+.driver-confirmation-card {
+    display: flex;
+    gap: 20px;
+    margin: 20px 0;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: var(--card-bg-color);
+}
+
+.driver-image-container {
+    width: 120px;
+    height: 150px;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.driver-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.driver-details {
+    flex: 1;
+}
+
+.driver-details h4 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    color: var(--text-color);
+}
+
+.confirmation-warning {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: rgba(255, 200, 0, 0.1);
+    border-left: 3px solid #FFC800;
+    border-radius: 4px;
+}
+
+.confirmation-warning p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.confirmation-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.cancel-btn {
+    padding: 10px 20px;
+    background-color: transparent;
+    border: 1px solid var(--text-color);
+    color: var(--text-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .driver-confirmation-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .driver-image-container {
+        width: 100px;
+        height: 130px;
+    }
 } 

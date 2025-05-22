@@ -417,6 +417,11 @@ async function renderDriverGrid() {
         
         driverGrid.innerHTML = ''; // Clear skeletons
         
+        // Reset all drivers' picked status
+        mockDrivers.forEach(driver => {
+            driver.isAlreadyPicked = false;
+        });
+        
         // Load user picks and update driver states
         if (localStorageAvailable) {
             try {
@@ -424,8 +429,14 @@ async function renderDriverGrid() {
                 console.log('Loaded picks for grid:', picks);
                 
                 if (Array.isArray(picks)) {
+                    // Update each driver's picked status
                     mockDrivers.forEach(driver => {
-                        driver.isAlreadyPicked = picks.some(pick => pick.driverId === driver.id);
+                        const isPicked = picks.some(pick => {
+                            const pickDriverId = typeof pick === 'object' ? pick.driverId : pick;
+                            return pickDriverId === driver.id;
+                        });
+                        driver.isAlreadyPicked = isPicked;
+                        console.log(`Driver ${driver.name} (${driver.id}) picked status:`, isPicked);
                     });
                 } else {
                     console.error('Picks is not an array:', picks);
@@ -438,6 +449,7 @@ async function renderDriverGrid() {
         // Debug: Log state before rendering
         console.log('Rendering grid with drivers:', mockDrivers.map(d => ({
             name: d.name,
+            id: d.id,
             isAlreadyPicked: d.isAlreadyPicked
         })));
         

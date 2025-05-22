@@ -8,11 +8,18 @@ const STORAGE_KEYS = {
 function saveUserPicks(driverId) {
   try {
     // Load existing picks first
-    const existingPicks = loadUserPicks();
+    let existingPicks = loadUserPicks();
+    console.log('Existing picks before save:', existingPicks);
+    
+    // Ensure existingPicks is an array
+    if (!Array.isArray(existingPicks)) {
+      console.log('Converting existing picks to array');
+      existingPicks = [];
+    }
     
     // Create new pick object
     const newPick = {
-      driverId: driverId,
+      driverId: parseInt(driverId), // Ensure driverId is a number
       timestamp: new Date().toISOString()
     };
     
@@ -25,8 +32,8 @@ function saveUserPicks(driverId) {
       picks: existingPicks
     };
     
+    console.log('Saving picks data:', userPicksData);
     localStorage.setItem(STORAGE_KEYS.USER_PICKS, JSON.stringify(userPicksData));
-    console.log('Saved picks:', userPicksData);
     return true;
   } catch (error) {
     console.error('Failed to save picks to localStorage:', error);
@@ -62,7 +69,18 @@ function loadUserPicks() {
     
     if (!Array.isArray(userData.picks)) {
       console.log('Picks is not an array, converting to array:', userData.picks);
-      return [userData.picks];
+      // If picks is a single pick object, wrap it in an array
+      if (typeof userData.picks === 'object' && userData.picks.driverId) {
+        return [userData.picks];
+      }
+      // If picks is a single number (driverId), convert to pick object
+      if (typeof userData.picks === 'number') {
+        return [{
+          driverId: userData.picks,
+          timestamp: new Date().toISOString()
+        }];
+      }
+      return [];
     }
     
     console.log('Returning picks array:', userData.picks);

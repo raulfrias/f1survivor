@@ -5,6 +5,9 @@
     --grid-color: rgba(225, 6, 0, 0.15);
     --light-off: rgba(169, 0, 0, 0.2);
     --light-on: rgb(255, 0, 0);
+    --bg-color: #1a1a1a;
+    --card-bg-color: #2a2a2a;
+    --accent-color: var(--primary-red);
 }
 
 * {

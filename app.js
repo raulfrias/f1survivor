@@ -238,6 +238,7 @@ let selectedDriverId = null;
 
 // UI Elements
 let loadingOverlay, errorMessage, driverGrid, confirmPickBtn;
+let makePickBtn, driverSelectionScreen;
 
 function showLoading() {
     loadingOverlay.classList.add('active');
@@ -262,57 +263,13 @@ function hideError() {
 let confirmationModal, confirmationDriverImage, confirmationDriverName, 
     confirmationDriverTeam, confirmationDriverNumber, finalConfirmBtn, cancelPickBtn;
 
-// Initialize confirmation modal elements
-function initializeConfirmationModal() {
-    confirmationModal = document.getElementById('confirmation-modal');
-    confirmationDriverImage = document.getElementById('confirmation-driver-image');
-    confirmationDriverName = document.getElementById('confirmation-driver-name');
-    confirmationDriverTeam = document.getElementById('confirmation-driver-team');
-    confirmationDriverNumber = document.getElementById('confirmation-driver-number');
-    finalConfirmBtn = document.getElementById('final-confirm-btn');
-    cancelPickBtn = document.getElementById('cancel-pick-btn');
-    const closeConfirmationModalBtn = document.getElementById('close-confirmation-modal-btn');
-    
-    // Add event listeners
-    closeConfirmationModalBtn.addEventListener('click', hideConfirmationModal);
-    cancelPickBtn.addEventListener('click', hideConfirmationModal);
-    
-    // Final confirmation button handling
-    finalConfirmBtn.addEventListener('click', async () => {
-        try {
-            hideConfirmationModal();
-            showLoading();
-            hideError();
-            
-            // Add to user picks
-            if (localStorageAvailable) {
-                saveUserPicks(selectedDriverId);
-            }
-            
-            // Update UI
-            const selectedDriver = mockDrivers.find(d => d.id === selectedDriverId);
-            makePickBtn.textContent = `PICKED: ${selectedDriver.name.split(' ')[1].toUpperCase()}`;
-            driverSelectionScreen.style.display = 'none';
-            
-            // Add animation using Anime.js
-            anime({
-                targets: makePickBtn,
-                scale: [1.1, 1],
-                duration: 400,
-                easing: 'easeOutElastic(1, .8)'
-            });
-        } catch (error) {
-            console.error('Failed to submit pick:', error);
-            showError('Failed to submit your pick. Please try again.');
-        } finally {
-            hideLoading();
-        }
-    });
-}
-
 // Show confirmation modal with driver details
 function showConfirmationModal(driver) {
-    if (!confirmationModal) return;
+    console.log('Showing confirmation modal for driver:', driver);
+    if (!confirmationModal) {
+        console.error('Confirmation modal element not found!');
+        return;
+    }
     
     // Set driver details
     confirmationDriverImage.src = driver.imageUrl;
@@ -327,6 +284,7 @@ function showConfirmationModal(driver) {
     
     // Show modal
     confirmationModal.classList.add('active');
+    console.log('Added active class to modal');
     
     // Add escape key listener
     document.addEventListener('keydown', handleConfirmationEscapeKey);
@@ -364,6 +322,75 @@ function handleConfirmationEscapeKey(e) {
     if (e.key === 'Escape') {
         hideConfirmationModal();
     }
+}
+
+// Initialize confirmation modal elements
+function initializeConfirmationModal() {
+    console.log('Initializing confirmation modal...');
+    confirmationModal = document.getElementById('confirmation-modal');
+    confirmationDriverImage = document.getElementById('confirmation-driver-image');
+    confirmationDriverName = document.getElementById('confirmation-driver-name');
+    confirmationDriverTeam = document.getElementById('confirmation-driver-team');
+    confirmationDriverNumber = document.getElementById('confirmation-driver-number');
+    finalConfirmBtn = document.getElementById('final-confirm-btn');
+    cancelPickBtn = document.getElementById('cancel-pick-btn');
+    const closeConfirmationModalBtn = document.getElementById('close-confirmation-modal-btn');
+    
+    // Log element existence
+    console.log('Modal elements found:', {
+        modal: !!confirmationModal,
+        image: !!confirmationDriverImage,
+        name: !!confirmationDriverName,
+        team: !!confirmationDriverTeam,
+        number: !!confirmationDriverNumber,
+        confirmBtn: !!finalConfirmBtn,
+        cancelBtn: !!cancelPickBtn,
+        closeBtn: !!closeConfirmationModalBtn
+    });
+    
+    if (!confirmationModal) {
+        console.error('Confirmation modal not found in DOM');
+        return;
+    }
+    
+    // Add event listeners
+    closeConfirmationModalBtn.addEventListener('click', hideConfirmationModal);
+    cancelPickBtn.addEventListener('click', hideConfirmationModal);
+    
+    // Final confirmation button handling
+    finalConfirmBtn.addEventListener('click', async () => {
+        console.log('Final confirm button clicked');
+        try {
+            hideConfirmationModal();
+            showLoading();
+            hideError();
+            
+            // Add to user picks
+            if (localStorageAvailable) {
+                saveUserPicks(selectedDriverId);
+            }
+            
+            // Update UI
+            const selectedDriver = mockDrivers.find(d => d.id === selectedDriverId);
+            makePickBtn.textContent = `PICKED: ${selectedDriver.name.split(' ')[1].toUpperCase()}`;
+            driverSelectionScreen.style.display = 'none';
+            
+            // Add animation using Anime.js
+            anime({
+                targets: makePickBtn,
+                scale: [1.1, 1],
+                duration: 400,
+                easing: 'easeOutElastic(1, .8)'
+            });
+        } catch (error) {
+            console.error('Failed to submit pick:', error);
+            showError('Failed to submit your pick. Please try again.');
+        } finally {
+            hideLoading();
+        }
+    });
+    
+    console.log('Confirmation modal initialized successfully');
 }
 
 async function renderDriverGrid() {
@@ -472,13 +499,16 @@ const initializeDriverSelection = () => {
     }
 
     // Get UI elements
-    const makePickBtn = document.getElementById('make-pick-btn');
-    const driverSelectionScreen = document.getElementById('driver-selection-screen');
+    makePickBtn = document.getElementById('make-pick-btn');
+    driverSelectionScreen = document.getElementById('driver-selection-screen');
     const closeSelectionBtn = document.getElementById('close-selection-btn');
     confirmPickBtn = document.getElementById('confirm-pick-btn');
     loadingOverlay = document.getElementById('loading-overlay');
     errorMessage = document.getElementById('error-message');
     driverGrid = document.getElementById('driver-grid');
+
+    // Initialize the confirmation modal
+    initializeConfirmationModal();
 
     if (!makePickBtn || !driverSelectionScreen || !closeSelectionBtn || !confirmPickBtn || !loadingOverlay || !errorMessage || !driverGrid) {
         console.error('Some elements not found:', {

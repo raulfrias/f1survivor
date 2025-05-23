@@ -946,6 +946,14 @@ nav {
     padding: 0.5rem;
     border-radius: 4px;
     font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.pick-status.urgent {
+    background-color: #ff3d00;
+    color: #ffffff;
+    animation: urgentPulse 1.5s infinite;
+    box-shadow: 0 0 15px rgba(255, 61, 0, 0.3);
 }
 
 .deadline-warning {
@@ -953,35 +961,131 @@ nav {
     color: #000000;
 }
 
+.deadline-warning.urgent {
+    background-color: #ff3d00;
+    color: #ffffff;
+    animation: urgentPulse 1.5s infinite;
+}
+
 .deadline-passed {
     background-color: #e10600;
     color: #ffffff;
 }
 
-.race-live {
-    background-color: #4caf50;
-    color: #ffffff;
+/* Enhanced urgent pulse animation */
+@keyframes urgentPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 61, 0, 0.7);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 0 20px 0 rgba(255, 61, 0, 0.3);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 61, 0, 0);
+    }
 }
 
-/* Responsive adjustments for countdown timer */
-@media (max-width: 768px) {
-    .countdown-timer {
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 1rem;
+/* Update the countdown warning styles */
+.race-countdown-container .pick-status {
+    margin: 0.5rem -1rem 0;
+    padding: 0.8rem;
+    font-size: 1.1rem;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.race-countdown-container .pick-status.urgent {
+    background-color: #ff3d00;
+    color: #ffffff;
+    font-weight: bold;
+    animation: urgentPulse 1.5s infinite;
+}
+
+/* Deadline Status Styles */
+.deadline-status {
+    text-align: center;
+    margin: 1rem 0;
+    padding: 0.8rem;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.deadline-status.deadline-warning {
+    background-color: #ff9800;
+    color: #000000;
+    box-shadow: 0 0 15px rgba(255, 152, 0, 0.3);
+}
+
+.deadline-status.deadline-passed {
+    background-color: #e10600;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(225, 6, 0, 0.3);
+}
+
+.deadline-status.selection-made {
+    background-color: #4caf50;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+}
+
+/* Driver card locked state */
+.driver-card.locked {
+    opacity: 0.7;
+    filter: grayscale(50%);
+    cursor: not-allowed;
+    border-color: #555;
+    box-shadow: none;
+}
+
+.driver-card.locked:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #555;
+}
+
+/* Urgent notification animation */
+.urgent-pulse {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.7);
     }
-    
-    .time-unit {
-        min-width: 80px;
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 152, 0, 0);
     }
-    
-    .time-unit span {
-        font-size: 1.5rem;
-        padding: 0.4rem 0.6rem;
-        min-width: 40px;
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0);
     }
-    
-    .race-name {
-        font-size: 1.3rem;
+}
+
+/* Toast notification for locked state */
+.toast-notification {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #e10600;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    animation: slideUp 0.3s ease-out forwards;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translate(-50%, 100%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
     }
 } 

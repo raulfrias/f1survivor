@@ -12,35 +12,49 @@ class RaceCountdown {
   }
   
   async initialize() {
+    // Clear any existing interval first
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = null;
+    }
+
     await this.fetchNextRaceData();
     this.renderCountdown();
     this.startCountdown();
+
+    // Add event listener for storage changes
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'nextRaceData') {
+        console.log('Race data changed in localStorage, reinitializing...');
+        this.initialize();
+      }
+    });
+
+    // Also listen for custom event
+    window.addEventListener('raceDataUpdated', () => {
+      console.log('Race data updated event received, reinitializing...');
+      this.initialize();
+    });
   }
   
   async fetchNextRaceData() {
     try {
-      // Check localStorage for cached race data first
+      // Always check localStorage first
       const cachedData = localStorage.getItem('nextRaceData');
-      const cacheTimestamp = localStorage.getItem('nextRaceDataTimestamp');
       
-      // Use cache if available and less than 1 hour old
-      if (cachedData && cacheTimestamp) {
-        const cacheAge = Date.now() - parseInt(cacheTimestamp);
-        if (cacheAge < 3600000) { // 1 hour in milliseconds
-          this.currentRaceData = JSON.parse(cachedData);
-          console.log('Using cached race data:', this.currentRaceData);
-          return;
-        }
+      if (cachedData) {
+        console.log('Found race data in localStorage:', JSON.parse(cachedData));
+        this.currentRaceData = JSON.parse(cachedData);
+        return;
       }
       
-      // Get next race from static calendar
-      console.log('Fetching next race from static calendar...');
+      // If no cached data, get from calendar
+      console.log('No cached data found, fetching from calendar...');
       const nextRace = getNextRace();
       
       if (nextRace) {
-        console.log('Found next race from calendar:', nextRace.raceName, 'on', nextRace.dateStart);
+        console.log('Found next race from calendar:', nextRace.raceName);
         
-        // Convert to our expected data format
         const raceData = {
           raceId: nextRace.id,
           meetingKey: nextRace.round,
@@ -49,18 +63,14 @@ class RaceCountdown {
           raceCircuit: nextRace.circuit,
           location: nextRace.location,
           country: nextRace.country,
-          pickDeadline: new Date(new Date(nextRace.dateStart).getTime() - 3600000).toISOString() // 1 hour before race
+          pickDeadline: new Date(new Date(nextRace.dateStart).getTime() - 3600000).toISOString()
         };
         
-        // Cache the data
-        localStorage.setItem('nextRaceData', JSON.stringify(raceData));
-        localStorage.setItem('nextRaceDataTimestamp', Date.now().toString());
-        
         this.currentRaceData = raceData;
-        console.log('Race data prepared:', raceData);
+        localStorage.setItem('nextRaceData', JSON.stringify(raceData));
+        console.log('Race data prepared and cached:', raceData);
       } else {
-        // No upcoming races in calendar
-        console.log('No upcoming races found in calendar, season may be over');
+        console.log('No upcoming races found, loading fallback...');
         this.loadFallbackRaceData();
       }
     } catch (error) {
@@ -135,23 +145,6 @@ class RaceCountdown {
   updateCountdown() {
     const timeRemaining = this.calculateTimeRemaining();
     
-    if (timeRemaining.total <= 0) {
-      // Race has started
-      clearInterval(this.countdownInterval);
-      document.getElementById('pick-status').textContent = 'Race in progress';
-      document.getElementById('pick-status').classList.add('race-live');
-      
-      // Reset all countdown values to zero
-      document.getElementById('days-value').textContent = '00';
-      document.getElementById('hours-value').textContent = '00';
-      document.getElementById('minutes-value').textContent = '00';
-      document.getElementById('seconds-value').textContent = '00';
-      
-      // Trigger fetch for next race after a delay
-      setTimeout(() => this.initialize(), 3600000); // Check again in 1 hour
-      return;
-    }
-    
     // Update DOM elements with new values
     document.getElementById('days-value').textContent = timeRemaining.days.toString().padStart(2, '0');
     document.getElementById('hours-value').textContent = timeRemaining.hours.toString().padStart(2, '0');
@@ -163,12 +156,17 @@ class RaceCountdown {
     const currentTime = new Date().getTime();
     const timeToDeadline = deadlineTime - currentTime;
     
+    const pickStatus = document.getElementById('pick-status');
+    
     if (timeToDeadline <= 0) {
-      document.getElementById('pick-status').textContent = 'Pick deadline passed';
-      document.getElementById('pick-status').classList.add('deadline-passed');
+      pickStatus.textContent = 'Selection locked: Deadline has passed';
+      pickStatus.className = 'pick-status deadline-passed';
     } else if (timeToDeadline <= 3600000) { // Less than 1 hour
-      document.getElementById('pick-status').textContent = 'Pick deadline approaching!';
-      document.getElementById('pick-status').classList.add('deadline-warning');
+      pickStatus.textContent = 'Pick deadline approaching!';
+      pickStatus.className = 'pick-status deadline-warning';
+    } else {
+      pickStatus.textContent = '';
+      pickStatus.className = 'pick-status';
     }
   }
   
@@ -176,6 +174,17 @@ class RaceCountdown {
     const raceTime = new Date(this.currentRaceData.raceDate).getTime();
     const currentTime = new Date().getTime();
     const difference = raceTime - currentTime;
+    
+    // If race time has passed, return all zeros
+    if (difference <= 0) {
+      return {
+        total: 0,
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0
+      };
+    }
     
     return {
       total: difference,

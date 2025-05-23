@@ -2,38 +2,29 @@
 // Handles the logic for enforcing driver selection deadlines
 
 export class PickDeadlineManager {
-    constructor() {
+    constructor(options = {}) {
         this.raceData = null;
         this.deadlineCheckInterval = null;
         this.onDeadlineApproaching = null;
         this.onDeadlinePassed = null;
-        this.debug = false;  // Set to true for development logging
+        this.debug = options.debug || false;
     }
 
-    log(level, message, data = null) {
-        if (!this.debug && level === 'debug') return;
-        
-        const logMessage = {
-            component: 'PickDeadlineManager',
-            timestamp: new Date().toISOString(),
-            level,
-            message,
-            ...(data && { data })
-        };
-
-        switch (level) {
-            case 'error':
-                console.error(logMessage);
-                break;
-            case 'warn':
-                console.warn(logMessage);
-                break;
-            case 'debug':
-                console.debug(logMessage);
-                break;
-            default:
-                console.log(logMessage);
+    log(level, message, data = {}) {
+        // Only log if it's an error or if debug mode is on
+        if (level === 'error' || (this.debug && ['debug', 'info'].includes(level))) {
+            console.log({
+                component: "PickDeadlineManager",
+                timestamp: new Date().toISOString(),
+                level,
+                message,
+                data
+            });
         }
+    }
+
+    setDebug(enabled) {
+        this.debug = enabled;
     }
 
     initialize(callbacks = {}) {
@@ -62,13 +53,13 @@ export class PickDeadlineManager {
         try {
             const storedData = localStorage.getItem('nextRaceData');
             if (!storedData) {
-                this.log('warn', 'Race data not found in storage');
+                this.log('debug', 'No race data found');
                 return;
             }
 
             const parsedData = JSON.parse(storedData);
             if (!parsedData.pickDeadline) {
-                this.log('warn', 'Invalid race data structure', { reason: 'missing pickDeadline' });
+                this.log('debug', 'No deadline configured');
                 return;
             }
 
@@ -81,7 +72,6 @@ export class PickDeadlineManager {
 
     checkDeadlineStatus() {
         if (!this.raceData?.pickDeadline) {
-            this.log('warn', 'Cannot check deadline', { reason: 'no deadline configured' });
             return { passed: false };
         }
 

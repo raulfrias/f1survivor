@@ -1064,17 +1064,16 @@ window.addEventListener('triggerAutoPick', (event) => {
 
 // Add test function for deadline manager
 window.testDeadlineManager = async () => {
-    const manager = new PickDeadlineManager();
-    manager.debug = true;  // Enable debug logs
+    const manager = new PickDeadlineManager({ debug: false });
     
-    console.log('Test 1: Normal Initialization');
+    // Test 1: Normal Initialization
     manager.initialize();
     
-    console.log('\nTest 2: Missing Race Data');
+    // Test 2: Missing Race Data
     localStorage.removeItem('nextRaceData');
     manager.loadRaceData();
     
-    console.log('\nTest 3: Deadline Approaching');
+    // Test 3: Deadline Approaching
     const futureDate = new Date(Date.now() + 30000);
     localStorage.setItem('nextRaceData', JSON.stringify({
         raceId: 'test-race',
@@ -1082,7 +1081,7 @@ window.testDeadlineManager = async () => {
     }));
     manager.initialize();
     
-    console.log('\nTest 4: Invalid Race Data');
+    // Test 4: Invalid Race Data
     localStorage.setItem('nextRaceData', JSON.stringify({
         raceId: 'test-race'
         // Missing pickDeadline

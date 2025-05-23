@@ -7,10 +7,37 @@ export class PickDeadlineManager {
         this.deadlineCheckInterval = null;
         this.onDeadlineApproaching = null;
         this.onDeadlinePassed = null;
+        this.debug = false;  // Set to true for development logging
+    }
+
+    log(level, message, data = null) {
+        if (!this.debug && level === 'debug') return;
+        
+        const logMessage = {
+            component: 'PickDeadlineManager',
+            timestamp: new Date().toISOString(),
+            level,
+            message,
+            ...(data && { data })
+        };
+
+        switch (level) {
+            case 'error':
+                console.error(logMessage);
+                break;
+            case 'warn':
+                console.warn(logMessage);
+                break;
+            case 'debug':
+                console.debug(logMessage);
+                break;
+            default:
+                console.log(logMessage);
+        }
     }
 
     initialize(callbacks = {}) {
-        console.log('Initializing PickDeadlineManager');
+        this.log('debug', 'Initializing deadline manager');
         this.onDeadlineApproaching = callbacks.onDeadlineApproaching;
         this.onDeadlinePassed = callbacks.onDeadlinePassed;
         
@@ -19,7 +46,7 @@ export class PickDeadlineManager {
         // Check immediately
         const initialCheck = this.checkDeadlineStatus();
         if (initialCheck.passed) {
-            console.log('Deadline already passed during initialization');
+            this.log('info', 'Deadline already passed on initialization');
             this.onDeadlinePassed?.();
         }
         
@@ -35,27 +62,26 @@ export class PickDeadlineManager {
         try {
             const storedData = localStorage.getItem('nextRaceData');
             if (!storedData) {
-                console.warn('No race data found in localStorage');
+                this.log('warn', 'Race data not found in storage');
                 return;
             }
 
             const parsedData = JSON.parse(storedData);
             if (!parsedData.pickDeadline) {
-                console.warn('Invalid race data - missing pickDeadline');
+                this.log('warn', 'Invalid race data structure', { reason: 'missing pickDeadline' });
                 return;
             }
 
             this.raceData = parsedData;
-            console.log('Successfully loaded race data:', this.raceData);
+            this.log('debug', 'Race data loaded', { raceId: this.raceData.raceId });
         } catch (error) {
-            console.error('Error loading race data:', error);
+            this.log('error', 'Failed to load race data', { error: error.message });
         }
     }
 
     checkDeadlineStatus() {
-        console.log('Checking deadline status');
         if (!this.raceData?.pickDeadline) {
-            console.warn('No deadline data available');
+            this.log('warn', 'Cannot check deadline', { reason: 'no deadline configured' });
             return { passed: false };
         }
 
@@ -63,15 +89,13 @@ export class PickDeadlineManager {
         const deadline = new Date(this.raceData.pickDeadline);
         const isPassed = now >= deadline;
 
-        console.log('Deadline check:', {
+        this.log('debug', 'Checking deadline status', {
             now: now.toISOString(),
             deadline: deadline.toISOString(),
             isPassed
         });
 
         if (isPassed) {
-            console.log('Deadline has passed');
-            // Clear interval if it exists
             if (this.deadlineCheckInterval) {
                 clearInterval(this.deadlineCheckInterval);
                 this.deadlineCheckInterval = null;
@@ -89,11 +113,9 @@ export class PickDeadlineManager {
             seconds: Math.floor(((deadline - now) % (1000 * 60)) / 1000)
         };
 
-        console.log('Time until deadline:', timeRemaining);
-
         // Check if approaching deadline (less than 1 hour)
         if (timeRemaining.total <= 3600000) {
-            console.log('Deadline approaching, triggering callback');
+            this.log('info', 'Deadline approaching', { timeRemaining });
             this.onDeadlineApproaching?.(timeRemaining);
         }
 
@@ -101,7 +123,7 @@ export class PickDeadlineManager {
     }
 
     startDeadlineMonitoring() {
-        console.log('Starting deadline monitoring');
+        this.log('debug', 'Starting deadline monitor');
         // Clear any existing interval
         if (this.deadlineCheckInterval) {
             clearInterval(this.deadlineCheckInterval);
@@ -116,4 +138,9 @@ export class PickDeadlineManager {
             }
         }, 1000);
     }
+}
+
+// Make available for testing
+if (typeof window !== 'undefined') {
+    window.PickDeadlineManager = PickDeadlineManager;
 } 

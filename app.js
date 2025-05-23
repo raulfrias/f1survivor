@@ -1,5 +1,6 @@
 // Import storage utilities
 import { saveUserPicks, loadUserPicks, isDriverAlreadyPicked, clearPickData, getCurrentSeason } from './storage-utils.js';
+import RaceCountdown from './race-countdown.js';
 
 console.log('app.js loaded - start');
 
@@ -632,6 +633,16 @@ const initializeDriverSelection = () => {
 
 // Initialize driver selection immediately
 initializeDriverSelection();
+
+// Initialize Race Countdown Timer
+const countdownContainer = document.getElementById('race-countdown-container');
+if (countdownContainer) {
+    const raceCountdown = new RaceCountdown(countdownContainer);
+    raceCountdown.initialize();
+    console.log('Race countdown timer initialized');
+} else {
+    console.error('Race countdown container not found');
+}
 
 // Add tooltip positioning logic
 function updateTooltipPosition(card) {

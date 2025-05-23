@@ -11,10 +11,10 @@ Welcome to **F1 Survivor**, a web-based game where your Formula 1 knowledge and 
 
 The rules are designed to be simple yet challenging:
 
-1.  **Pick a Driver:** Before each Grand Prix, choose one driver from the official grid.
+1.  **Pick a Driver:** Before each GP, choose one driver from the official grid.
 2.  **No Repeats:** You cannot pick the same driver more than once throughout the season. Strategic planning is key!
-3.  **Top 10 Finish:** If your chosen driver finishes in the top 10 in that Grand Prix, you survive and advance to the next race.
-4.  **Forgot to Pick?** If you forget to make a selection for a Grand Prix, the system will automatically assign you the driver who qualified in 15th place (P15) for that race.
+3.  **Top 10 Finish:** If your chosen driver finishes in the top 10 in that GP, you survive and advance to the next race.
+4.  **Forgot to Pick?** If you forget to make a selection for a GP, the system will automatically assign you the driver who qualified in 15th place (P15) for that race.
 5.  **Elimination:** If your chosen (or auto-assigned P15) driver finishes outside the top 10 (or does not finish - DNF), you're out of the game!
 6.  **Last One Standing:** The goal is to be the last player surviving in the league.
 
@@ -84,8 +84,11 @@ f1survivor/
   - Automatic next race detection
   - Pick deadline warnings
   - Caching system for performance
+  - Basic auto-pick system for missed deadlines
+  - Deadline enforcement with UI locking
 
 🔄 **In Progress:**
+  - P15 qualifying position auto-pick implementation
   - Local storage for user picks
   - League management prototype
   - Player dashboard

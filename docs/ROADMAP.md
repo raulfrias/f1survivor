@@ -15,7 +15,7 @@ This document outlines the development phases and tasks for the F1 Survivor game
 
 ### Race Countdown & Auto-Pick
 - [x] Create race countdown timer component
-- [ ] Implement pick deadline logic (lock selections)
+- [x] Implement pick deadline logic (lock selections)
 - [ ] Build P15 auto-pick fallback system
 - [ ] Add pick change functionality before deadline
 

@@ -483,6 +483,29 @@ async function renderDriverGrid() {
                 ${driver.isAlreadyPicked ? '<div class="tooltip">Already picked in a previous race</div>' : ''}
             `;
             
+            // Add tooltip positioning for picked drivers
+            if (driver.isAlreadyPicked) {
+                const tooltip = card.querySelector('.tooltip');
+                if (tooltip) {
+                    card.addEventListener('mouseenter', () => {
+                        const cardRect = card.getBoundingClientRect();
+                        const tooltipRect = tooltip.getBoundingClientRect();
+                        
+                        // Position tooltip above the card, centered
+                        const top = cardRect.top - tooltipRect.height - 10;
+                        const left = cardRect.left + (cardRect.width - tooltipRect.width) / 2;
+                        
+                        // Ensure tooltip doesn't go off screen
+                        const windowWidth = window.innerWidth;
+                        const adjustedLeft = Math.max(10, Math.min(left, windowWidth - tooltipRect.width - 10));
+                        const adjustedTop = Math.max(10, top);
+                        
+                        tooltip.style.top = `${adjustedTop}px`;
+                        tooltip.style.left = `${adjustedLeft}px`;
+                    });
+                }
+            }
+            
             driverGrid.appendChild(card);
         });
     } catch (error) {
@@ -644,27 +667,41 @@ if (countdownContainer) {
     console.error('Race countdown container not found');
 }
 
-// Add tooltip positioning logic
-function updateTooltipPosition(card) {
-    const tooltip = card.querySelector('.tooltip');
-    if (!tooltip) return;
-
-    const cardRect = card.getBoundingClientRect();
-    const tooltipRect = tooltip.getBoundingClientRect();
-    
-    // Position tooltip above the card
-    const top = cardRect.top - tooltipRect.height - 10;
-    const left = cardRect.left + (cardRect.width - tooltipRect.width) / 2;
-
-    tooltip.style.top = `${top}px`;
-    tooltip.style.left = `${left}px`;
+// Debug/Testing Tools
+function clearAllPicksData() {
+    if (confirm('Are you sure you want to clear all your pick data? This cannot be undone.')) {
+        if (localStorageAvailable) {
+            clearPickData();
+        }
+        userPicks = [];
+        mockDrivers.forEach(driver => {
+            driver.isAlreadyPicked = false;
+        });
+        alert('All pick data has been cleared.');
+        // Refresh the page to show changes
+        window.location.reload();
+    }
 }
 
-// Add event listeners for tooltip positioning
-document.querySelectorAll('.driver-card.picked').forEach(card => {
-    card.addEventListener('mouseenter', () => updateTooltipPosition(card));
-    card.addEventListener('mousemove', () => updateTooltipPosition(card));
-});
+// Debug function to check driver state (keeping this as it's useful for troubleshooting)
+function checkDriverState(driverName) {
+    const driver = mockDrivers.find(d => d.name === driverName);
+    if (driver) {
+        console.log(`Driver state for ${driverName}:`, {
+            id: driver.id,
+            isAlreadyPicked: driver.isAlreadyPicked,
+            team: driver.team,
+            number: driver.number
+        });
+    } else {
+        console.log(`Driver ${driverName} not found`);
+    }
+    return driver;
+}
+
+// Make debug functions available globally
+window.clearAllPicksData = clearAllPicksData;
+window.checkDriverState = checkDriverState;
 
 // Wrap all anime.js related code in try-catch
 try {
@@ -848,41 +885,5 @@ try {
 } catch (error) {
     console.error('Error in anime.js animations:', error);
 }
-
-// Debug/Testing Tools
-function clearAllPicksData() {
-    if (confirm('Are you sure you want to clear all your pick data? This cannot be undone.')) {
-        if (localStorageAvailable) {
-            clearPickData();
-        }
-        userPicks = [];
-        mockDrivers.forEach(driver => {
-            driver.isAlreadyPicked = false;
-        });
-        alert('All pick data has been cleared.');
-        // Refresh the page to show changes
-        window.location.reload();
-    }
-}
-
-// Debug function to check driver state (keeping this as it's useful for troubleshooting)
-function checkDriverState(driverName) {
-    const driver = mockDrivers.find(d => d.name === driverName);
-    if (driver) {
-        console.log(`Driver state for ${driverName}:`, {
-            id: driver.id,
-            isAlreadyPicked: driver.isAlreadyPicked,
-            team: driver.team,
-            number: driver.number
-        });
-    } else {
-        console.log(`Driver ${driverName} not found`);
-    }
-    return driver;
-}
-
-// Make debug functions available globally
-window.clearAllPicksData = clearAllPicksData;
-window.checkDriverState = checkDriverState;
 
 console.log('app.js loaded - end');

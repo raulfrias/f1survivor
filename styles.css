@@ -173,7 +173,7 @@ nav {
 
 .next-race {
     margin-top: 2rem;
-    padding: 2rem;
+    padding: 1rem 1rem;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     backdrop-filter: blur(10px);
@@ -884,7 +884,7 @@ nav {
 .race-countdown-container {
     background-color: #15151e;
     border-radius: 8px;
-    padding: 1.5rem;
+    padding: 1rem 1rem 0;
     margin: 1rem 0;
     color: #ffffff;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);

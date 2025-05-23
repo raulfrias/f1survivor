@@ -76,10 +76,17 @@ f1survivor/
   - Loading states and error handling
   - Pick validation logic
   - Prevention of selecting previously picked drivers
+  - Fixed tooltip positioning for "already picked" drivers
+
+✅ **Race Countdown Timer:**
+  - Real-time countdown to next F1 race
+  - Complete 2025 F1 calendar integration (24 races)
+  - Automatic next race detection
+  - Pick deadline warnings
+  - Caching system for performance
 
 🔄 **In Progress:**
   - Local storage for user picks
-  - Race countdown timer
   - League management prototype
   - Player dashboard
 

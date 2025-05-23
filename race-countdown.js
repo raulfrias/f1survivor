@@ -2,6 +2,8 @@
  * Race Countdown Timer Component
  * Displays the time remaining until the next F1 race with real-time updates
  */
+import { getNextRace } from './race-calendar-2025.js';
+
 class RaceCountdown {
   constructor(containerElement) {
     this.containerEl = containerElement;
@@ -26,29 +28,28 @@ class RaceCountdown {
         const cacheAge = Date.now() - parseInt(cacheTimestamp);
         if (cacheAge < 3600000) { // 1 hour in milliseconds
           this.currentRaceData = JSON.parse(cachedData);
+          console.log('Using cached race data:', this.currentRaceData);
           return;
         }
       }
       
-      // Fetch fresh data if cache is expired or unavailable
-      const currentDate = new Date().toISOString().split('T')[0];
-      const response = await fetch(`https://api.openf1.org/v1/sessions?year=2025&session_type=Race&date_start>=${currentDate}`);
-      const races = await response.json();
+      // Get next race from static calendar
+      console.log('Fetching next race from static calendar...');
+      const nextRace = getNextRace();
       
-      // Sort races by date to get the next upcoming one
-      if (races.length > 0) {
-        this.currentRaceData = races.sort((a, b) => 
-          new Date(a.date_start) - new Date(b.date_start)
-        )[0];
+      if (nextRace) {
+        console.log('Found next race from calendar:', nextRace.raceName, 'on', nextRace.dateStart);
         
-        // Store race details needed for countdown
+        // Convert to our expected data format
         const raceData = {
-          raceId: this.currentRaceData.session_key,
-          meetingKey: this.currentRaceData.meeting_key,
-          raceName: this.currentRaceData.meeting_name,
-          raceDate: this.currentRaceData.date_start,
-          raceCircuit: this.currentRaceData.circuit_short_name,
-          pickDeadline: new Date(new Date(this.currentRaceData.date_start).getTime() - 3600000).toISOString() // 1 hour before race
+          raceId: nextRace.id,
+          meetingKey: nextRace.round,
+          raceName: nextRace.raceName,
+          raceDate: nextRace.dateStart,
+          raceCircuit: nextRace.circuit,
+          location: nextRace.location,
+          country: nextRace.country,
+          pickDeadline: new Date(new Date(nextRace.dateStart).getTime() - 3600000).toISOString() // 1 hour before race
         };
         
         // Cache the data
@@ -56,6 +57,11 @@ class RaceCountdown {
         localStorage.setItem('nextRaceDataTimestamp', Date.now().toString());
         
         this.currentRaceData = raceData;
+        console.log('Race data prepared:', raceData);
+      } else {
+        // No upcoming races in calendar
+        console.log('No upcoming races found in calendar, season may be over');
+        this.loadFallbackRaceData();
       }
     } catch (error) {
       console.error('Error fetching race data:', error);
@@ -64,6 +70,7 @@ class RaceCountdown {
   }
   
   loadFallbackRaceData() {
+    console.log('Loading fallback race data...');
     // Hardcoded fallback for next race if API fails
     const fallbackData = {
       raceId: "2025-monaco",
@@ -75,6 +82,12 @@ class RaceCountdown {
     };
     
     this.currentRaceData = fallbackData;
+    
+    // Cache the fallback data
+    localStorage.setItem('nextRaceData', JSON.stringify(fallbackData));
+    localStorage.setItem('nextRaceDataTimestamp', Date.now().toString());
+    
+    console.log('Fallback data loaded:', fallbackData);
   }
   
   renderCountdown() {
@@ -84,7 +97,6 @@ class RaceCountdown {
     this.containerEl.innerHTML = `
       <div class="race-info">
         <h3 class="race-name">Next Race: <span id="race-name">${this.currentRaceData.raceName}</span></h3>
-        <p class="race-circuit" id="race-circuit">${this.currentRaceData.raceCircuit}</p>
       </div>
       <div class="countdown-timer">
         <div class="time-unit">

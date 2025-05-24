@@ -51,8 +51,8 @@ def serve_static(filename):
 
 @app.route('/')
 def serve_index():
-    # By default, serve test-qualifying-manager.html
-    return send_from_directory('.', 'test-qualifying-manager.html')
+    # By default, serve index.html
+    return send_from_directory('.', 'index.html')
 
 if __name__ == '__main__':
     # Make sure to activate your virtual environment that has flask, requests, pandas

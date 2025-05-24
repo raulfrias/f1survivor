@@ -18,23 +18,36 @@ class RaceCountdown {
       this.countdownInterval = null;
     }
 
-    await this.fetchNextRaceData();
-    this.renderCountdown();
-    this.startCountdown();
-
-    // Add event listener for storage changes
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'nextRaceData') {
-        console.log('Race data changed in localStorage, reinitializing...');
-        this.initialize();
+    try {
+      await this.fetchNextRaceData();
+      
+      // Verify race data was properly loaded
+      if (!this.currentRaceData || !this.currentRaceData.raceId) {
+        throw new Error('Failed to load race data');
       }
-    });
+      
+      this.renderCountdown();
+      this.startCountdown();
 
-    // Also listen for custom event
-    window.addEventListener('raceDataUpdated', () => {
-      console.log('Race data updated event received, reinitializing...');
-      this.initialize();
-    });
+      // Add event listener for storage changes
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'nextRaceData') {
+          console.log('Race data changed in localStorage, reinitializing...');
+          this.initialize();
+        }
+      });
+
+      // Also listen for custom event
+      window.addEventListener('raceDataUpdated', () => {
+        console.log('Race data updated event received, reinitializing...');
+        this.initialize();
+      });
+      
+      return this.currentRaceData; // Return race data for verification
+    } catch (error) {
+      console.error('Failed to initialize race countdown:', error);
+      throw error; // Re-throw to be handled by app initialization
+    }
   }
   
   async fetchNextRaceData() {
@@ -84,12 +97,15 @@ class RaceCountdown {
     console.log('Loading fallback race data...');
     // Hardcoded fallback for next race if API fails
     const fallbackData = {
-      raceId: "2025-monaco",
-      meetingKey: "2025-6",
-      raceName: "Monaco Grand Prix",
-      raceDate: "2025-05-25T14:00:00Z",
+      raceId: "mon-2025",
+      meetingKey: 8,
+      raceName: "Monaco GP",
+      raceDate: "2025-05-25T13:00:00+00:00",
+      qualifyingDate: "2025-05-25",
       raceCircuit: "Monaco",
-      pickDeadline: "2025-05-25T13:00:00Z"
+      location: "Monaco",
+      country: "Monaco",
+      pickDeadline: "2025-05-25T12:00:00.000Z"
     };
     
     this.currentRaceData = fallbackData;

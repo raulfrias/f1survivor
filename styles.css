@@ -1201,4 +1201,67 @@ nav {
     background-color: #ff9800;
     color: #000000;
     font-weight: bold;
+}
+
+/* Pick Change MVP Enhancements */
+
+/* Current pick display in modal */
+.current-pick-display {
+  background: rgba(225, 6, 0, 0.1);
+  border: 1px solid var(--primary-red);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.current-pick-display strong {
+  color: var(--primary-red);
+  font-size: 1.1rem;
+}
+
+.change-note {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  opacity: 0.8;
+  font-style: italic;
+}
+
+/* Highlight current pick in driver grid */
+.driver-card.current-pick {
+  border: 2px solid var(--primary-red);
+  background-color: rgba(225, 6, 0, 0.1);
+  position: relative;
+}
+
+.driver-card.current-pick::before {
+  content: 'CURRENT PICK';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary-red);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  z-index: 2;
+}
+
+.driver-card.current-pick:hover {
+  border-color: var(--primary-red);
+  box-shadow: 0 0 15px rgba(225, 6, 0, 0.4);
+}
+
+/* Enhanced confirmation button for changes */
+.cta-button.change-mode {
+  background: #ff9800;
+  color: #000;
+}
+
+.cta-button.change-mode:hover {
+  background: #f57c00;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(255, 152, 0, 0.3);
 } 

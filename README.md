@@ -77,6 +77,8 @@ f1survivor/
   - Pick validation logic
   - Prevention of selecting previously picked drivers
   - Fixed tooltip positioning for "already picked" drivers
+  - Pick change functionality until 1 hour before race
+  - User-friendly deadline display in local timezone
 
 ✅ **Race Countdown Timer:**
   - Real-time countdown to next F1 race

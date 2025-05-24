@@ -107,6 +107,17 @@ export class PickDeadlineManager {
         }
         return false;
     }
+
+    isDeadlinePassed() {
+        if (!this.raceData || !this.raceData.pickDeadline) {
+            console.log('Cannot check deadline without race data or pick deadline');
+            return false;
+        }
+
+        const now = new Date();
+        const deadline = new Date(this.raceData.pickDeadline);
+        return now >= deadline;
+    }
 }
 
 // Make available for testing

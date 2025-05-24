@@ -78,6 +78,12 @@
             <h2>Pick Your Driver for <span id="current-gp-name">[Upcoming GP]</span></h2>
             <p class="deadline">Selection deadline: <span id="selection-deadline">[Date and Time]</span></p>
             
+            <!-- Current pick display (shows only when changing) -->
+            <div id="current-pick-display" class="current-pick-display" style="display: none;">
+                <p>Currently selected: <strong id="current-pick-name">Driver Name</strong></p>
+                <p class="change-note">Select a new driver to change your pick</p>
+            </div>
+            
             <!-- Add error message container -->
             <div id="error-message" class="error-message">
                 An error occurred while loading drivers. Please try again.

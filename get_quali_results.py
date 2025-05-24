@@ -105,6 +105,13 @@ def get_latest_meeting() -> Optional[int]:
 def get_meeting_by_date(race_date: str) -> Optional[int]:
     """Find meeting key for a specific race date by looking for qualifying sessions first."""
     try:
+        # Check if this is a future date
+        race_datetime = datetime.strptime(race_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        if race_datetime > now:
+            print(f"Race date {race_date} is in the future. No qualifying data available yet.", file=sys.stderr)
+            return None
+
         # Try to find a qualifying session that starts on the given date
         print(f"Attempting to find qualifying session starting on {race_date} to get meeting_key.", file=sys.stderr)
         

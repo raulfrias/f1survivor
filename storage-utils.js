@@ -4,8 +4,8 @@ const STORAGE_KEYS = {
   USER_SETTINGS: 'f1survivor_settings'
 };
 
-// Save user picks to localStorage
-function saveUserPicks(driverId) {
+// Save user picks to localStorage (enhanced for pick changes)
+function saveUserPicks(driverId, driverInfo = null) {
   try {
     // Load existing picks first
     let existingPicks = loadUserPicks();
@@ -17,14 +17,34 @@ function saveUserPicks(driverId) {
       existingPicks = [];
     }
     
-    // Create new pick object
+    // Get race data for raceId
+    const raceData = JSON.parse(localStorage.getItem('nextRaceData'));
+    if (!raceData || !raceData.raceId) {
+      throw new Error('No valid race data found. Cannot save pick.');
+    }
+    
+    // Create new pick object with enhanced data
     const newPick = {
       driverId: parseInt(driverId), // Ensure driverId is a number
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      raceId: raceData.raceId,
+      driverName: driverInfo?.driverName || null,
+      teamName: driverInfo?.teamName || null,
+      isAutoPick: driverInfo?.isAutoPick || false
     };
     
-    // Add new pick to existing picks
-    existingPicks.push(newPick);
+    // Check if pick already exists for this race
+    const existingPickIndex = existingPicks.findIndex(p => p.raceId === raceData.raceId);
+    
+    if (existingPickIndex !== -1) {
+      // Update existing pick (change scenario)
+      existingPicks[existingPickIndex] = newPick;
+      console.log('Updated existing pick for race:', raceData.raceId);
+    } else {
+      // Add new pick
+      existingPicks.push(newPick);
+      console.log('Added new pick for race:', raceData.raceId);
+    }
     
     const userPicksData = {
       userId: "local-user",
@@ -34,10 +54,12 @@ function saveUserPicks(driverId) {
     
     console.log('Saving picks data:', userPicksData);
     localStorage.setItem(STORAGE_KEYS.USER_PICKS, JSON.stringify(userPicksData));
-    return true;
+    
+    // Return the saved pick for confirmation
+    return newPick;
   } catch (error) {
     console.error('Failed to save picks to localStorage:', error);
-    return false;
+    throw error; // Re-throw the error to be handled by the caller
   }
 }
 
@@ -124,10 +146,76 @@ function clearPickData() {
   }
 }
 
+
+
+// Get current race pick
+function getCurrentRacePick() {
+  try {
+    const raceData = JSON.parse(localStorage.getItem('nextRaceData'));
+    if (!raceData) {
+      console.log('No race data found');
+      return null;
+    }
+    
+    const picks = loadUserPicks();
+    const currentPick = picks.find(pick => pick.raceId === raceData.raceId);
+    console.log('Current race pick:', currentPick);
+    return currentPick || null;
+  } catch (error) {
+    console.error('Failed to get current race pick:', error);
+    return null;
+  }
+}
+
+// Add test data function
+export function addTestPreviousRacePicks() {
+    try {
+        // Load existing picks
+        const existingData = localStorage.getItem('f1survivor_user_picks');
+        const userData = existingData ? JSON.parse(existingData) : {
+            userId: 'local-user',
+            currentSeason: '2025',
+            picks: []
+        };
+
+        // Add simulated picks for previous races
+        const previousPicks = [
+            {
+                raceId: 'bhr-2025',  // Bahrain
+                driverId: 1,         // Max Verstappen
+                driverName: 'Max Verstappen',
+                teamName: 'Red Bull Racing',
+                timestamp: '2025-03-02T12:00:00.000Z',
+                isAutoPick: false
+            },
+            {
+                raceId: 'sau-2025',  // Saudi Arabia
+                driverId: 7,         // Lando Norris
+                driverName: 'Lando Norris',
+                teamName: 'McLaren',
+                timestamp: '2025-03-09T12:00:00.000Z',
+                isAutoPick: false
+            }
+        ];
+
+        // Add the previous picks to the picks array
+        userData.picks = [...previousPicks, ...userData.picks];
+
+        // Save back to localStorage
+        localStorage.setItem('f1survivor_user_picks', JSON.stringify(userData));
+        console.log('Test previous race picks added successfully');
+        return true;
+    } catch (error) {
+        console.error('Failed to add test previous race picks:', error);
+        return false;
+    }
+}
+
 export {
   saveUserPicks,
   loadUserPicks,
   isDriverAlreadyPicked,
   clearPickData,
-  getCurrentSeason
+  getCurrentSeason,
+  getCurrentRacePick
 }; 

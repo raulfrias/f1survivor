@@ -82,11 +82,20 @@ export class QualifyingResultsManager {
 
     async fetchQualifyingResults(date) {
         if (date === undefined) {
-            this.log('warn', 'fetchQualifyingResults called with undefined date. Aborting API call and using fallback.');
-            // Ensure some results state, even if empty or fallback, to prevent errors downstream
+            this.log('warn', 'fetchQualifyingResults called with undefined date. Using fallback.');
             this.qualifyingResults = this.getFallbackDriver(); 
             return this.qualifyingResults; 
         }
+
+        // Check if this is a future date
+        const requestDate = new Date(date);
+        const now = new Date();
+        if (requestDate > now) {
+            this.log('info', `Qualifying results requested for future date (${date}). Using fallback.`);
+            this.qualifyingResults = this.getFallbackDriver();
+            return this.qualifyingResults;
+        }
+
         this.log('debug', `Fetching qualifying results for date: ${date === null ? 'latest' : date}`);
         this.log('debug', 'Current this.raceData at start of fetchQualifyingResults:', this.raceData);
 
@@ -127,24 +136,24 @@ export class QualifyingResultsManager {
             return this._processResults(data, this.raceData ? this.raceData.raceId : 'unknown_race');
 
         } catch (error) {
-            this.log('error', 'Failed to fetch qualifying results', error);
-            // If fetching fails, _processResults won't be called with valid data,
-            // so qualifyingResults might remain null or old.
-            // getAutoPick and other methods need to handle this state gracefully.
+            // Check if this is a 500 error from the qualifying script
+            if (error.message && error.message.includes('500')) {
+                this.log('info', 'Qualifying data not available yet. Using fallback driver.');
+            } else {
+                this.log('error', 'Failed to fetch qualifying results', error);
+            }
             this.qualifyingResults = []; // Explicitly clear on error before fallback
             return this.getFallbackDriver();
         }
     }
 
     getFallbackDriver() {
-        // Fallback strategy when qualifying data is unavailable
-        // This fallback should ideally return a list of 20 drivers if the rest of the system expects it
-        // For now, returning a single P15-like driver as a placeholder for a more robust fallback list
+        // Update fallback drivers for 2025 season
         const fallbackDrivers = [
-            { driverId: 20, driverName: "Kevin Magnussen", position: 15, teamName: "Haas F1 Team" },
-            { driverId: 77, driverName: "Valtteri Bottas", position: 15, teamName: "Kick Sauber" },
-            { driverId: 23, driverName: "Alex Albon", position: 15, teamName: "Williams" },
-            { driverId: 31, driverName: "Esteban Ocon", position: 15, teamName: "Haas F1 Team" }
+            { driverId: 31, driverName: "Esteban Ocon", position: 15, teamName: "Haas F1 Team" },
+            { driverId: 87, driverName: "Oliver Bearman", position: 15, teamName: "Haas F1 Team" },
+            { driverId: 27, driverName: "Nico Hulkenberg", position: 15, teamName: "Kick Sauber" },
+            { driverId: 5, driverName: "Gabriel Bortoleto", position: 15, teamName: "Kick Sauber" }
         ];
 
         // Deterministic selection based on race identifier
@@ -152,14 +161,8 @@ export class QualifyingResultsManager {
             this.raceData.raceId.split('-')[0].length : 0;
         const index = raceIdHash % fallbackDrivers.length;
         
-        // If getNextAvailablePosition expects a full list, this fallback is insufficient.
-        // For now, we'll log a warning and return a single driver object.
-        // A more robust fallback would be a full list of 20 placeholder drivers.
-        this.log('warn', 'Using single fallback driver. Full list fallback might be needed.', fallbackDrivers[index]);
-        // To make getAutoPick work with this, it might need adjustment or this fallback needs to be a list.
-        // For the purpose of getAutoPick, it expects to find the P15 driver from this.qualifyingResults.
-        // If this.qualifyingResults is an array, getAutoPick logic will need to find P15 from the array.
-        return [fallbackDrivers[index]]; // Return as an array with one element for now.
+        this.log('info', 'Using fallback driver for future or unavailable qualifying data', fallbackDrivers[index]);
+        return [fallbackDrivers[index]];
     }
 
     isDriverPicked(driverId) {

@@ -1,8 +1,9 @@
 // Import storage utilities
-import { saveUserPicks, loadUserPicks, isDriverAlreadyPicked, clearPickData, getCurrentSeason } from './storage-utils.js';
+import { saveUserPicks, loadUserPicks, isDriverAlreadyPicked, clearPickData, getCurrentSeason, getCurrentRacePick, addTestPreviousRacePicks } from './storage-utils.js';
 import RaceCountdown from './race-countdown.js';
 import { PickDeadlineManager } from './pick-deadline-manager.js';
 import { AutoPickManager } from './auto-pick-manager.js';
+import { PickChangeUtils } from './pick-change-utils.js';
 
 console.log('app.js loaded - start');
 
@@ -34,7 +35,7 @@ const GRID_SIZE = 20; // Move to top level
 // BACKEND_INTEGRATION: Replace with API call to get current race information
 const currentGP = {
     name: "Monaco GP",
-    deadline: "2024-05-26 14:00 UTC"
+    deadline: "2025-05-25 12:00 UTC"
 };
 
 // Mock data for testing
@@ -274,6 +275,10 @@ function showConfirmationModal(driver) {
         return;
     }
     
+    // Check if this is a change
+    const currentPick = getCurrentRacePick();
+    const isChanging = !!currentPick;
+    
     // Set driver details
     confirmationDriverImage.src = driver.imageUrl;
     confirmationDriverImage.alt = driver.name;
@@ -281,6 +286,22 @@ function showConfirmationModal(driver) {
     confirmationDriverTeam.textContent = driver.team;
     confirmationDriverTeam.style.color = driver.teamColor;
     confirmationDriverNumber.textContent = driver.number;
+    
+    // Update modal title and warning based on whether it's a change
+    const modalTitle = confirmationModal.querySelector('h3');
+    const warningText = confirmationModal.querySelector('.confirmation-warning p');
+    
+    if (isChanging && modalTitle) {
+        modalTitle.textContent = 'Confirm Pick Change';
+    } else if (modalTitle) {
+        modalTitle.textContent = 'Confirm Your Pick';
+    }
+    
+    if (isChanging && warningText && currentPick) {
+        warningText.innerHTML = `<strong>Note:</strong> You are changing from ${currentPick.driverName} to ${driver.name}. You can continue to change your pick until 1 hour before the race.`;
+    } else if (warningText) {
+        warningText.innerHTML = '<strong>Remember:</strong> Once confirmed, you cannot pick this driver again this season.';
+    }
     
     // Apply team color to some elements
     confirmationModal.style.setProperty('--accent-color', driver.teamColor);
@@ -363,19 +384,47 @@ function initializeConfirmationModal() {
     // Final confirmation button handling
     finalConfirmBtn.addEventListener('click', async () => {
         console.log('Final confirm button clicked');
+        
+        // Get the selected driver
+        const selectedDriver = mockDrivers.find(d => d.id === selectedDriverId);
+        if (!selectedDriver) {
+            console.error('Selected driver not found');
+            showError('Invalid driver selection. Please try again.');
+            return;
+        }
+        
         try {
             hideConfirmationModal();
             showLoading();
             hideError();
             
-            // Add to user picks
-            if (localStorageAvailable) {
-                saveUserPicks(selectedDriverId);
+            // Verify race data exists
+            const raceData = JSON.parse(localStorage.getItem('nextRaceData'));
+            if (!raceData || !raceData.raceId) {
+                throw new Error('Race data not initialized. Please refresh the page.');
             }
             
-            // Update UI
-            const selectedDriver = mockDrivers.find(d => d.id === selectedDriverId);
-            makePickBtn.textContent = `PICKED: ${selectedDriver.name.split(' ')[1].toUpperCase()}`;
+            // Add to user picks
+            if (localStorageAvailable) {
+                const driverInfo = {
+                    driverName: selectedDriver.name,
+                    teamName: selectedDriver.team,
+                    isAutoPick: false
+                };
+                
+                const savedPick = await saveUserPicks(selectedDriverId, driverInfo);
+                if (!savedPick) {
+                    throw new Error('Failed to save pick. Please try again.');
+                }
+                
+                console.log('Successfully saved pick:', savedPick);
+            }
+            
+            // Update UI with pick change capability check
+            const deadlineManager = new PickDeadlineManager();
+            const canChange = !deadlineManager.isDeadlinePassed();
+            const currentPick = getCurrentRacePick();
+            PickChangeUtils.updateMakePickButtonText(currentPick, canChange);
             driverSelectionScreen.style.display = 'none';
             
             // Add animation using Anime.js
@@ -387,7 +436,8 @@ function initializeConfirmationModal() {
             });
         } catch (error) {
             console.error('Failed to submit pick:', error);
-            showError('Failed to submit your pick. Please try again.');
+            showError(error.message || 'Failed to submit your pick. Please try again.');
+            hideConfirmationModal();
         } finally {
             hideLoading();
         }
@@ -510,6 +560,10 @@ async function renderDriverGrid() {
             
             driverGrid.appendChild(card);
         });
+        
+        // Highlight current pick in the grid
+        const currentPick = getCurrentRacePick();
+        PickChangeUtils.highlightCurrentPickInGrid(currentPick);
     } catch (error) {
         console.error('Error rendering driver grid:', error);
         showError('Failed to load drivers. Please try again.');
@@ -521,6 +575,37 @@ async function renderDriverGrid() {
 // Initialize driver selection with deadline logic
 const initializeDriverSelection = () => {
     console.log('Initializing driver selection...');
+    
+    // Get UI elements first
+    makePickBtn = document.getElementById('make-pick-btn');
+    driverSelectionScreen = document.getElementById('driver-selection-screen');
+    const closeSelectionBtn = document.getElementById('close-selection-btn');
+    confirmPickBtn = document.getElementById('confirm-pick-btn');
+    loadingOverlay = document.getElementById('loading-overlay');
+    errorMessage = document.getElementById('error-message');
+    driverGrid = document.getElementById('driver-grid');
+
+    // Check if all required elements are present
+    const requiredElements = {
+        makePickBtn,
+        driverSelectionScreen,
+        closeSelectionBtn,
+        confirmPickBtn,
+        loadingOverlay,
+        errorMessage,
+        driverGrid
+    };
+    
+    const missingElements = Object.entries(requiredElements)
+        .filter(([_, element]) => !element)
+        .map(([name]) => name);
+    
+    if (missingElements.length > 0) {
+        throw new Error(`Missing required elements in initializeDriverSelection: ${missingElements.join(', ')}`);
+    }
+
+    // Initialize the confirmation modal
+    initializeConfirmationModal();
     
     // Initialize auto-pick manager
     const autoPickManager = new AutoPickManager();
@@ -543,16 +628,10 @@ const initializeDriverSelection = () => {
             statusElement.className = `deadline-status deadline-warning${isUrgent ? ' urgent' : ''}`;
             statusElement.textContent = `Selection closes in: ${timeRemaining.hours}h ${timeRemaining.minutes}m ${timeRemaining.seconds}s`;
             
-            // Immediately update countdown container warning
-            const countdownWarning = document.querySelector('.race-countdown-container .pick-status');
-            if (countdownWarning) {
-                countdownWarning.className = `pick-status${isUrgent ? ' urgent' : ''}`;
-                countdownWarning.textContent = 'Pick deadline approaching!';
-                
-                // Force a repaint to ensure immediate visual update
-                countdownWarning.style.display = 'none';
-                countdownWarning.offsetHeight; // Force reflow
-                countdownWarning.style.display = 'block';
+            // Add pick change deadline warning
+            const currentPick = getCurrentRacePick();
+            if (currentPick && timeRemaining.totalMinutes < 60) {
+                console.log('Warning user about pick change deadline approaching');
             }
             
             // Update or add the status element in the modal
@@ -560,19 +639,19 @@ const initializeDriverSelection = () => {
             const driverSelectionContent = document.querySelector('.driver-selection-content');
             const driverGrid = document.querySelector('.driver-grid');
             
-            console.log('DOM elements found:', {
-                existingStatus: !!existingStatus,
-                driverSelectionContent: !!driverSelectionContent,
-                driverGrid: !!driverGrid,
-                isUrgent
-            });
-            
             if (existingStatus) {
                 console.log('Replacing existing status element');
                 existingStatus.replaceWith(statusElement);
             } else if (driverSelectionContent && driverGrid) {
                 console.log('Inserting new status element');
                 driverSelectionContent.insertBefore(statusElement, driverGrid);
+            }
+            
+            // Update countdown container warning
+            const countdownWarning = document.querySelector('.race-countdown-container .pick-status');
+            if (countdownWarning) {
+                countdownWarning.className = `pick-status${isUrgent ? ' urgent' : ''}`;
+                countdownWarning.textContent = 'Pick deadline approaching!';
             }
         },
         onDeadlinePassed: () => {
@@ -586,11 +665,17 @@ const initializeDriverSelection = () => {
             }
             
             // Disable the make pick button
-            const makePickBtn = document.getElementById('make-pick-btn');
             if (makePickBtn) {
                 makePickBtn.disabled = true;
                 makePickBtn.style.opacity = '0.5';
                 makePickBtn.style.cursor = 'not-allowed';
+                
+                // Update button text to remove (CHANGE) if present
+                const currentPick = getCurrentRacePick();
+                if (currentPick) {
+                    const lastName = currentPick.driverName.split(' ').pop();
+                    makePickBtn.textContent = `PICKED: ${lastName.toUpperCase()}`;
+                }
             }
             
             // Check if a pick was made
@@ -620,13 +705,19 @@ const initializeDriverSelection = () => {
 
     // Update make pick button state immediately if deadline is passed
     if (isDeadlinePassed) {
-        const makePickBtn = document.getElementById('make-pick-btn');
-        if (makePickBtn) {
-            makePickBtn.disabled = true;
-            makePickBtn.style.opacity = '0.5';
-            makePickBtn.style.cursor = 'not-allowed';
+        console.log('Deadline is passed, disabling button');
+        makePickBtn.disabled = true;
+        makePickBtn.style.opacity = '0.5';
+        makePickBtn.style.cursor = 'not-allowed';
+        
+        // Update button text to remove (CHANGE) if present
+        const currentPick = getCurrentRacePick();
+        if (currentPick) {
+            const lastName = currentPick.driverName.split(' ').pop();
+            makePickBtn.textContent = `PICKED: ${lastName.toUpperCase()}`;
         }
         
+        // Also update the countdown warning
         const countdownWarning = document.querySelector('.race-countdown-container .pick-status');
         if (countdownWarning) {
             countdownWarning.className = 'pick-status deadline-passed';
@@ -651,12 +742,12 @@ const initializeDriverSelection = () => {
                     }
                 });
                 
-                // Update the button text with the most recent pick
-                const lastPick = savedPicks[savedPicks.length - 1];
-                const lastPickedDriver = mockDrivers.find(d => d.id === lastPick.driverId);
-                if (lastPickedDriver) {
-                    const makePickBtn = document.getElementById('make-pick-btn');
-                    makePickBtn.textContent = `PICKED: ${lastPickedDriver.name.split(' ')[1].toUpperCase()}`;
+                // Update the button text based on current race pick
+                const currentRacePick = getCurrentRacePick();
+                if (currentRacePick) {
+                    const deadlineManager = new PickDeadlineManager();
+                    const canChange = !deadlineManager.isDeadlinePassed();
+                    PickChangeUtils.updateMakePickButtonText(currentRacePick, canChange);
                 }
                 
                 console.log('Loaded user picks from localStorage:', savedPicks);
@@ -665,35 +756,6 @@ const initializeDriverSelection = () => {
             console.error('Failed to load picks from localStorage:', error);
         }
     }
-
-    // Get UI elements
-    makePickBtn = document.getElementById('make-pick-btn');
-    driverSelectionScreen = document.getElementById('driver-selection-screen');
-    const closeSelectionBtn = document.getElementById('close-selection-btn');
-    confirmPickBtn = document.getElementById('confirm-pick-btn');
-    loadingOverlay = document.getElementById('loading-overlay');
-    errorMessage = document.getElementById('error-message');
-    driverGrid = document.getElementById('driver-grid');
-
-    // Initialize the confirmation modal
-    initializeConfirmationModal();
-
-    if (!makePickBtn || !driverSelectionScreen || !closeSelectionBtn || !confirmPickBtn || !loadingOverlay || !errorMessage || !driverGrid) {
-        console.error('Some elements not found:', {
-            makePickBtn: !!makePickBtn,
-            driverSelectionScreen: !!driverSelectionScreen,
-            closeSelectionBtn: !!closeSelectionBtn,
-            confirmPickBtn: !!confirmPickBtn,
-            loadingOverlay: !!loadingOverlay,
-            errorMessage: !!errorMessage,
-            driverGrid: !!driverGrid
-        });
-        return;
-    }
-
-    // Update GP info
-    document.getElementById('current-gp-name').textContent = currentGP.name;
-    document.getElementById('selection-deadline').textContent = currentGP.deadline;
 
     // Open modal and render grid
     makePickBtn.addEventListener('click', () => {
@@ -705,27 +767,22 @@ const initializeDriverSelection = () => {
             return;
         }
         
-        console.log('Current display style:', driverSelectionScreen.style.display);
+        // Check if this is a change vs new pick
+        const currentPick = getCurrentRacePick();
+        const isChanging = !!currentPick;
+        
+        console.log('Current pick:', currentPick);
+        console.log('Is changing:', isChanging);
+        
         selectedDriverId = null;
         driverSelectionScreen.style.display = 'flex';
-        console.log('New display style:', driverSelectionScreen.style.display);
+        
+        // Show current pick info if changing
+        PickChangeUtils.showCurrentPickInModal(currentPick);
+        PickChangeUtils.updateConfirmButton(isChanging);
+        
         renderDriverGrid();
     });
-
-    // Update make pick button state immediately if deadline is passed
-    if (isDeadlinePassed) {
-        console.log('Deadline is passed, disabling button');
-        makePickBtn.disabled = true;
-        makePickBtn.style.opacity = '0.5';
-        makePickBtn.style.cursor = 'not-allowed';
-        
-        // Also update the countdown warning
-        const countdownWarning = document.querySelector('.race-countdown-container .pick-status');
-        if (countdownWarning) {
-            countdownWarning.className = 'pick-status deadline-passed';
-            countdownWarning.textContent = 'Selection locked: Deadline has passed';
-        }
-    }
 
     // Close modal
     closeSelectionBtn.addEventListener('click', () => {
@@ -737,12 +794,27 @@ const initializeDriverSelection = () => {
     // Handle driver selection
     driverGrid.addEventListener('click', (e) => {
         const card = e.target.closest('.driver-card');
-        if (!card || card.classList.contains('picked') || card.classList.contains('skeleton')) return;
+        if (!card || card.classList.contains('skeleton')) return;
 
         const driverId = parseInt(card.dataset.driverId);
         const driver = mockDrivers.find(d => d.id === driverId);
         
-        if (!driver || driver.isAlreadyPicked) return;
+        // Get current race pick
+        const currentPick = getCurrentRacePick();
+        
+        // If this is the current pick for this race, allow selecting it again
+        if (currentPick && currentPick.driverId === driverId) {
+            card.classList.add('selected');
+            selectedDriverId = driverId;
+            hideError();
+            return;
+        }
+        
+        // Otherwise, check if it was picked in a previous race
+        if (driver.isAlreadyPicked) {
+            showError('You have already picked this driver in a previous race!');
+            return;
+        }
 
         const previouslySelected = document.querySelector('.driver-card.selected');
         if (previouslySelected) {
@@ -790,18 +862,121 @@ const initializeDriverSelection = () => {
 //     return localStorage.getItem('userToken');
 // }
 
-// Initialize driver selection immediately
-initializeDriverSelection();
-
-// Initialize Race Countdown Timer
-const countdownContainer = document.getElementById('race-countdown-container');
-if (countdownContainer) {
-    const raceCountdown = new RaceCountdown(countdownContainer);
-    raceCountdown.initialize();
-    console.log('Race countdown timer initialized');
-} else {
-    console.error('Race countdown container not found');
+// Add utility function for formatting dates
+function formatDeadlineForUser(utcDeadline) {
+    const date = new Date(utcDeadline);
+    return new Intl.DateTimeFormat(navigator.language, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        timeZoneName: 'short'
+    }).format(date);
 }
+
+// Update GP info display
+function updateGPInfo(raceData) {
+    try {
+        // Get deadline from race data
+        if (raceData && raceData.pickDeadline) {
+            const friendlyDeadline = formatDeadlineForUser(raceData.pickDeadline);
+            
+            // Update main page deadline
+            const deadlineElement = document.getElementById('selection-deadline');
+            if (deadlineElement) {
+                deadlineElement.textContent = `Selection deadline: ${friendlyDeadline}`;
+            }
+            
+            // Update modal deadline
+            const modalDeadlineElement = document.querySelector('#driver-selection-screen .deadline');
+            if (modalDeadlineElement) {
+                modalDeadlineElement.textContent = `Selection deadline: ${friendlyDeadline}`;
+            }
+        }
+        
+        // Update GP name
+        const gpNameElement = document.getElementById('current-gp-name');
+        if (gpNameElement && raceData) {
+            gpNameElement.textContent = raceData.raceName || currentGP.name;
+        }
+    } catch (error) {
+        console.error('Error updating GP info:', error);
+    }
+}
+
+// Initialize driver selection
+async function initializeApp() {
+    try {
+        // Get UI elements first
+        const countdownContainer = document.getElementById('race-countdown-container');
+        const makePickBtn = document.getElementById('make-pick-btn');
+        const driverSelectionScreen = document.getElementById('driver-selection-screen');
+        const closeSelectionBtn = document.getElementById('close-selection-btn');
+        const confirmPickBtn = document.getElementById('confirm-pick-btn');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const errorMessage = document.getElementById('error-message');
+        const driverGrid = document.getElementById('driver-grid');
+        
+        // Check if all required elements are present
+        const requiredElements = {
+            countdownContainer,
+            makePickBtn,
+            driverSelectionScreen,
+            closeSelectionBtn,
+            confirmPickBtn,
+            loadingOverlay,
+            errorMessage,
+            driverGrid
+        };
+        
+        const missingElements = Object.entries(requiredElements)
+            .filter(([_, element]) => !element)
+            .map(([name]) => name);
+        
+        if (missingElements.length > 0) {
+            throw new Error(`Missing required elements: ${missingElements.join(', ')}`);
+        }
+        
+        // Initialize Race Countdown Timer
+        const raceCountdown = new RaceCountdown(countdownContainer);
+        await raceCountdown.initialize();
+        console.log('Race countdown timer initialized');
+        
+        // Get race data
+        const raceData = JSON.parse(localStorage.getItem('nextRaceData'));
+        if (!raceData || !raceData.raceId) {
+            throw new Error('Race data initialization failed');
+        }
+        
+        // Update GP info with user-friendly deadline
+        updateGPInfo(raceData);
+        
+        // Initialize driver selection
+        initializeDriverSelection();
+        
+    } catch (error) {
+        console.error('App initialization failed:', error);
+        // Show error to user
+        const errorContainer = document.createElement('div');
+        errorContainer.className = 'error-message active';
+        errorContainer.textContent = 'Failed to initialize app. Please refresh the page.';
+        document.body.prepend(errorContainer);
+    }
+}
+
+// Initialize app when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM fully loaded, starting app initialization');
+    initializeApp().catch(error => {
+        console.error('App initialization failed:', error);
+        // Show error to user
+        const errorContainer = document.createElement('div');
+        errorContainer.className = 'error-message active';
+        errorContainer.textContent = 'Failed to initialize app. Please refresh the page.';
+        document.body.prepend(errorContainer);
+    });
+});
 
 // Debug/Testing Tools
 function clearAllPicksData() {
@@ -835,9 +1010,23 @@ function checkDriverState(driverName) {
     return driver;
 }
 
+// Add test function for previous race picks
+function simulatePreviousRacePicks() {
+    if (confirm('Add test data for previous race picks?')) {
+        if (addTestPreviousRacePicks()) {
+            alert('Test data added. Max Verstappen and Lando Norris were picked in previous races.');
+            // Refresh the page to show changes
+            window.location.reload();
+        } else {
+            alert('Failed to add test data. Check console for errors.');
+        }
+    }
+}
+
 // Make debug functions available globally
 window.clearAllPicksData = clearAllPicksData;
 window.checkDriverState = checkDriverState;
+window.simulatePreviousRacePicks = simulatePreviousRacePicks;
 
 // Wrap all anime.js related code in try-catch
 try {

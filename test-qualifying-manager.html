@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test QualifyingResultsManager</title>
+    <script type="module">
+        // Assuming qualifying-results-manager.js is in the same directory or accessible via path
+        import { QualifyingResultsManager } from './qualifying-results-manager.js';
+
+        window.QualifyingResultsManager = QualifyingResultsManager; // Make it accessible in console
+
+        async function runTests() {
+            console.log("Starting QualifyingResultsManager tests...");
+
+            // --- Test Setup ---
+            localStorage.removeItem('qualifyingResults');
+            localStorage.removeItem('qualifyingResultsTimestamp');
+            localStorage.removeItem('nextRaceData');
+            localStorage.removeItem('userPicks');
+
+            console.log("LocalStorage cleared for testing.");
+
+            // Set mock nextRaceData for a known race (e.g., Bahrain 2024)
+            const mockNextRaceData = {
+                raceId: "bahrain-gp-2024",
+                raceName: "Bahrain Grand Prix 2024",
+                qualifyingDate: "2024-03-01", // Changed from 2024-02-29 to actual quali date
+                pickDeadline: "2024-03-02T12:00:00Z" // Example deadline, adjust if needed
+            };
+            localStorage.setItem('nextRaceData', JSON.stringify(mockNextRaceData));
+            console.log("Mock nextRaceData set:", mockNextRaceData);
+
+            const qrm = new QualifyingResultsManager();
+            qrm.debug = true; // Enable debug logging
+            window.qrm = qrm; // Make instance accessible in console
+
+            console.log("QualifyingResultsManager instance created.");
+
+            // --- Test 1: Initialization and Fetching ---
+            console.log("\n--- Test 1: Initialization and Fetching ---");
+            await qrm.initialize();
+            console.log("qrm.initialize() called.");
+            console.log("Current qrm.qualifyingResults:", qrm.qualifyingResults);
+            if (qrm.qualifyingResults && Array.isArray(qrm.qualifyingResults)) {
+                console.log(`Fetched ${qrm.qualifyingResults.length} drivers.`);
+            } else {
+                console.error("Test 1 FAILED: qualifyingResults is not an array or is empty after init.");
+            }
+            const cachedData = JSON.parse(localStorage.getItem('qualifyingResults'));
+            if (cachedData && cachedData.results && Array.isArray(cachedData.results)) {
+                console.log("Test 1 PASSED: Full results seem to be fetched and cached.");
+            } else {
+                console.error("Test 1 FAILED: Full results not cached correctly or not an array.");
+            }
+
+
+            // --- Test 2: getAutoPick ---
+            console.log("\n--- Test 2: getAutoPick ---");
+            // Scenario 2.1: P15 is available
+            localStorage.removeItem('userPicks'); // Ensure no one is picked initially
+            let autoPick1 = qrm.getAutoPick();
+            console.log("AutoPick when P15 available:", autoPick1);
+            if (autoPick1 && autoPick1.position === 15) {
+                console.log("Test 2.1 PASSED: Correctly picked P15 driver.");
+            } else {
+                console.error("Test 2.1 FAILED: Did not pick P15 driver or P15 not found.", autoPick1);
+            }
+
+            // Scenario 2.2: P15 is taken, try next available (e.g., P16)
+            // Ensure qualifying results are loaded and are an array
+            if (qrm.qualifyingResults && Array.isArray(qrm.qualifyingResults) && qrm.qualifyingResults.length >=16) {
+                const p15DriverFromResult = qrm.qualifyingResults.find(d => d.position === 15);
+                const p16DriverFromResult = qrm.qualifyingResults.find(d => d.position === 16);
+
+                if (p15DriverFromResult) {
+                    localStorage.setItem('userPicks', JSON.stringify([{ driverId: p15DriverFromResult.driverId }])); // Pick P15 driver (use .driverId)
+                    console.log("Manually picked P15 driver:", p15DriverFromResult.driverId);
+
+                    let autoPick2 = qrm.getAutoPick();
+                    console.log("AutoPick when P15 taken:", autoPick2);
+
+                    if (autoPick2 && autoPick2.position === 16 && p16DriverFromResult && autoPick2.driverId === p16DriverFromResult.driverId) { // use .driverId
+                        console.log("Test 2.2 PASSED: Correctly picked P16 driver as fallback.");
+                    } else if (autoPick2) {
+                        console.error("Test 2.2 FAILED: Picked unexpected driver or P16 not found/available.", { autoPick2, p16DriverFromResult });
+                    } else {
+                         console.error("Test 2.2 FAILED: No driver returned when P15 taken, expected P16.", { p16DriverFromResult });
+                    }
+                } else {
+                    console.warn("Test 2.2 SKIPPED: P15 driver not found in results, cannot simulate P15 taken.");
+                }
+            } else {
+                 console.warn("Test 2.2 SKIPPED: Not enough qualifying results to test P16 fallback or results not an array.");
+            }
+            
+            // Scenario 2.3: P15, P16, P17 taken, try P18
+            localStorage.removeItem('userPicks');
+            if (qrm.qualifyingResults && Array.isArray(qrm.qualifyingResults) && qrm.qualifyingResults.length >=17) {
+                const p15 = qrm.qualifyingResults.find(d => d.position === 15);
+                const p16 = qrm.qualifyingResults.find(d => d.position === 16);
+                const p17 = qrm.qualifyingResults.find(d => d.position === 17);
+                const p14 = qrm.qualifyingResults.find(d => d.position === 14);
+                const p18 = qrm.qualifyingResults.find(d => d.position === 18);
+
+                if (p15 && p16 && p17 && p18) {
+                    localStorage.setItem('userPicks', JSON.stringify([
+                        { driverId: p15.driverId },
+                        { driverId: p16.driverId },
+                        { driverId: p17.driverId }
+                    ]));
+                    console.log("Manually picked P15, P16, P17 drivers.");
+
+                    let autoPick3 = qrm.getAutoPick();
+                    console.log("AutoPick when P15,P16,P17 taken:", autoPick3);
+                     if (autoPick3 && autoPick3.position === 18 && autoPick3.driverId === p18.driverId) {
+                        console.log("Test 2.3 PASSED: Correctly picked P18 driver as fallback.");
+                    } else if (autoPick3) {
+                        console.error("Test 2.3 FAILED: Picked unexpected driver or P18 not found/available.", autoPick3);
+                    } else {
+                         console.error("Test 2.3 FAILED: No driver returned when P15,P16,P17 taken, expected P18.");
+                    }
+                } else {
+                     console.warn("Test 2.3 SKIPPED: Could not find all required drivers (P15-P18) in results for robust test.");
+                }
+            } else {
+                console.warn("Test 2.3 SKIPPED: Not enough qualifying results to test P18 fallback.");
+            }
+
+
+            // --- Test 3: isDriverPicked ---
+            console.log("\n--- Test 3: isDriverPicked ---");
+            localStorage.setItem('userPicks', JSON.stringify([{ driverId: 44 }, { driverId: 1 }]));
+            console.log("isDriverPicked(44):", qrm.isDriverPicked(44)); // Expected: true
+            console.log("isDriverPicked(1):", qrm.isDriverPicked(1));   // Expected: true
+            console.log("isDriverPicked(16):", qrm.isDriverPicked(16)); // Expected: false
+            localStorage.removeItem('userPicks');
+            console.log("isDriverPicked(44) after clear:", qrm.isDriverPicked(44)); // Expected: false
+
+            console.log("\n--- All tests complete ---");
+            console.log("Inspect 'qrm' object and localStorage in browser dev tools.");
+            console.log("Remember to have a server running that serves get_quali_results.py at /api/qualifying");
+        }
+
+        // Run tests when the DOM is ready
+        document.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</head>
+<body>
+    <h1>Testing QualifyingResultsManager</h1>
+    <p>Open the browser console to see test logs and results.</p>
+    <p>Ensure your Python backend for <code>/api/qualifying</code> is running.</p>
+    <div id="results"></div>
+</body>
+</html> 

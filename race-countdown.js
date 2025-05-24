@@ -60,6 +60,7 @@ class RaceCountdown {
           meetingKey: nextRace.round,
           raceName: nextRace.raceName,
           raceDate: nextRace.dateStart,
+          qualifyingDate: nextRace.dateStart.substring(0, 10),
           raceCircuit: nextRace.circuit,
           location: nextRace.location,
           country: nextRace.country,

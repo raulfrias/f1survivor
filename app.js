@@ -2,6 +2,7 @@
 import { saveUserPicks, loadUserPicks, isDriverAlreadyPicked, clearPickData, getCurrentSeason } from './storage-utils.js';
 import RaceCountdown from './race-countdown.js';
 import { PickDeadlineManager } from './pick-deadline-manager.js';
+import { AutoPickManager } from './auto-pick-manager.js';
 
 console.log('app.js loaded - start');
 
@@ -521,6 +522,12 @@ async function renderDriverGrid() {
 const initializeDriverSelection = () => {
     console.log('Initializing driver selection...');
     
+    // Initialize auto-pick manager
+    const autoPickManager = new AutoPickManager();
+    autoPickManager.debug = false; // Set to false
+    autoPickManager.qualifyingManager.debug = false; // Set to false
+    autoPickManager.initialize();
+    
     // Initialize deadline manager
     const deadlineManager = new PickDeadlineManager();
     const isDeadlinePassed = deadlineManager.initialize({
@@ -1014,53 +1021,6 @@ try {
 } catch (error) {
     console.error('Error in anime.js animations:', error);
 }
-
-// Handle auto-pick when deadline passes without a selection
-window.addEventListener('triggerAutoPick', (event) => {
-    console.log('Auto-pick event received:', event.detail);
-    
-    // Get available drivers (not already picked)
-    const availableDrivers = mockDrivers.filter(driver => !driver.isAlreadyPicked);
-    console.log('Available drivers for auto-pick:', availableDrivers.length);
-    
-    if (availableDrivers.length > 0) {
-        // Randomly select a driver
-        const randomIndex = Math.floor(Math.random() * availableDrivers.length);
-        const selectedDriver = availableDrivers[randomIndex];
-        console.log('Auto-picked driver:', selectedDriver.name);
-        
-        // Save the auto-pick
-        if (localStorageAvailable) {
-            try {
-                saveUserPicks(selectedDriver.id);
-                console.log('Auto-pick saved successfully');
-                
-                // Update UI to show the auto-picked driver
-                const makePickBtn = document.getElementById('make-pick-btn');
-                if (makePickBtn) {
-                    makePickBtn.textContent = `AUTO-PICKED: ${selectedDriver.name.split(' ')[1].toUpperCase()}`;
-                    makePickBtn.style.backgroundColor = '#666'; // Gray out to indicate auto-pick
-                }
-                
-                // Show toast notification
-                const toast = document.createElement('div');
-                toast.className = 'toast-notification';
-                toast.textContent = `Auto-picked ${selectedDriver.name} as deadline passed`;
-                document.body.appendChild(toast);
-                
-                // Remove toast after 5 seconds
-                setTimeout(() => {
-                    toast.remove();
-                }, 5000);
-                
-            } catch (error) {
-                console.error('Failed to save auto-pick:', error);
-            }
-        }
-    } else {
-        console.error('No available drivers for auto-pick');
-    }
-});
 
 // Add test function for deadline manager
 window.testDeadlineManager = async () => {

@@ -4,7 +4,7 @@
 export class PickDeadlineManager {
     constructor(options = {}) {
         this.raceData = null;
-        this.deadlineCheckInterval = null;
+        this.deadlineInterval = null;
         this.onDeadlineApproaching = null;
         this.onDeadlinePassed = null;
         this.debug = options.debug || false;
@@ -28,25 +28,25 @@ export class PickDeadlineManager {
     }
 
     initialize(callbacks = {}) {
-        this.log('debug', 'Initializing deadline manager');
+        this.log('debug', 'PickDeadlineManager initializing...');
+        if (this.deadlineInterval) {
+            this.log('debug', 'Clearing existing deadlineInterval.', { intervalId: this.deadlineInterval });
+            clearInterval(this.deadlineInterval);
+            this.deadlineInterval = null;
+        }
+        this.callbacks = callbacks;
+        this.loadRaceData();
+
+        if (!this.raceData || !this.raceData.pickDeadline) {
+            this.log('warn', 'No race data or pick deadline available for PickDeadlineManager.');
+            return false;
+        }
+
         this.onDeadlineApproaching = callbacks.onDeadlineApproaching;
         this.onDeadlinePassed = callbacks.onDeadlinePassed;
         
-        this.loadRaceData();
-        
-        // Check immediately
-        const initialCheck = this.checkDeadlineStatus();
-        if (initialCheck.passed) {
-            this.log('info', 'Deadline already passed on initialization');
-            this.onDeadlinePassed?.();
-        }
-        
-        // Start monitoring only if deadline hasn't passed
-        if (!initialCheck.passed) {
-            this.startDeadlineMonitoring();
-        }
-        
-        return initialCheck.passed;
+        // Check immediately and set up interval
+        return this.checkDeadline();
     }
 
     loadRaceData() {
@@ -70,63 +70,42 @@ export class PickDeadlineManager {
         }
     }
 
-    checkDeadlineStatus() {
-        if (!this.raceData?.pickDeadline) {
-            return { passed: false };
+    checkDeadline() {
+        if (!this.raceData || !this.raceData.pickDeadline) {
+            this.log('debug', 'Cannot check deadline without race data or pick deadline.');
+            return false;
         }
 
         const now = new Date();
         const deadline = new Date(this.raceData.pickDeadline);
-        const isPassed = now >= deadline;
+        const timeRemainingMs = deadline - now;
 
-        this.log('debug', 'Checking deadline status', {
-            now: now.toISOString(),
-            deadline: deadline.toISOString(),
-            isPassed
-        });
-
-        if (isPassed) {
-            if (this.deadlineCheckInterval) {
-                clearInterval(this.deadlineCheckInterval);
-                this.deadlineCheckInterval = null;
+        if (timeRemainingMs <= 0) {
+            this.log('info', 'Pick deadline has passed.', { deadline: this.raceData.pickDeadline });
+            if (this.onDeadlinePassed) {
+                this.onDeadlinePassed();
             }
-            this.onDeadlinePassed?.();
-            return { passed: true };
-        }
-
-        // Calculate time remaining
-        const timeRemaining = {
-            passed: false,
-            total: deadline - now,
-            hours: Math.floor((deadline - now) / (1000 * 60 * 60)),
-            minutes: Math.floor(((deadline - now) % (1000 * 60 * 60)) / (1000 * 60)),
-            seconds: Math.floor(((deadline - now) % (1000 * 60)) / 1000)
-        };
-
-        // Check if approaching deadline (less than 1 hour)
-        if (timeRemaining.total <= 3600000) {
-            this.log('info', 'Deadline approaching', { timeRemaining });
-            this.onDeadlineApproaching?.(timeRemaining);
-        }
-
-        return timeRemaining;
-    }
-
-    startDeadlineMonitoring() {
-        this.log('debug', 'Starting deadline monitor');
-        // Clear any existing interval
-        if (this.deadlineCheckInterval) {
-            clearInterval(this.deadlineCheckInterval);
-        }
-
-        // Check every second
-        this.deadlineCheckInterval = setInterval(() => {
-            const status = this.checkDeadlineStatus();
-            if (status.passed) {
-                clearInterval(this.deadlineCheckInterval);
-                this.deadlineCheckInterval = null;
+            if (this.deadlineInterval) {
+                clearInterval(this.deadlineInterval);
+                this.deadlineInterval = null;
             }
-        }, 1000);
+            return true;
+        }
+
+        // If deadline hasn't passed, set up or ensure the interval is running
+        if (!this.deadlineInterval) {
+            this.deadlineInterval = setInterval(() => this.checkDeadline(), 1000);
+            this.log('debug', 'Deadline check interval started.', { intervalId: this.deadlineInterval });
+        }
+
+        // Deadline approaching logic (e.g., within 1 hour)
+        if (timeRemainingMs < 3600000 && this.onDeadlineApproaching) {
+            const hours = Math.floor(timeRemainingMs / 3600000);
+            const minutes = Math.floor((timeRemainingMs % 3600000) / 60000);
+            const seconds = Math.floor((timeRemainingMs % 60000) / 1000);
+            this.onDeadlineApproaching({ hours, minutes, seconds });
+        }
+        return false;
     }
 }
 

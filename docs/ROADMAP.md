@@ -16,7 +16,10 @@ This document outlines the development phases and tasks for the F1 Survivor game
 ### Race Countdown & Auto-Pick
 - [x] Create race countdown timer component
 - [x] Implement pick deadline logic (lock selections)
-- [ ] Build P15 auto-pick fallback system
+- [x] Build P15 auto-pick fallback system (May 2025)
+  - Users missing deadline are automatically assigned the P15 qualifier from the latest completed qualifying session.
+  - System intelligently falls back to P16-P20, then P14-P1, if the P15 driver (or subsequent fallbacks) has been previously picked by the user in any race.
+  - Ensures no repeat driver picks across races.
 - [ ] Add pick change functionality before deadline
 
 ### User Dashboard Mockup

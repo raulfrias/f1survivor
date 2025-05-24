@@ -84,14 +84,18 @@ f1survivor/
   - Automatic next race detection
   - Pick deadline warnings
   - Caching system for performance
-  - Basic auto-pick system for missed deadlines
   - Deadline enforcement with UI locking
 
+✅ **P15 Auto-pick System:**
+  - Automatic assignment of the P15 qualifier from the latest *completed* F1 qualifying session for users who miss the pick deadline.
+  - Intelligent fallback (P16-P20, then P14-P1) if the P15 driver (or subsequent fallbacks) has been previously picked by the user in *any* race, adhering to the "no repeat picks" rule.
+  - Clear user notifications and UI indicators for auto-picked drivers.
+  - Robust fetching and caching of qualifying results, with a fallback for API issues.
+
 🔄 **In Progress:**
-  - P15 qualifying position auto-pick implementation
-  - Local storage for user picks
   - League management prototype
   - Player dashboard
+  - Local storage for user picks
 
 ## Development Roadmap
 

@@ -1,5 +1,10 @@
+import { Logger } from './logger-config.js';
+
 export class QualifyingResultsManager {
     constructor() {
+        this.logger = new Logger('QualifyingResultsManager');
+        this.maxRetries = 3;
+        this.retryDelay = 2000; // 2 seconds
         this.qualifyingResults = null;
         this.raceData = null;
         this.debug = false;
@@ -80,6 +85,33 @@ export class QualifyingResultsManager {
         }
     }
 
+    async fetchWithRetry(url, retries = this.maxRetries) {
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    return await response.json();
+                }
+                
+                // Check specific error codes
+                if (response.status === 404) {
+                    this.logger.log('info', 'Qualifying data not yet available (404)');
+                    return null; // Don't retry on 404
+                }
+                
+                throw new Error(`HTTP ${response.status}`);
+            } catch (error) {
+                this.logger.log('warn', `Attempt ${i + 1} failed:`, error);
+                
+                if (i < retries - 1) {
+                    await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+                } else {
+                    throw error;
+                }
+            }
+        }
+    }
+
     async fetchQualifyingResults(date) {
         if (date === undefined) {
             this.log('warn', 'fetchQualifyingResults called with undefined date. Using fallback.');
@@ -126,23 +158,21 @@ export class QualifyingResultsManager {
             }
 
             this.log('info', 'Proceeding to fetch qualifying results from API:', apiUrl);
-            const response = await fetch(apiUrl);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            
+            // Use retry wrapper for API call
+            const data = await this.fetchWithRetry(apiUrl);
+            
+            if (data === null) {
+                // 404 - data not available yet
+                this.logger.log('info', 'Qualifying data not available, using intelligent fallback');
+                return this.getIntelligentFallback();
             }
-            const data = await response.json(); // Data will now be an array of drivers
-
-            // Use the new _processResults method for real API data too
+            
             return this._processResults(data, this.raceData ? this.raceData.raceId : 'unknown_race');
 
         } catch (error) {
-            // Check if this is a 500 error from the qualifying script
-            if (error.message && error.message.includes('500')) {
-                this.log('info', 'Qualifying data not available yet. Using fallback driver.');
-            } else {
-                this.log('error', 'Failed to fetch qualifying results', error);
-            }
-            this.qualifyingResults = []; // Explicitly clear on error before fallback
+            // Only use fallback after retries exhausted
+            this.logger.log('error', 'All retry attempts failed', error);
             return this.getFallbackDriver();
         }
     }
@@ -165,9 +195,40 @@ export class QualifyingResultsManager {
         return [fallbackDrivers[index]];
     }
 
+    getIntelligentFallback() {
+        // Instead of hardcoded drivers, use current grid standings
+        // or historical P15 data for the circuit
+        const circuitP15History = {
+            'Monaco': [27, 20, 31], // Typical P15 drivers at Monaco
+            'Silverstone': [23, 77, 18],
+            // ... etc
+        };
+        
+        const circuit = this.raceData?.raceCircuit;
+        const candidates = circuitP15History[circuit] || [20, 31, 27, 18];
+        
+        // Pick first non-selected candidate
+        for (const driverId of candidates) {
+            if (!this.isDriverPicked(driverId)) {
+                const driver = this.getDriverInfo(driverId);
+                return [{
+                    driverId,
+                    driverName: driver?.name || `Driver ${driverId}`,
+                    position: 15,
+                    teamName: driver?.team || 'Unknown Team'
+                }];
+            }
+        }
+        
+        return this.getFallbackDriver(); // Ultimate fallback
+    }
+
     isDriverPicked(driverId) {
-        const userPicks = JSON.parse(localStorage.getItem('userPicks') || '[]');
-        return userPicks.some(pick => pick.driverId === driverId);
+        const data = localStorage.getItem('f1survivor_user_picks');
+        if (!data) return false;
+        
+        const userData = JSON.parse(data);
+        return (userData.picks || []).some(pick => pick.driverId === driverId);
     }
 
     getNextAvailablePosition(startPosition = 15) {

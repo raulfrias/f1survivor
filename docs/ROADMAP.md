@@ -20,11 +20,12 @@ This document outlines the development phases and tasks for the F1 Survivor game
   - Users missing deadline are automatically assigned the P15 qualifier from the latest completed qualifying session.
   - System intelligently falls back to P16-P20, then P14-P1, if the P15 driver (or subsequent fallbacks) has been previously picked by the user in any race.
   - Ensures no repeat driver picks across races.
-- [x] Add pick change functionality before deadline (MVP)
+- [x] Add pick change functionality before deadline
   - Users can change picks until 1 hour before race
   - Clear user-friendly deadline display in local timezone
   - Proper validation and error handling
   - Fallback driver system for future races
+- [ ] Fix pick functionality based on real race, live testing during Monaco race
 
 ### User Dashboard Mockup
 - [ ] Design player status dashboard wireframe

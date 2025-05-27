@@ -1,0 +1,115 @@
+## Feature Request
+Build a detailed implementation plan for: "Fix pick functionality based on real race, live testing during Monaco race"
+
+## Scope & Constraints
+During the Monaco race weekend, the user tested the pick driver functionality live 10 minutes before the race had started, confirmed the status of the API call to the F1.org for the Qualification stage was working and had the Monaco Quali data from the day before, and noticed things he wants to change:
+- While the race was happening, the pick botton had already shifted to display the timer for the next Grand Prix (the Spanish Grand Prix). He modified part of the codebase to instead show the status "Race in Progress" while the race progressed. We need to check for how long. During this time, picking drivers should be disabled. 
+- The @qualifying-results-manager.js had some errors before the race started and while the race was running, which triggered the auto-pick function to go to a hard coded fall back driver. 
+- User wants to simplify our pick driver functionality flow:
+    1. Player should be able to pick and change driver right until the beginning of the race. 
+        - Remember the core rule of the game, only allow the player to pick a driver that wasn't picked in previous races, but can change their pick for the race unlimited times before race start. 
+    2. Once race starts and for the next 10 hours (in case of post-race penalties, adjustments), status should stay as, "Race in Progress", or "Race Finished, results to be published soon. No picking should be allowed, and next race should not be showing next race timer. 
+    3. Once the 10 hour "pause" passes, then "Next Race" status should be shown with the timer, as it currently looks. 
+
+Dashboard, which is the next feature in our roadmap, will take it from here and should be included here. 
+
+- **Complexity Preference:** [Simple enhancements]
+
+## Context Files (Required)
+
+- @apps js (core logic)
+- @file2.html (UI structure) 
+- @file3.css (styling patterns)
+- @file4.js (utilities/storage)
+- @README.md (project context)
+- @ROADMAP.md (roadmap context)
+
+## Pre-Analysis Requirements
+1. **Current State Analysis:** What functionality already exists related to this feature?
+2. **Gap Analysis:** What's missing between current state and desired feature?
+3. **Code Validation:** Provide specific examples of current behavior
+4. **Integration Points:** How does this connect to existing systems?
+
+## Implementation Preferences
+- [ ] Enhance existing components vs. create new ones
+- [ ] Simple data model vs. complex tracking
+- [ ] MVP approach vs. full-featured solution
+- [ ] Backwards compatibility required
+- [ ] Specific UI/UX patterns to follow
+
+## Constraints & Requirements
+- [Any specific business rules]
+- [Technical constraints]
+- [Integration requirements]
+- [Performance requirements]
+
+## Questions to Address
+- [Specific uncertainties about current system]
+- [Clarifications needed about desired behavior]
+
+## Deliverables
+1. Save implementation plan to: `/docs/implementation-plans/[feature-name].md`
+2. Create a detailed prompt draft for user to pass over to Implementation Agent. 
+
+
+
+
+
+
+
+
+
+## Feature Request
+Build a detailed implementation plan for: User Dashboard Mockup
+
+## Scope & Constraints
+- **Scope:** [MVP]
+- **Priority:** [High]
+- **Complexity Preference:** [Simple enhancements]
+
+## Context Files (Required)
+- @apps js (core logic)
+- @file2.html (UI structure) 
+- @file3.css (styling patterns)
+- @file4.js (utilities/storage)
+- @README.md (project context)
+- @ROADMAP.md (roadmap context)
+
+## Pre-Analysis Requirements
+1. **Current State Analysis:** What functionality already exists related to this feature?
+2. **Gap Analysis:** What's missing between current state and desired feature?
+3. **Code Validation:** Provide specific examples of current behavior
+4. **Integration Points:** How does this connect to existing systems?
+
+## Implementation Preferences
+- [ ] Enhance existing components vs. create new ones
+- [ ] Simple data model vs. complex tracking
+- [ ] MVP approach vs. full-featured solution
+- [ ] Backwards compatibility required
+- [ ] Specific UI/UX patterns to follow
+
+## Constraints & Requirements
+- [Any specific business rules]
+- [Technical constraints]
+- [Integration requirements]
+- [Performance requirements]
+
+## Questions to Address
+- [Specific uncertainties about current system]
+- [Clarifications needed about desired behavior]
+
+## Deliverable
+Save implementation plan to: `/docs/implementation-plans/[feature-name].md`
+Create a prompt draft for user to pass over to Implementation Agent. 
+
+       modified:   README.md
+        modified:   app.js
+        modified:   docs/ROADMAP.md
+        modified:   get_quali_results.py
+        modified:   index.html
+        modified:   pick-deadline-manager.js
+        modified:   qualifying-results-manager.js
+        modified:   race-countdown.js
+        modified:   server.py
+        modified:   storage-utils.js
+        modified:   styles.css

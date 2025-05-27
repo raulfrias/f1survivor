@@ -21,7 +21,7 @@
             localStorage.removeItem('qualifyingResults');
             localStorage.removeItem('qualifyingResultsTimestamp');
             localStorage.removeItem('nextRaceData');
-            localStorage.removeItem('userPicks');
+            localStorage.removeItem('f1survivor_user_picks');
             document.querySelectorAll('.auto-pick-notification').forEach(el => el.remove());
             console.log("LocalStorage and notifications cleared for testing.");
 
@@ -62,14 +62,14 @@
 
             // --- Test 1: Auto-pick when no prior pick exists ---
             console.log("\n--- Test 1: Auto-pick - no prior pick ---");
-            localStorage.removeItem('userPicks'); // Ensure no picks
+            localStorage.removeItem('f1survivor_user_picks'); // Ensure no picks
             console.log("Dispatching triggerAutoPick event (Test 1)");
             window.dispatchEvent(new CustomEvent('triggerAutoPick', { detail: { raceId: mockNextRaceData.raceId } }));
             
             // Need a slight delay for async operations and DOM updates
             await new Promise(resolve => setTimeout(resolve, 500)); 
 
-            let userPicks1 = JSON.parse(localStorage.getItem('userPicks') || '[]');
+            let userPicks1 = JSON.parse(localStorage.getItem('f1survivor_user_picks') || '{"picks":[]}').picks;
             let autoPickMade1 = userPicks1.find(p => p.raceId === mockNextRaceData.raceId && p.isAutoPick);
             if (autoPickMade1 && autoPickMade1.driverId === 3) { // Expects P15 (Ricciardo, ID 3)
                 console.log("Test 1 PASSED: Auto-pick correctly made and saved for P15.", autoPickMade1);
@@ -86,13 +86,17 @@
             // --- Test 2: Auto-pick when a pick already exists (should not overwrite) ---
             console.log("\n--- Test 2: Auto-pick - prior pick exists ---");
             const manualPick = { driverId: 1, raceId: mockNextRaceData.raceId, driverName: "Manual Pick", isAutoPick: false };
-            localStorage.setItem('userPicks', JSON.stringify([manualPick]));
+            localStorage.setItem('f1survivor_user_picks', JSON.stringify({
+                userId: 'local-user',
+                currentSeason: '2025',
+                picks: [manualPick]
+            }));
             console.log("Dispatching triggerAutoPick event (Test 2)");
             window.dispatchEvent(new CustomEvent('triggerAutoPick', { detail: { raceId: mockNextRaceData.raceId } }));
             
             await new Promise(resolve => setTimeout(resolve, 200));
 
-            let userPicks2 = JSON.parse(localStorage.getItem('userPicks') || '[]');
+            let userPicks2 = JSON.parse(localStorage.getItem('f1survivor_user_picks') || '{"picks":[]}').picks;
             if (userPicks2.length === 1 && userPicks2[0].driverId === 1 && !userPicks2[0].isAutoPick) {
                 console.log("Test 2 PASSED: Existing manual pick was not overwritten.");
             } else {
@@ -107,13 +111,17 @@
 
             // --- Test 3: Auto-pick when P15 is taken by another user (simulated by adding to userPicks) ---
             console.log("\n--- Test 3: Auto-pick - P15 taken ---");
-            localStorage.setItem('userPicks', JSON.stringify([{ driverId: 3, raceId: 'some-other-race' }])); // P15 (Ricciardo) picked for a different race context, for this test it effectively makes it picked for this user.
+            localStorage.setItem('f1survivor_user_picks', JSON.stringify({
+                userId: 'local-user',
+                currentSeason: '2025',
+                picks: [{ driverId: 3, raceId: 'some-other-race' }]
+            }));
             console.log("Dispatching triggerAutoPick event (Test 3)");
             window.dispatchEvent(new CustomEvent('triggerAutoPick', { detail: { raceId: mockNextRaceData.raceId } }));
             
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            let userPicks3 = JSON.parse(localStorage.getItem('userPicks') || '[]');
+            let userPicks3 = JSON.parse(localStorage.getItem('f1survivor_user_picks') || '{"picks":[]}').picks;
             // There will be two picks now: the one for 'some-other-race' and the new auto-pick for 'bahrain-gp-2024'
             let autoPickMade3 = userPicks3.find(p => p.raceId === mockNextRaceData.raceId && p.isAutoPick);
             if (autoPickMade3 && autoPickMade3.driverId === 24) { // Expects P16 (Zhou, ID 24)

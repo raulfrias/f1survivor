@@ -113,7 +113,7 @@ class AutoPickManager {
             const autoPick = {
                 driverId: autoPickedDriver.driverId,
                 raceId: raceId,
-                raceName: raceName, // Added raceName
+                raceName: raceName,
                 driverName: autoPickedDriver.driverName,
                 position: autoPickedDriver.position,
                 teamName: autoPickedDriver.teamName,
@@ -121,11 +121,11 @@ class AutoPickManager {
                 isAutoPick: true
             };
 
-            let userPicks = this.loadUserPicks();
-            // Remove any existing pick for this race if one somehow existed (should be caught by handleAutoPickTrigger)
-            userPicks = userPicks.filter(p => p.raceId !== raceId);
-            userPicks.push(autoPick);
-            localStorage.setItem('userPicks', JSON.stringify(userPicks));
+            let userData = JSON.parse(localStorage.getItem('f1survivor_user_picks') || '{"userId":"local-user","currentSeason":"2025","picks":[]}');
+            // Remove any existing pick for this race if one somehow existed
+            userData.picks = (userData.picks || []).filter(p => p.raceId !== raceId);
+            userData.picks.push(autoPick);
+            localStorage.setItem('f1survivor_user_picks', JSON.stringify(userData));
             this.log('debug', 'Auto-pick saved', autoPick);
 
             this.showAutopickNotification(autoPick);
@@ -227,7 +227,11 @@ class AutoPickManager {
     }
 
     loadUserPicks() {
-        return JSON.parse(localStorage.getItem('userPicks') || '[]');
+        const data = localStorage.getItem('f1survivor_user_picks');
+        if (!data) return [];
+        
+        const parsed = JSON.parse(data);
+        return parsed.picks || [];
     }
 
     getNextRaceData() {

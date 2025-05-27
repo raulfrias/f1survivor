@@ -3,12 +3,14 @@
  * Displays the time remaining until the next F1 race with real-time updates
  */
 import { getNextRace } from './race-calendar-2025.js';
+import { RaceStateManager } from './race-state-manager.js';
 
 class RaceCountdown {
   constructor(containerElement) {
     this.containerEl = containerElement;
     this.currentRaceData = null;
     this.countdownInterval = null;
+    this.stateManager = new RaceStateManager();
   }
   
   async initialize() {
@@ -77,7 +79,7 @@ class RaceCountdown {
           raceCircuit: nextRace.circuit,
           location: nextRace.location,
           country: nextRace.country,
-          pickDeadline: new Date(new Date(nextRace.dateStart).getTime() - 3600000).toISOString()
+          pickDeadline: nextRace.dateStart
         };
         
         this.currentRaceData = raceData;
@@ -159,7 +161,80 @@ class RaceCountdown {
     }, 1000);
   }
   
+  isRaceInProgress() {
+    if (!this.currentRaceData || !this.currentRaceData.raceDate) return false;
+    
+    const now = new Date();
+    const raceStart = new Date(this.currentRaceData.raceDate);
+    const raceEnd = new Date(raceStart.getTime() + (3 * 60 * 60 * 1000)); // Race duration ~2hrs + 1hr buffer
+    
+    return now >= raceStart && now <= raceEnd;
+  }
+  
+  getCurrentRaceState() {
+    return this.stateManager.getCurrentState(this.currentRaceData);
+  }
+  
   updateCountdown() {
+    const currentState = this.getCurrentRaceState();
+    
+    switch(currentState) {
+        case this.stateManager.states.RACE_LIVE:
+        case this.stateManager.states.POST_RACE:
+            // Show appropriate status
+            document.getElementById('days-value').textContent = '00';
+            document.getElementById('hours-value').textContent = '00';
+            document.getElementById('minutes-value').textContent = '00';
+            document.getElementById('seconds-value').textContent = '00';
+            
+            const pickStatus = document.getElementById('pick-status');
+            pickStatus.textContent = this.stateManager.getStateDisplay(currentState);
+            pickStatus.className = `pick-status ${currentState}`;
+            
+            // Disable pick button
+            const makePickBtn = document.getElementById('make-pick-btn');
+            if (makePickBtn) {
+                makePickBtn.disabled = true;
+                makePickBtn.style.opacity = '0.5';
+                makePickBtn.style.cursor = 'not-allowed';
+            }
+            break;
+            
+        case this.stateManager.states.NEXT_RACE:
+            // Trigger next race load
+            this.loadNextRace();
+            break;
+            
+        default:
+            // Normal countdown logic
+            this.updateCountdownDisplay();
+            this.updatePickDeadlineStatus();
+    }
+  }
+  
+  updateCountdownDisplay() {
+    if (this.isRaceInProgress()) {
+      // Show race in progress status
+      document.getElementById('days-value').textContent = '00';
+      document.getElementById('hours-value').textContent = '00';
+      document.getElementById('minutes-value').textContent = '00';
+      document.getElementById('seconds-value').textContent = '00';
+      
+      const pickStatus = document.getElementById('pick-status');
+      pickStatus.textContent = 'RACE IN PROGRESS';
+      pickStatus.className = 'pick-status race-live';
+      
+      // Disable pick button if it exists
+      const makePickBtn = document.getElementById('make-pick-btn');
+      if (makePickBtn) {
+        makePickBtn.disabled = true;
+        makePickBtn.style.opacity = '0.5';
+        makePickBtn.style.cursor = 'not-allowed';
+      }
+      
+      return;
+    }
+    
     const timeRemaining = this.calculateTimeRemaining();
     
     // Update DOM elements with new values
@@ -185,6 +260,14 @@ class RaceCountdown {
       pickStatus.textContent = '';
       pickStatus.className = 'pick-status';
     }
+  }
+  
+  updatePickDeadlineStatus() {
+    // Implementation of updatePickDeadlineStatus method
+  }
+  
+  loadNextRace() {
+    // Implementation of loadNextRace method
   }
   
   calculateTimeRemaining() {

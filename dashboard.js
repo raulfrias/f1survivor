@@ -1,6 +1,7 @@
 // Main dashboard JavaScript file
 
 import { getDashboardData, getRaceName, formatDate, addTestDashboardData } from './dashboard-utils.js';
+import EliminationZone from './elimination-zone.js';
 
 // Dashboard state
 let dashboardData = null;
@@ -21,6 +22,13 @@ async function initializeDashboard() {
     // Load dashboard data
     dashboardData = await getDashboardData();
     console.log('Dashboard data loaded:', dashboardData);
+    
+    // Initialize Elimination Zone
+    const eliminationZoneContainer = document.getElementById('elimination-zone-container');
+    if (eliminationZoneContainer) {
+      const eliminationZone = new EliminationZone(eliminationZoneContainer);
+      await eliminationZone.initialize('league-demo', 'user123');
+    }
     
     // Update all dashboard sections
     updatePlayerStatus(dashboardData.stats);

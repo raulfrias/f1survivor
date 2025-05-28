@@ -1259,4 +1259,74 @@ nav {
         transform: scale(1);
         box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
     }
+}
+
+/* Navigation updates for dashboard */
+.nav-link {
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    margin-right: 1rem;
+}
+
+.nav-link:hover {
+    background: rgba(225, 6, 0, 0.1);
+    color: var(--primary-red);
+}
+
+.nav-link.active {
+    background: var(--primary-red);
+    color: var(--text-color);
+}
+
+/* Error notification styling */
+.error-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 0, 0, 0.9);
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    max-width: 400px;
+    animation: slideIn 0.3s ease;
+}
+
+.error-content h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+}
+
+.error-content p {
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+}
+
+.error-content button {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.error-content button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 } 

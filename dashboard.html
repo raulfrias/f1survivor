@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F1 Survivor - Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <nav>
+        <div class="logo">
+            <img src="assets/images/F1-Logo.png" alt="F1 Logo" class="f1-logo-img">
+            SURVIVOR
+        </div>
+        <div class="nav-right">
+            <a href="index.html" class="nav-link">Pick</a>
+            <a href="dashboard.html" class="nav-link active">Dashboard</a>
+            <a href="#" class="sign-in">Sign In</a>
+        </div>
+    </nav>
+    
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Top Row: Player Status and Season Progress -->
+            <div class="dashboard-top-row">
+                <div class="player-status-card">
+                    <h2>Player Status</h2>
+                    <div class="status-info">
+                        <div class="player-name">Player 1</div>
+                        <div class="survival-status" id="survival-status">
+                            <span class="status-indicator alive"></span>
+                            <span class="status-text">ALIVE</span>
+                        </div>
+                        <div class="picks-counter">
+                            <span id="picks-used">0</span>/<span id="total-drivers">20</span> picks used
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="season-progress-card">
+                    <h2>Season Progress</h2>
+                    <div class="progress-info">
+                        <div class="progress-bar-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="season-progress-fill"></div>
+                            </div>
+                            <div class="progress-text">
+                                <span id="races-completed">0</span>/<span id="total-races">24</span> races
+                            </div>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-label">Survival Rate</span>
+                                <span class="stat-value" id="survival-rate">100%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Remaining Drivers</span>
+                                <span class="stat-value" id="remaining-drivers">20</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pick History Section -->
+            <div class="pick-history-section">
+                <h2>Pick History</h2>
+                <div class="pick-history-container">
+                    <div class="pick-history-header">
+                        <div class="header-cell">Race</div>
+                        <div class="header-cell">Driver</div>
+                        <div class="header-cell">Position</div>
+                        <div class="header-cell">Status</div>
+                    </div>
+                    <div class="pick-history-body" id="pick-history-body">
+                        <!-- Pick history rows will be dynamically populated -->
+                        <div class="no-picks-message" id="no-picks-message">
+                            No picks made yet. <a href="index.html">Make your first pick!</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bottom Row: Available Drivers and Upcoming Races -->
+            <div class="dashboard-bottom-row">
+                <div class="available-drivers-card">
+                    <h2>Available Drivers</h2>
+                    <div class="drivers-grid" id="available-drivers-grid">
+                        <!-- Available drivers will be dynamically populated -->
+                    </div>
+                </div>
+                
+                <div class="upcoming-races-card">
+                    <h2>Upcoming Races</h2>
+                    <div class="upcoming-races-list" id="upcoming-races-list">
+                        <!-- Upcoming races will be dynamically populated -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading overlay -->
+        <div id="dashboard-loading" class="dashboard-loading">
+            <div class="loading-spinner"></div>
+            <p>Loading dashboard...</p>
+        </div>
+    </main>
+
+    <script type="module" src="race-calendar-2025.js"></script>
+    <script type="module" src="storage-utils.js"></script>
+    <script type="module" src="dashboard-utils.js"></script>
+    <script type="module" src="race-results-api.js"></script>
+    <script type="module" src="dashboard.js"></script>
+</body>
+</html> 

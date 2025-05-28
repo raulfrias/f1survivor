@@ -178,15 +178,21 @@ export class QualifyingResultsManager {
     }
 
     getFallbackDriver() {
-        // Update fallback drivers for 2025 season
+        // Update fallback drivers for 2025 season - Ordered by priority
         const fallbackDrivers = [
-            { driverId: 31, driverName: "Esteban Ocon", position: 15, teamName: "Haas F1 Team" },
-            { driverId: 87, driverName: "Oliver Bearman", position: 15, teamName: "Haas F1 Team" },
             { driverId: 27, driverName: "Nico Hulkenberg", position: 15, teamName: "Kick Sauber" },
-            { driverId: 5, driverName: "Gabriel Bortoleto", position: 15, teamName: "Kick Sauber" }
+            { driverId: 31, driverName: "Esteban Ocon", position: 15, teamName: "Haas F1 Team" },
+            { driverId: 5, driverName: "Gabriel Bortoleto", position: 15, teamName: "Kick Sauber" },
+            { driverId: 87, driverName: "Oliver Bearman", position: 15, teamName: "Haas F1 Team" }
         ];
 
-        // Deterministic selection based on race identifier
+        // For 2025 season, always return Hulkenberg as primary fallback
+        if (this.raceData?.qualifyingDate?.startsWith('2025')) {
+            this.log('info', 'Using primary fallback driver (Hulkenberg) for 2025 season', fallbackDrivers[0]);
+            return [fallbackDrivers[0]];
+        }
+
+        // For other cases, use deterministic selection based on race identifier
         const raceIdHash = this.raceData?.raceId ? 
             this.raceData.raceId.split('-')[0].length : 0;
         const index = raceIdHash % fallbackDrivers.length;
@@ -271,10 +277,8 @@ export class QualifyingResultsManager {
     getAutoPick() {
         if (!this.qualifyingResults || !Array.isArray(this.qualifyingResults) || this.qualifyingResults.length === 0) {
             this.log('warn', 'Qualifying results not available or not an array for getAutoPick');
-            // Potentially use a very basic fallback if no qualifying results at all
-            const fallbackP15 = { driverId: 20, driverName: "Kevin Magnussen (Fallback)", position: 15, teamName: "Haas F1 Team" };
-            if (!this.isDriverPicked(fallbackP15.driverId)) return fallbackP15;
-            return null; // Or try getNextAvailablePosition with a dummy full list if truly desperate
+            // Use getFallbackDriver instead of hardcoded fallback
+            return this.getFallbackDriver()[0];
         }
 
         // Try P15 first

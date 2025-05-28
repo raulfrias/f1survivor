@@ -25,7 +25,11 @@ This document outlines the development phases and tasks for the F1 Survivor game
   - Clear user-friendly deadline display in local timezone
   - Proper validation and error handling
   - Fallback driver system for future races
-- [ ] Fix pick functionality based on real race, live testing during Monaco race
+- [x] Implement dynamic race state management
+  - Accurate title changes ("Next Race" vs "Race in Progress")
+  - Real-time race status indicators
+  - Proper countdown behavior during live races
+  - Clear status messages for all race states
 
 ### User Dashboard Mockup
 - [ ] Design player status dashboard wireframe

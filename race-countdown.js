@@ -122,10 +122,16 @@ class RaceCountdown {
   renderCountdown() {
     if (!this.currentRaceData) return;
     
+    const currentState = this.getCurrentRaceState();
+    const titlePrefix = (currentState === this.stateManager.states.RACE_LIVE || 
+                        currentState === this.stateManager.states.POST_RACE) 
+                        ? "Race: " 
+                        : "Next Race: ";
+    
     // Create HTML structure
     this.containerEl.innerHTML = `
       <div class="race-info">
-        <h3 class="race-name">Next Race: <span id="race-name">${this.currentRaceData.raceName}</span></h3>
+        <h3 class="race-name">${titlePrefix}<span id="race-name">${this.currentRaceData.raceName}</span></h3>
       </div>
       <div class="countdown-timer">
         <div class="time-unit">

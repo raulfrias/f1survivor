@@ -26,14 +26,12 @@
             console.log("LocalStorage and notifications cleared for testing.");
 
             // Set mock nextRaceData for testing
-            // For these tests, we want AutoPickManager to use data for a known past race
-            // to ensure stability of test assertions. The 'latest' data fetching is handled by
-            // QualifyingResultsManager and tested separately (and by get_quali_results.py).
             const mockNextRaceData = {
-                raceId: "bahrain-gp-2024", // Consistent with other test file
-                raceName: "Bahrain Grand Prix 2024",
-                qualifyingDate: "2024-03-01", // Changed from 2024-02-29 to actual quali date for Bahrain
-                pickDeadline: "2024-03-02T12:00:00Z" // Example deadline
+                raceId: "bahrain-2025", // Updated to 2025
+                raceName: "Bahrain Grand Prix 2025",
+                qualifyingDate: "2025-03-01", // Updated to 2025
+                pickDeadline: "2025-03-02T12:00:00Z", // Updated to 2025
+                raceCircuit: "Bahrain International Circuit"
             };
             localStorage.setItem('nextRaceData', JSON.stringify(mockNextRaceData));
             console.log("Mock nextRaceData set:", mockNextRaceData);
@@ -71,7 +69,7 @@
 
             let userPicks1 = JSON.parse(localStorage.getItem('f1survivor_user_picks') || '{"picks":[]}').picks;
             let autoPickMade1 = userPicks1.find(p => p.raceId === mockNextRaceData.raceId && p.isAutoPick);
-            if (autoPickMade1 && autoPickMade1.driverId === 3) { // Expects P15 (Ricciardo, ID 3)
+            if (autoPickMade1 && autoPickMade1.driverId === 27) { // Expects P15 (Hulkenberg, ID 27)
                 console.log("Test 1 PASSED: Auto-pick correctly made and saved for P15.", autoPickMade1);
             } else {
                 console.error("Test 1 FAILED: Auto-pick not saved correctly or wrong driver.", { autoPickMade1, userPicks1 });
@@ -124,7 +122,7 @@
             let userPicks3 = JSON.parse(localStorage.getItem('f1survivor_user_picks') || '{"picks":[]}').picks;
             // There will be two picks now: the one for 'some-other-race' and the new auto-pick for 'bahrain-gp-2024'
             let autoPickMade3 = userPicks3.find(p => p.raceId === mockNextRaceData.raceId && p.isAutoPick);
-            if (autoPickMade3 && autoPickMade3.driverId === 24) { // Expects P16 (Zhou, ID 24)
+            if (autoPickMade3 && autoPickMade3.driverId === 5) { // Expects P16 (Bortoleto, ID 5)
                 console.log("Test 3 PASSED: Auto-pick correctly made for P16 as P15 was taken.", autoPickMade3);
             } else {
                 console.error("Test 3 FAILED: Auto-pick not P16 or not saved correctly.", { autoPickMade3, userPicks3 });

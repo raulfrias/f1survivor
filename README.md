@@ -87,6 +87,9 @@ f1survivor/
   - Pick deadline warnings
   - Caching system for performance
   - Deadline enforcement with UI locking
+  - Dynamic race state display ("Next Race" vs "Race in Progress")
+  - Accurate race status indicators with countdown zeros during live race
+  - Clear status messages for different race states
 
 ✅ **P15 Auto-pick System:**
   - Automatic assignment of the P15 qualifier from the latest *completed* F1 qualifying session for users who miss the pick deadline.

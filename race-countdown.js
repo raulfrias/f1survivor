@@ -184,37 +184,32 @@ class RaceCountdown {
   updateCountdown() {
     const currentState = this.getCurrentRaceState();
     
-    switch(currentState) {
-        case this.stateManager.states.RACE_LIVE:
-        case this.stateManager.states.POST_RACE:
-            // Show appropriate status
-            document.getElementById('days-value').textContent = '00';
-            document.getElementById('hours-value').textContent = '00';
-            document.getElementById('minutes-value').textContent = '00';
-            document.getElementById('seconds-value').textContent = '00';
-            
-            const pickStatus = document.getElementById('pick-status');
-            pickStatus.textContent = this.stateManager.getStateDisplay(currentState);
-            pickStatus.className = `pick-status ${currentState}`;
-            
-            // Disable pick button
-            const makePickBtn = document.getElementById('make-pick-btn');
-            if (makePickBtn) {
-                makePickBtn.disabled = true;
-                makePickBtn.style.opacity = '0.5';
-                makePickBtn.style.cursor = 'not-allowed';
-            }
-            break;
-            
-        case this.stateManager.states.NEXT_RACE:
-            // Trigger next race load
-            this.loadNextRace();
-            break;
-            
-        default:
-            // Normal countdown logic
-            this.updateCountdownDisplay();
-            this.updatePickDeadlineStatus();
+    // Update all time values to 00 for race in progress or post-race
+    if (currentState === this.stateManager.states.RACE_LIVE || 
+        currentState === this.stateManager.states.POST_RACE) {
+        document.getElementById('days-value').textContent = '00';
+        document.getElementById('hours-value').textContent = '00';
+        document.getElementById('minutes-value').textContent = '00';
+        document.getElementById('seconds-value').textContent = '00';
+        
+        const pickStatus = document.getElementById('pick-status');
+        pickStatus.textContent = this.stateManager.getStateDisplay(currentState);
+        pickStatus.className = `pick-status ${currentState}`;
+        
+        // Disable pick button
+        const makePickBtn = document.getElementById('make-pick-btn');
+        if (makePickBtn) {
+            makePickBtn.disabled = true;
+            makePickBtn.style.opacity = '0.5';
+            makePickBtn.style.cursor = 'not-allowed';
+        }
+    } else if (currentState === this.stateManager.states.NEXT_RACE) {
+        // Trigger next race load
+        this.loadNextRace();
+    } else {
+        // Normal countdown logic
+        this.updateCountdownDisplay();
+        this.updatePickDeadlineStatus();
     }
   }
   

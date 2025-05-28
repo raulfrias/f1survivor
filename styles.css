@@ -942,66 +942,39 @@ nav {
 
 .pick-status {
     text-align: center;
+    font-weight: bold;
     margin-top: 1rem;
     padding: 0.5rem;
     border-radius: 4px;
-    font-weight: bold;
     transition: all 0.3s ease;
 }
 
-.pick-status.urgent {
-    background-color: #ff3d00;
-    color: #ffffff;
-    animation: urgentPulse 1.5s infinite;
-    box-shadow: 0 0 15px rgba(255, 61, 0, 0.3);
-}
-
-.deadline-warning {
-    background-color: #ff9800;
-    color: #000000;
-}
-
-.deadline-warning.urgent {
-    background-color: #ff3d00;
-    color: #ffffff;
-    animation: urgentPulse 1.5s infinite;
-}
-
-.deadline-passed {
+.pick-status.race_live {
     background-color: #e10600;
-    color: #ffffff;
+    color: white;
 }
 
-/* Enhanced urgent pulse animation */
-@keyframes urgentPulse {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(255, 61, 0, 0.7);
-    }
-    50% {
-        transform: scale(1.02);
-        box-shadow: 0 0 20px 0 rgba(255, 61, 0, 0.3);
-    }
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(255, 61, 0, 0);
-    }
+.pick-status.post_race {
+    background-color: #1e1e1e;
+    color: white;
 }
 
-/* Update the countdown warning styles */
-.race-countdown-container .pick-status {
-    margin: 0.5rem -1rem 0;
-    padding: 0.8rem;
-    font-size: 1.1rem;
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
+.pick-status.deadline-warning {
+    background-color: #ffa500;
+    color: white;
 }
 
-.race-countdown-container .pick-status.urgent {
-    background-color: #ff3d00;
-    color: #ffffff;
-    font-weight: bold;
-    animation: urgentPulse 1.5s infinite;
+.pick-status.deadline-passed {
+    background-color: #ff0000;
+    color: white;
+}
+
+/* Race Title Styles */
+.race-name {
+    text-align: center;
+    color: #e10600;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 /* Deadline Status Styles */

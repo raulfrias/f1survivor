@@ -67,30 +67,24 @@ function saveUserPicks(driverId, driverInfo = null) {
 function loadUserPicks() {
   try {
     const picksData = localStorage.getItem(STORAGE_KEYS.USER_PICKS);
-    console.log('Raw picks data from localStorage:', picksData);
     
     if (!picksData) {
-      console.log('No picks data found in localStorage');
       return [];
     }
     
     const userData = JSON.parse(picksData);
-    console.log('Parsed user data:', userData);
     
     // Ensure we're only loading picks from the current season
     if (userData.currentSeason !== getCurrentSeason()) {
-      console.log('Picks are from a different season, returning empty array');
       return [];
     }
     
     // Ensure picks is an array
     if (!userData.picks) {
-      console.log('No picks array in user data, returning empty array');
       return [];
     }
     
     if (!Array.isArray(userData.picks)) {
-      console.log('Picks is not an array, converting to array:', userData.picks);
       // If picks is a single pick object, wrap it in an array
       if (typeof userData.picks === 'object' && userData.picks.driverId) {
         return [userData.picks];
@@ -105,7 +99,6 @@ function loadUserPicks() {
       return [];
     }
     
-    console.log('Returning picks array:', userData.picks);
     return userData.picks;
   } catch (error) {
     console.error('Failed to load picks from localStorage:', error);
@@ -146,21 +139,16 @@ function clearPickData() {
   }
 }
 
-
-
 // Get current race pick
 function getCurrentRacePick() {
   try {
     const raceData = JSON.parse(localStorage.getItem('nextRaceData'));
     if (!raceData) {
-      console.log('No race data found');
       return null;
     }
     
     const picks = loadUserPicks();
-    const currentPick = picks.find(pick => pick.raceId === raceData.raceId);
-    console.log('Current race pick:', currentPick);
-    return currentPick || null;
+    return picks.find(pick => pick.raceId === raceData.raceId) || null;
   } catch (error) {
     console.error('Failed to get current race pick:', error);
     return null;

@@ -93,15 +93,17 @@ export class QualifyingResultsManager {
                     return await response.json();
                 }
                 
-                // Check specific error codes
+                // For 404s, just return null without logging an error
                 if (response.status === 404) {
-                    this.logger.log('info', 'Qualifying data not yet available (404)');
-                    return null; // Don't retry on 404
+                    return null;
                 }
                 
                 throw new Error(`HTTP ${response.status}`);
             } catch (error) {
-                this.logger.log('warn', `Attempt ${i + 1} failed:`, error);
+                // Only log non-404 errors
+                if (!error.message?.includes('404')) {
+                    this.logger.log('warn', `Attempt ${i + 1} failed:`, error);
+                }
                 
                 if (i < retries - 1) {
                     await new Promise(resolve => setTimeout(resolve, this.retryDelay));
@@ -114,7 +116,7 @@ export class QualifyingResultsManager {
 
     async fetchQualifyingResults(date) {
         if (date === undefined) {
-            this.log('warn', 'fetchQualifyingResults called with undefined date. Using fallback.');
+            this.log('debug', 'fetchQualifyingResults called with undefined date. Using fallback.');
             this.qualifyingResults = this.getFallbackDriver(); 
             return this.qualifyingResults; 
         }
@@ -123,12 +125,10 @@ export class QualifyingResultsManager {
         const requestDate = new Date(date);
         const now = new Date();
         if (requestDate > now) {
-            this.log('debug', `Using fallback for future race: ${date}`);
+            this.log('debug', 'Using fallback for future race');
             this.qualifyingResults = this.getFallbackDriver();
             return this.qualifyingResults;
         }
-
-        this.log('debug', `Fetching qualifying results for date: ${date === null ? 'latest' : date}`);
 
         const apiUrl = date === null || date === 'latest' ? '/api/qualifying' : `/api/qualifying?date=${date}`;
 
@@ -137,8 +137,6 @@ export class QualifyingResultsManager {
             
             if (cachedResults) {
                 const parsedResults = JSON.parse(cachedResults);
-                this.log('debug', 'Found cached qualifying results');
-
                 if (this.raceData && parsedResults.raceId === this.raceData.raceId) {
                     this.log('debug', 'Using cached qualifying results');
                     this.qualifyingResults = parsedResults.results;
@@ -148,12 +146,11 @@ export class QualifyingResultsManager {
 
             // Only attempt API call for past races
             if (requestDate <= now) {
-                this.log('debug', 'Fetching from API:', apiUrl);
                 const data = await this.fetchWithRetry(apiUrl);
                 
                 if (data === null) {
-                    this.log('debug', 'No data available, using intelligent fallback');
-                    return this.getIntelligentFallback();
+                    this.log('debug', 'Using fallback driver (no data available)');
+                    return this.getFallbackDriver();
                 }
                 
                 return this._processResults(data, this.raceData ? this.raceData.raceId : 'unknown_race');
@@ -162,9 +159,8 @@ export class QualifyingResultsManager {
                 return this.getFallbackDriver();
             }
         } catch (error) {
-            if (error.message?.includes('404')) {
-                this.log('debug', 'API returned 404, using fallback driver');
-            } else {
+            // Only log non-404 errors as actual errors
+            if (!error.message?.includes('404')) {
                 this.log('error', 'Error fetching qualifying results', error);
             }
             return this.getFallbackDriver();
@@ -182,7 +178,7 @@ export class QualifyingResultsManager {
 
         // For 2025 season, always return Hulkenberg as primary fallback
         if (this.raceData?.qualifyingDate?.startsWith('2025')) {
-            this.log('info', 'Using primary fallback driver (Hulkenberg) for 2025 season', fallbackDrivers[0]);
+            this.log('debug', 'Using Hulkenberg as fallback for 2025 season');
             return [fallbackDrivers[0]];
         }
 
@@ -191,7 +187,7 @@ export class QualifyingResultsManager {
             this.raceData.raceId.split('-')[0].length : 0;
         const index = raceIdHash % fallbackDrivers.length;
         
-        this.log('info', 'Using fallback driver for future or unavailable qualifying data', fallbackDrivers[index]);
+        this.log('debug', 'Using fallback driver');
         return [fallbackDrivers[index]];
     }
 

@@ -150,15 +150,9 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
         `;
         
         document.body.appendChild(testControls);
-    });
-}
 
-// Export for console access
-window.TestScenarios = TestScenarios;
-window.mockMonacoData = mockMonacoData; // Keep for reference
-
-// Instructions for manual testing
-console.log(`
+        // Only show test instructions in console when in development
+        console.log(`
 Monaco 2025 Test Scenarios Ready!
 
 To run scenarios, use:
@@ -169,4 +163,12 @@ To run scenarios, use:
 Example:
 const qrm = scenarios.postQualifying();
 console.log(qrm.getAutoPick());
-`); 
+`);
+    });
+}
+
+// Export for console access only in development
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    window.TestScenarios = TestScenarios;
+    window.mockMonacoData = mockMonacoData; // Keep for reference
+} 

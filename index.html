@@ -136,6 +136,14 @@
     <script type="module" src="race-countdown.js"></script>
     <script type="module" src="app.js"></script>
     <!-- Test Controls (only visible in development) -->
-    <script type="module" src="test-monaco-scenarios.js"></script>
+    <script>
+        // Only load test scenarios in development environment
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = 'test-monaco-scenarios.js';
+            document.body.appendChild(script);
+        }
+    </script>
 </body>
 </html> 

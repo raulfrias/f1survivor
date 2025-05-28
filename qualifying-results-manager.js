@@ -123,13 +123,12 @@ export class QualifyingResultsManager {
         const requestDate = new Date(date);
         const now = new Date();
         if (requestDate > now) {
-            this.log('info', `Qualifying results requested for future date (${date}). Using fallback.`);
+            this.log('debug', `Using fallback for future race: ${date}`);
             this.qualifyingResults = this.getFallbackDriver();
             return this.qualifyingResults;
         }
 
         this.log('debug', `Fetching qualifying results for date: ${date === null ? 'latest' : date}`);
-        this.log('debug', 'Current this.raceData at start of fetchQualifyingResults:', this.raceData);
 
         const apiUrl = date === null || date === 'latest' ? '/api/qualifying' : `/api/qualifying?date=${date}`;
 
@@ -137,42 +136,37 @@ export class QualifyingResultsManager {
             const cachedResults = localStorage.getItem('qualifyingResults');
             
             if (cachedResults) {
-                this.log('debug', 'Cached qualifyingResults found in localStorage.', { rawCache: cachedResults.substring(0, 100) + '...' });
                 const parsedResults = JSON.parse(cachedResults);
-                this.log('debug', 'Parsed cached results:', { raceId: parsedResults.raceId, resultsLength: parsedResults.results ? parsedResults.results.length : 0 });
+                this.log('debug', 'Found cached qualifying results');
 
                 if (this.raceData && parsedResults.raceId === this.raceData.raceId) {
-                    this.log('info', 'Using cached qualifying results as raceId matches.', { cachedRaceId: parsedResults.raceId });
+                    this.log('debug', 'Using cached qualifying results');
                     this.qualifyingResults = parsedResults.results;
                     return this.qualifyingResults;
-                } else {
-                    this.log('info', 'Cached results NOT used. Reason:', {
-                        raceDataExists: !!this.raceData,
-                        raceDataRaceId: this.raceData ? this.raceData.raceId : 'N/A',
-                        cachedRaceId: parsedResults.raceId,
-                        match: this.raceData ? parsedResults.raceId === this.raceData.raceId : false
-                    });
                 }
+            }
+
+            // Only attempt API call for past races
+            if (requestDate <= now) {
+                this.log('debug', 'Fetching from API:', apiUrl);
+                const data = await this.fetchWithRetry(apiUrl);
+                
+                if (data === null) {
+                    this.log('debug', 'No data available, using intelligent fallback');
+                    return this.getIntelligentFallback();
+                }
+                
+                return this._processResults(data, this.raceData ? this.raceData.raceId : 'unknown_race');
             } else {
-                this.log('debug', 'No cached qualifyingResults found in localStorage.');
+                this.log('debug', 'Using fallback for future race');
+                return this.getFallbackDriver();
             }
-
-            this.log('info', 'Proceeding to fetch qualifying results from API:', apiUrl);
-            
-            // Use retry wrapper for API call
-            const data = await this.fetchWithRetry(apiUrl);
-            
-            if (data === null) {
-                // 404 - data not available yet
-                this.logger.log('info', 'Qualifying data not available, using intelligent fallback');
-                return this.getIntelligentFallback();
-            }
-            
-            return this._processResults(data, this.raceData ? this.raceData.raceId : 'unknown_race');
-
         } catch (error) {
-            // Only use fallback after retries exhausted
-            this.logger.log('error', 'All retry attempts failed', error);
+            if (error.message?.includes('404')) {
+                this.log('debug', 'API returned 404, using fallback driver');
+            } else {
+                this.log('error', 'Error fetching qualifying results', error);
+            }
             return this.getFallbackDriver();
         }
     }

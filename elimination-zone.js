@@ -140,9 +140,9 @@ class EliminationZone {
         <h4>❌ ELIMINATED (${this.eliminations.length} players)</h4>
         ${formattedEliminations.map(e => `
           <div class="ez-elimination-item">
-            <div>
-              <div class="ez-elimination-player">${e.username}</div>
-              <div class="ez-elimination-pick">Picked: ${e.driverName} (${e.team})</div>
+            <div class="ez-elimination-player-pick">
+              <span class="ez-elimination-player">${e.username}</span>
+              <span class="ez-elimination-pick">Picked: ${e.driverName}</span>
             </div>
             <div class="ez-elimination-position">${e.position}</div>
           </div>
@@ -158,12 +158,15 @@ class EliminationZone {
     
     return `
       <div class="ez-standings">
-        <h4>League Standings</h4>
+        <h4>Remaining Players</h4>
         <div class="ez-standings-list">
           ${topStandings.map(standing => `
             <div class="ez-standing-item ${standing.isCurrentUser ? 'current-user' : ''}">
               <div class="ez-standing-rank">${standing.rank}</div>
-              <div class="ez-standing-name">${standing.username}</div>
+              <div class="ez-standing-name-pick">
+                <span class="ez-standing-name">${standing.username}</span>
+                <span class="ez-standing-pick">Last: ${this.getLastPickForPlayer(standing.username)}</span>
+              </div>
               <div class="ez-standing-stats">${standing.status}</div>
             </div>
           `).join('')}
@@ -171,7 +174,10 @@ class EliminationZone {
           ${userStanding && userStanding.rank > 5 ? `
             <div class="ez-standing-item current-user">
               <div class="ez-standing-rank">${userStanding.rank}</div>
-              <div class="ez-standing-name">${userStanding.username}</div>
+              <div class="ez-standing-name-pick">
+                <span class="ez-standing-name">${userStanding.username}</span>
+                <span class="ez-standing-pick">Last: ${this.getLastPickForPlayer(userStanding.username)}</span>
+              </div>
               <div class="ez-standing-stats">${userStanding.status}</div>
             </div>
           ` : ''}
@@ -256,6 +262,21 @@ class EliminationZone {
     if (j === 2 && k !== 12) return 'nd';
     if (j === 3 && k !== 13) return 'rd';
     return 'th';
+  }
+
+  getLastPickForPlayer(username) {
+    // Mock implementation for demo purposes
+    // In production, this would fetch from actual player data
+    const mockPicks = {
+      'AlphaDriver': 'Verstappen',
+      'F1Prophet': 'Leclerc', 
+      'GridWarrior': 'Hamilton',
+      'SpeedKing': 'Norris',
+      'RaceAce': 'Russell',
+      'YOU': 'Norris'
+    };
+    
+    return mockPicks[username] || 'Unknown';
   }
 
   destroy() {

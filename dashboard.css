@@ -13,7 +13,7 @@
     padding: 0 2rem;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1rem;
 }
 
 /* Navigation updates */
@@ -243,6 +243,8 @@
 
 .race-name {
     font-weight: 500;
+    color: var(--primary-red);
+    font-size: 0.9rem;
 }
 
 .driver-info {

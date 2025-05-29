@@ -4,7 +4,7 @@
   background: var(--card-bg-color);
   border-radius: 12px;
   padding: 1.5rem;
-  margin: 2rem 0;
+  margin: 1rem 0;
   border: 2px solid transparent;
   transition: all 0.3s ease;
   position: relative;
@@ -59,9 +59,9 @@
 }
 
 .ez-league-name {
-  font-size: 0.9rem;
+  font-size: 1.5rem;
+  font-weight: 700;
   color: var(--text-color);
-  opacity: 0.8;
 }
 
 /* Simple View */

@@ -83,10 +83,8 @@ class EliminationZone {
   renderHeader() {
     return `
       <div class="ez-header">
-        <div>
-          <h3 class="ez-title">ELIMINATION ZONE</h3>
-          <div class="ez-league-name">League: "${this.leagueData.leagueName}"</div>
-        </div>
+        <h3 class="ez-title">ELIMINATION ZONE</h3>
+        <div class="ez-league-name">League: "${this.leagueData.leagueName}"</div>
       </div>
     `;
   }
@@ -94,7 +92,6 @@ class EliminationZone {
   renderSimpleView() {
     const { lastProcessedRace } = this.leagueData;
     const { eliminatedPlayers, activePlayers } = this.leagueData;
-    const { currentRank } = this.userStatus;
     
     return `
       <div class="ez-simple-view">
@@ -105,10 +102,6 @@ class EliminationZone {
         <div class="ez-elimination-count">
           ❌ <span class="eliminated">${eliminatedPlayers} ELIMINATED</span> / 
           <span class="remaining">${activePlayers} REMAINING</span>
-        </div>
-        
-        <div class="ez-position-text">
-          YOU SURVIVED (${currentRank}${this.getOrdinalSuffix(currentRank)} of ${activePlayers})
         </div>
       </div>
     `;

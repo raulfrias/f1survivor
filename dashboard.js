@@ -34,8 +34,6 @@ async function initializeDashboard() {
     updatePlayerStatus(dashboardData.stats);
     updateSeasonProgress(dashboardData.stats);
     updatePickHistory(dashboardData.userPicks);
-    updateAvailableDrivers(dashboardData.availableDrivers);
-    updateUpcomingRaces(dashboardData.upcomingRaces);
     
     // Hide loading overlay
     hideLoading();
@@ -70,10 +68,6 @@ function updatePlayerStatus(stats) {
       statusText.textContent = 'ELIMINATED';
     }
     
-    // Update picks counter
-    document.getElementById('picks-used').textContent = stats.picksUsed;
-    document.getElementById('total-drivers').textContent = stats.totalDrivers;
-    
     console.log('Player status updated');
   } catch (error) {
     console.error('Error updating player status:', error);
@@ -86,17 +80,18 @@ function updatePlayerStatus(stats) {
  */
 function updateSeasonProgress(stats) {
   try {
-    // Update progress bar
-    const progressFill = document.getElementById('season-progress-fill');
-    progressFill.style.width = `${stats.seasonProgress}%`;
-    
     // Update race counter
     document.getElementById('races-completed').textContent = stats.racesCompleted;
     document.getElementById('total-races').textContent = stats.totalRaces;
     
-    // Update statistics
-    document.getElementById('survival-rate').textContent = `${stats.survivalRate}%`;
+    // Update remaining drivers
     document.getElementById('remaining-drivers').textContent = stats.remainingDrivers;
+    
+    // Update next race (this would come from upcoming races data)
+    const nextRaceElement = document.getElementById('next-race-name');
+    if (nextRaceElement) {
+      nextRaceElement.textContent = 'Australian GP'; // This would be dynamic
+    }
     
     console.log('Season progress updated');
   } catch (error) {
@@ -188,106 +183,6 @@ function createPickHistoryRow(pick) {
 }
 
 /**
- * Update available drivers section
- * @param {Array} availableDrivers - Array of available drivers
- */
-function updateAvailableDrivers(availableDrivers) {
-  try {
-    const driversGrid = document.getElementById('available-drivers-grid');
-    
-    // Clear existing content
-    driversGrid.innerHTML = '';
-    
-    if (!availableDrivers || availableDrivers.length === 0) {
-      driversGrid.innerHTML = '<p class="no-drivers-message">All drivers have been picked!</p>';
-      return;
-    }
-    
-    // Create mini driver cards
-    availableDrivers.forEach(driver => {
-      const card = createMiniDriverCard(driver);
-      driversGrid.appendChild(card);
-    });
-    
-    console.log('Available drivers updated');
-  } catch (error) {
-    console.error('Error updating available drivers:', error);
-  }
-}
-
-/**
- * Create a mini driver card
- * @param {Object} driver - Driver object
- * @returns {HTMLElement} Mini driver card element
- */
-function createMiniDriverCard(driver) {
-  const card = document.createElement('div');
-  card.className = 'mini-driver-card';
-  card.setAttribute('data-driver-id', driver.driverId);
-  
-  card.innerHTML = `
-    <div class="driver-number">#${driver.number}</div>
-    <div class="driver-name">${driver.driverName}</div>
-    <div class="team-name">${driver.teamName}</div>
-  `;
-  
-  // Add click handler to navigate to pick page
-  card.addEventListener('click', () => {
-    window.location.href = 'index.html';
-  });
-  
-  return card;
-}
-
-/**
- * Update upcoming races section
- * @param {Array} upcomingRaces - Array of upcoming races
- */
-function updateUpcomingRaces(upcomingRaces) {
-  try {
-    const upcomingRacesList = document.getElementById('upcoming-races-list');
-    
-    // Clear existing content
-    upcomingRacesList.innerHTML = '';
-    
-    if (!upcomingRaces || upcomingRaces.length === 0) {
-      upcomingRacesList.innerHTML = '<p class="no-races-message">No upcoming races scheduled.</p>';
-      return;
-    }
-    
-    // Create upcoming race items
-    upcomingRaces.forEach(race => {
-      const item = createUpcomingRaceItem(race);
-      upcomingRacesList.appendChild(item);
-    });
-    
-    console.log('Upcoming races updated');
-  } catch (error) {
-    console.error('Error updating upcoming races:', error);
-  }
-}
-
-/**
- * Create an upcoming race item
- * @param {Object} race - Race object
- * @returns {HTMLElement} Upcoming race item element
- */
-function createUpcomingRaceItem(race) {
-  const item = document.createElement('div');
-  item.className = 'upcoming-race-item';
-  
-  item.innerHTML = `
-    <div class="race-info-mini">
-      <div class="race-name-mini">${race.raceName}</div>
-      <div class="race-date-mini">${formatDate(race.date)}</div>
-    </div>
-    <div class="countdown-mini">${race.countdown}</div>
-  `;
-  
-  return item;
-}
-
-/**
  * Show loading overlay
  */
 function showLoading() {
@@ -359,7 +254,5 @@ export {
   refreshDashboard,
   updatePlayerStatus,
   updateSeasonProgress,
-  updatePickHistory,
-  updateAvailableDrivers,
-  updateUpcomingRaces
+  updatePickHistory
 }; 

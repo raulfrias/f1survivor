@@ -68,10 +68,8 @@ class EliminationZone {
       return;
     }
 
-    const dangerLevel = calculateDangerLevel(this.userStatus);
-    
     this.container.innerHTML = `
-      <div class="elimination-zone ${dangerLevel.class}">
+      <div class="elimination-zone">
         ${this.renderHeader()}
         ${this.renderSimpleView()}
         ${this.isExpanded ? this.renderExpandedView() : ''}
@@ -97,7 +95,6 @@ class EliminationZone {
     const { lastProcessedRace } = this.leagueData;
     const { eliminatedPlayers, activePlayers } = this.leagueData;
     const { currentRank } = this.userStatus;
-    const dangerLevel = calculateDangerLevel(this.userStatus);
     
     return `
       <div class="ez-simple-view">
@@ -110,30 +107,9 @@ class EliminationZone {
           <span class="remaining">${activePlayers} REMAINING</span>
         </div>
         
-        <div class="ez-survival-bar">
-          ${this.renderSurvivalBar()}
+        <div class="ez-position-text">
+          YOU SURVIVED (${currentRank}${this.getOrdinalSuffix(currentRank)} of ${activePlayers})
         </div>
-        
-        <div class="ez-danger-warning ${dangerLevel.class.replace('ez-', '')}">
-          ${dangerLevel.icon} ${dangerLevel.level}: ${dangerLevel.message}
-        </div>
-      </div>
-    `;
-  }
-
-  renderSurvivalBar() {
-    const { currentRank, percentile } = this.userStatus;
-    const { activePlayers } = this.leagueData;
-    
-    // Calculate position on the bar (0-100%)
-    const position = ((activePlayers - currentRank) / activePlayers) * 100;
-    
-    return `
-      <div class="ez-position-marker" style="left: ${position}%">
-        ${currentRank}
-      </div>
-      <div class="ez-position-text">
-        YOU SURVIVED (${currentRank}${this.getOrdinalSuffix(currentRank)} of ${activePlayers})
       </div>
     `;
   }
@@ -143,8 +119,6 @@ class EliminationZone {
       <div class="ez-expanded-view">
         ${this.renderEliminationDetails()}
         ${this.renderStandings()}
-        ${this.renderForecast()}
-        ${this.renderRecommendations()}
       </div>
     `;
   }
@@ -190,7 +164,7 @@ class EliminationZone {
             <div class="ez-standing-item ${standing.isCurrentUser ? 'current-user' : ''}">
               <div class="ez-standing-rank">${standing.rank}</div>
               <div class="ez-standing-name">${standing.username}</div>
-              <div class="ez-standing-stats">${standing.safePicks}/${standing.totalPicks} safe</div>
+              <div class="ez-standing-stats">${standing.status}</div>
             </div>
           `).join('')}
           
@@ -198,39 +172,10 @@ class EliminationZone {
             <div class="ez-standing-item current-user">
               <div class="ez-standing-rank">${userStanding.rank}</div>
               <div class="ez-standing-name">${userStanding.username}</div>
-              <div class="ez-standing-stats">${userStanding.safePicks}/${userStanding.totalPicks} safe</div>
+              <div class="ez-standing-stats">${userStanding.status}</div>
             </div>
           ` : ''}
         </div>
-      </div>
-    `;
-  }
-
-  renderForecast() {
-    const forecast = getEliminationForecast(this.leagueData, null);
-    
-    return `
-      <div class="ez-forecast">
-        <h4>Next Elimination Forecast</h4>
-        <div class="ez-forecast-content">
-          <div class="ez-forecast-numbers">
-            Australian GP: Est. ${forecast.min}-${forecast.max} eliminations
-          </div>
-          <div class="ez-forecast-message">${forecast.message}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  renderRecommendations() {
-    const recommendations = generateStrategicRecommendations(this.userStatus, this.leagueData);
-    
-    return `
-      <div class="ez-recommendations">
-        <h5>Strategic Recommendations</h5>
-        ${recommendations.map(rec => `
-          <div class="ez-recommendation-item">${rec}</div>
-        `).join('')}
       </div>
     `;
   }

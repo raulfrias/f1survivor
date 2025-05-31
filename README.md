@@ -55,10 +55,36 @@ f1survivor/
 │       └── F1-Logo.png
 ├── docs/              # Project documentation
 │   ├── ROADMAP.md     # Development roadmap
-│   └── ...           # Additional documentation
+│   └── implementation-plans/
+│       └── league-system-prototype.md
 ├── app.js            # Core game logic
+├── auto-pick-manager.js  # Auto-pick system
+├── dashboard.js      # Dashboard functionality
+├── dashboard.html    # Dashboard page
+├── dashboard.css     # Dashboard styles
+├── dashboard-utils.js # Dashboard utilities
+├── elimination-utils.js # Elimination logic
+├── elimination-zone.js  # Elimination zone component
+├── elimination-zone.css # Elimination zone styles
 ├── index.html        # Main HTML structure
-├── styles.css        # Styling
+├── league-dashboard.js  # League dashboard integration
+├── league-indicator.css # League indicator styles
+├── league-integration.js # League system integration
+├── league-manager.js    # Core league operations
+├── league-modal.css     # League modal styles
+├── league-modal-manager.js # League UI modals
+├── league-selector.css  # League selector styles
+├── league-storage-manager.js # League data persistence
+├── pick-change-utils.js # Pick change utilities
+├── pick-deadline-manager.js # Deadline management
+├── qualifying-results-manager.js # Qualifying data
+├── race-calendar-2025.js # F1 2025 calendar
+├── race-countdown.js    # Race countdown timer
+├── race-results-api.js  # Race results fetching
+├── race-state-manager.js # Race state tracking
+├── storage-utils.js     # Storage utilities
+├── styles.css          # Main styling
+├── test-league-system.html # League testing page
 └── README.md
 ```
 
@@ -106,9 +132,21 @@ f1survivor/
   - Real-time survival calculations and status updates
   - Navigation between Pick and Dashboard pages
 
+✅ **League System (Prototype):**
+  - Create private leagues with custom names and settings
+  - Join leagues using 8-character invite codes
+  - League management interface for owners and members
+  - Separate pick tracking per league
+  - League standings and member status display
+  - Switch between solo play and league modes
+  - League-specific dashboard views
+  - Multi-user simulation for testing (within same browser)
+  - Owner controls: member management, settings updates
+  - Persistent league data using localStorage
+
 🔄 **In Progress:**
-  - League management prototype
-  - Local storage for user picks
+  - Backend integration preparation
+  - User authentication system planning
 
 ## Development Roadmap
 

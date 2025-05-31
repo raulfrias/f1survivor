@@ -3,9 +3,9 @@
 Fetch and print the final classification of an F1 race
 using the public OpenF1 API.
 
-Default race = Imola 2025 (meeting_key 1260, session_key 9987).
+Default race = Imola 2025 (meeting_key 1260, session_key 9987). You can find the results for the latest race by simply incrementing meeting_key, until you get a blank response or an error. That logic does not work with session_key.
 You can override with --session <session_key> or --meeting <meeting_key>.
-When only meeting_key is provided the script picks the Race session within it.
+When only meeting_key is provided the script picks the Race session within it. 
 """
 
 import argparse

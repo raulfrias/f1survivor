@@ -200,6 +200,7 @@ export function addTestPreviousRacePicks() {
 }
 
 export {
+  STORAGE_KEYS,
   saveUserPicks,
   loadUserPicks,
   isDriverAlreadyPicked,

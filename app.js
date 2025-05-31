@@ -1,5 +1,7 @@
 // Import storage utilities
 import { saveUserPicks, loadUserPicks, isDriverAlreadyPicked, clearPickData, getCurrentSeason, getCurrentRacePick, addTestPreviousRacePicks } from './storage-utils.js';
+import { savePickWithContext, loadPicksWithContext, isDriverAlreadyPickedWithContext, getCurrentRacePickWithContext, initializeLeagueIntegration } from './league-integration.js';
+import { leagueDashboard } from './league-dashboard.js';
 import RaceCountdown from './race-countdown.js';
 import { PickDeadlineManager } from './pick-deadline-manager.js';
 import { AutoPickManager } from './auto-pick-manager.js';
@@ -276,7 +278,7 @@ function showConfirmationModal(driver) {
     }
     
     // Check if this is a change
-    const currentPick = getCurrentRacePick();
+    const currentPick = getCurrentRacePickWithContext();
     const isChanging = !!currentPick;
     
     // Set driver details
@@ -412,7 +414,7 @@ function initializeConfirmationModal() {
                     isAutoPick: false
                 };
                 
-                const savedPick = await saveUserPicks(selectedDriverId, driverInfo);
+                const savedPick = await savePickWithContext(selectedDriverId, driverInfo);
                 if (!savedPick) {
                     throw new Error('Failed to save pick. Please try again.');
                 }
@@ -423,7 +425,7 @@ function initializeConfirmationModal() {
             // Update UI with pick change capability check
             const deadlineManager = new PickDeadlineManager();
             const canChange = !deadlineManager.isDeadlinePassed();
-            const currentPick = getCurrentRacePick();
+            const currentPick = getCurrentRacePickWithContext();
             PickChangeUtils.updateMakePickButtonText(currentPick, canChange);
             driverSelectionScreen.style.display = 'none';
             
@@ -478,7 +480,7 @@ async function renderDriverGrid() {
         // Load user picks and update driver states
         if (localStorageAvailable) {
             try {
-                const picks = loadUserPicks();
+                const picks = loadPicksWithContext();
                 console.log('Loaded picks for grid:', picks);
                 
                 if (Array.isArray(picks)) {
@@ -562,7 +564,7 @@ async function renderDriverGrid() {
         });
         
         // Highlight current pick in the grid
-        const currentPick = getCurrentRacePick();
+        const currentPick = getCurrentRacePickWithContext();
         PickChangeUtils.highlightCurrentPickInGrid(currentPick);
     } catch (error) {
         console.error('Error rendering driver grid:', error);
@@ -629,7 +631,7 @@ const initializeDriverSelection = () => {
             statusElement.textContent = `Selection closes in: ${timeRemaining.hours}h ${timeRemaining.minutes}m ${timeRemaining.seconds}s`;
             
             // Add pick change deadline warning
-            const currentPick = getCurrentRacePick();
+            const currentPick = getCurrentRacePickWithContext();
             if (currentPick && timeRemaining.totalMinutes < 60) {
                 console.log('Warning user about pick change deadline approaching');
             }
@@ -671,7 +673,7 @@ const initializeDriverSelection = () => {
                 makePickBtn.style.cursor = 'not-allowed';
                 
                 // Update button text to remove (CHANGE) if present
-                const currentPick = getCurrentRacePick();
+                const currentPick = getCurrentRacePickWithContext();
                 if (currentPick) {
                     const lastName = currentPick.driverName.split(' ').pop();
                     makePickBtn.textContent = `PICKED: ${lastName.toUpperCase()}`;
@@ -680,7 +682,7 @@ const initializeDriverSelection = () => {
             
             // Check if a pick was made
             const raceData = JSON.parse(localStorage.getItem('nextRaceData'));
-            const userPicks = loadUserPicks();
+            const userPicks = loadPicksWithContext();
             console.log('Checking for existing pick:', { raceData, userPicks });
             
             const existingPick = userPicks.find(pick => pick.raceId === raceData?.raceId);
@@ -711,7 +713,7 @@ const initializeDriverSelection = () => {
         makePickBtn.style.cursor = 'not-allowed';
         
         // Update button text to remove (CHANGE) if present
-        const currentPick = getCurrentRacePick();
+        const currentPick = getCurrentRacePickWithContext();
         if (currentPick) {
             const lastName = currentPick.driverName.split(' ').pop();
             makePickBtn.textContent = `PICKED: ${lastName.toUpperCase()}`;
@@ -732,7 +734,7 @@ const initializeDriverSelection = () => {
     // Load user picks from localStorage if available
     if (localStorageAvailable) {
         try {
-            const savedPicks = loadUserPicks();
+            const savedPicks = loadPicksWithContext();
             if (savedPicks && savedPicks.length > 0) {
                 // Update the mockDrivers array with previously picked drivers
                 savedPicks.forEach(pick => {
@@ -743,7 +745,7 @@ const initializeDriverSelection = () => {
                 });
                 
                 // Update the button text based on current race pick
-                const currentRacePick = getCurrentRacePick();
+                const currentRacePick = getCurrentRacePickWithContext();
                 if (currentRacePick) {
                     const deadlineManager = new PickDeadlineManager();
                     const canChange = !deadlineManager.isDeadlinePassed();
@@ -768,7 +770,7 @@ const initializeDriverSelection = () => {
         }
         
         // Check if this is a change vs new pick
-        const currentPick = getCurrentRacePick();
+        const currentPick = getCurrentRacePickWithContext();
         const isChanging = !!currentPick;
         
         console.log('Current pick:', currentPick);
@@ -800,7 +802,7 @@ const initializeDriverSelection = () => {
         const driver = mockDrivers.find(d => d.id === driverId);
         
         // Get current race pick
-        const currentPick = getCurrentRacePick();
+        const currentPick = getCurrentRacePickWithContext();
         
         // If this is the current pick for this race, allow selecting it again
         if (currentPick && currentPick.driverId === driverId) {
@@ -839,7 +841,7 @@ const initializeDriverSelection = () => {
             return;
         }
 
-        if (localStorageAvailable && isDriverAlreadyPicked(selectedDriverId)) {
+        if (localStorageAvailable && isDriverAlreadyPickedWithContext(selectedDriverId)) {
             showError('You have already picked this driver in a previous race!');
             return;
         }
@@ -954,6 +956,9 @@ async function initializeApp() {
         
         // Initialize driver selection
         initializeDriverSelection();
+        
+        // Initialize league system
+        initializeLeagueIntegration();
         
     } catch (error) {
         console.error('App initialization failed:', error);

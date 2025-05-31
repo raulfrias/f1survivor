@@ -1,0 +1,59 @@
+/* League Indicator Styles */
+.league-indicator {
+  background: rgba(225, 6, 0, 0.1);
+  border: 1px solid var(--primary-red);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.league-indicator .indicator-label {
+  color: var(--text-color);
+  opacity: 0.8;
+}
+
+.league-indicator .indicator-value {
+  color: var(--primary-red);
+  font-weight: 600;
+}
+
+/* Main page league indicator */
+.league-indicator.main-page {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  z-index: 10;
+}
+
+.league-indicator.main-page strong {
+  color: var(--primary-red);
+}
+
+/* Modal league indicator */
+#driver-selection-screen .league-indicator {
+  margin-left: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .league-indicator.main-page {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin: 1rem auto;
+    text-align: center;
+    display: block;
+  }
+  
+  #driver-selection-screen .league-indicator {
+    margin: 0.5rem 0;
+    width: 100%;
+    justify-content: center;
+  }
+} 

@@ -20,6 +20,7 @@ The rules are designed to be simple yet challenging:
 
 ## Development Setup
 
+### Frontend Development
 1. **Clone the Repository:**
    ```bash
    git clone https://github.com/yourusername/f1survivor.git
@@ -27,8 +28,9 @@ The rules are designed to be simple yet challenging:
    ```
 
 2. **Install Dependencies:**
-   - No dependencies to install for the frontend prototype
-   - Backend dependencies will be added in future phases
+   ```bash
+   npm install
+   ```
 
 3. **Download Driver Images:**
    ```bash
@@ -36,55 +38,90 @@ The rules are designed to be simple yet challenging:
    ./download_driver_images.sh
    ```
 
-4. **Run the Application:**
-   - Open `index.html` in your browser
-   - For development, use a local server:
-     ```bash
-     python -m http.server 8000
-     # or
-     npx serve
-     ```
+4. **Run Frontend Development Server:**
+   ```bash
+   npm run dev              # Vite development server
+   ```
+
+### AWS Amplify Gen2 Backend Development
+1. **Install Amplify CLI:**
+   ```bash
+   npm install -g @aws-amplify/cli
+   ```
+
+2. **Start Cloud Sandbox (for backend development):**
+   ```bash
+   npx ampx sandbox         # Creates isolated cloud environment
+   ```
+
+3. **Full Development Workflow:**
+   ```bash
+   # Terminal 1: Backend
+   npx ampx sandbox
+   
+   # Terminal 2: Frontend  
+   npm run dev
+   ```
+
+### Production Deployment
+- **Automatic Deployment:** Connected to GitHub, deploys on push to `master` branch
+- **Frontend:** AWS Amplify Hosting
+- **Backend:** Serverless AWS infrastructure (auto-managed)
 
 ## Project Structure
 
 ```
 f1survivor/
+├── amplify/                     # AWS Amplify Gen2 Backend
+│   ├── backend.ts              # Main backend configuration
+│   ├── auth/
+│   │   └── resource.ts         # Cognito authentication setup
+│   ├── data/
+│   │   └── resource.ts         # GraphQL schema & DynamoDB
+│   ├── storage/
+│   │   └── resource.ts         # S3 storage configuration
+│   └── functions/              # Lambda functions
+│       ├── auto-pick-handler/
+│       ├── results-processor/
+│       └── league-manager/
 ├── assets/
 │   └── images/
-│       ├── drivers/    # Driver profile images
+│       ├── drivers/            # Driver profile images
 │       └── F1-Logo.png
-├── docs/              # Project documentation
-│   ├── ROADMAP.md     # Development roadmap
-│   └── implementation-plans/
-│       └── league-system-prototype.md
-├── app.js            # Core game logic
-├── auto-pick-manager.js  # Auto-pick system
-├── dashboard.js      # Dashboard functionality
-├── dashboard.html    # Dashboard page
-├── dashboard.css     # Dashboard styles
-├── dashboard-utils.js # Dashboard utilities
-├── elimination-utils.js # Elimination logic
-├── elimination-zone.js  # Elimination zone component
-├── elimination-zone.css # Elimination zone styles
-├── index.html        # Main HTML structure
-├── league-dashboard.js  # League dashboard integration
-├── league-indicator.css # League indicator styles
-├── league-integration.js # League system integration
-├── league-manager.js    # Core league operations
-├── league-modal.css     # League modal styles
-├── league-modal-manager.js # League UI modals
-├── league-selector.css  # League selector styles
-├── league-storage-manager.js # League data persistence
-├── pick-change-utils.js # Pick change utilities
-├── pick-deadline-manager.js # Deadline management
+├── docs/                       # Project documentation
+│   ├── ROADMAP.md             # Development roadmap
+│   └── implementation-plans/   # Feature implementation plans
+├── src/                        # Frontend source (if restructured)
+├── app.js                      # Core game logic
+├── auto-pick-manager.js        # Auto-pick system
+├── dashboard.js                # Dashboard functionality
+├── dashboard.html              # Dashboard page
+├── dashboard.css               # Dashboard styles
+├── dashboard-utils.js          # Dashboard utilities
+├── elimination-utils.js        # Elimination logic
+├── elimination-zone.js         # Elimination zone component
+├── elimination-zone.css        # Elimination zone styles
+├── index.html                  # Main HTML structure
+├── league-dashboard.js         # League dashboard integration
+├── league-indicator.css        # League indicator styles
+├── league-integration.js       # League system integration
+├── league-manager.js           # Core league operations
+├── league-modal.css            # League modal styles
+├── league-modal-manager.js     # League UI modals
+├── league-selector.css         # League selector styles
+├── league-storage-manager.js   # League data persistence
+├── pick-change-utils.js        # Pick change utilities
+├── pick-deadline-manager.js    # Deadline management
 ├── qualifying-results-manager.js # Qualifying data
-├── race-calendar-2025.js # F1 2025 calendar
-├── race-countdown.js    # Race countdown timer
-├── race-results-api.js  # Race results fetching
-├── race-state-manager.js # Race state tracking
-├── storage-utils.js     # Storage utilities
-├── styles.css          # Main styling
-├── test-league-system.html # League testing page
+├── race-calendar-2025.js       # F1 2025 calendar
+├── race-countdown.js           # Race countdown timer
+├── race-results-api.js         # Race results fetching
+├── race-state-manager.js       # Race state tracking
+├── storage-utils.js            # Storage utilities
+├── styles.css                  # Main styling
+├── test-league-system.html     # League testing page
+├── amplify_outputs.json        # Generated backend configuration
+├── package.json                # Dependencies and scripts
 └── README.md
 ```
 
@@ -145,53 +182,64 @@ f1survivor/
   - Persistent league data using localStorage
 
 🔄 **In Progress:**
-  - Backend integration preparation
-  - User authentication system planning
+  - AWS Amplify Gen2 backend migration
+  - Cognito authentication integration
+  - Real-time league updates via GraphQL subscriptions
 
 ## Development Roadmap
 
-Our development is organized into manageable phases:
+Our development is organized into manageable phases with modular features:
 
-1. **User Flow Foundation** (Current Focus)
-   - Refining driver selection process
-   - Implementing race countdown and auto-pick
-   - Creating user dashboard prototype
-   - Building league system foundation
+1. **User Flow Foundation** ✅ (Completed)
+   - Driver selection with team-colored cards
+   - Race countdown and P15 auto-pick system
+   - User dashboard with pick history
+   - League system prototype with local storage
 
-2. **Backend Foundation**
-   - Setting up Node.js/Express backend
-   - Implementing Google Authentication
-   - Creating core data models
-   - Building API endpoints
+2. **AWS Amplify Gen2 Backend Foundation** 🚀 (Current Focus)
+   - Modular backend setup with independent features
+   - AWS Amplify Gen2 project initialization
+   - Cognito authentication integration
+   - GraphQL schema definition mapping localStorage structures
+   - Data migration utilities (localStorage → DynamoDB)
+   - Real-time league updates via AppSync subscriptions
+   - Serverless auto-pick Lambda functions
 
-3. **Core Game Logic**
-   - League management functionality
-   - Driver pick system integration
-   - F1 data integration (OpenF1 API)
-   - Race results processing
+3. **Enhanced Game Logic & F1 Integration** 🏎️
+   - OpenF1 API integration with robust error handling
+   - Advanced league management features
+   - Automated results processing engine
+   - Multi-channel notification system
 
-4. **User Experience Enhancements**
-   - Email notifications
-   - Dashboard improvements
-   - Mobile optimization
-   - Social features
+4. **User Experience & Platform Enhancement** 🌟
+   - Advanced dashboard analytics and visualizations
+   - Progressive Web App (PWA) implementation
+   - Social features and community building
+   - Advanced competition features and tournaments
 
 See [ROADMAP.md](docs/ROADMAP.md) for detailed development plans.
 
 ## Technologies Used
 
-*   **Frontend:**
-    *   HTML5
-    *   CSS3
-    *   JavaScript
-*   **Animations:**
-    *   [Anime.js](https://animejs.com/) (included via CDN)
-*   **F1 Data Source (Planned):**
-    *   [OpenF1 API](https://openf1.org/) (or a similar public F1 data API)
-*   **Backend (Planned):**
-    *   Node.js/Express
-    *   Google OAuth
-    *   PostgreSQL
+### Frontend
+*   HTML5, CSS3, JavaScript (ES6 modules)
+*   Vite build system for development and production
+*   [Anime.js](https://animejs.com/) for animations
+*   Responsive design with CSS Grid and Flexbox
+
+### Backend (AWS Amplify Gen2)
+*   **Authentication:** Amazon Cognito User Pools
+*   **API:** AWS AppSync (GraphQL with real-time subscriptions)  
+*   **Database:** Amazon DynamoDB (NoSQL, serverless)
+*   **Functions:** AWS Lambda (Node.js/TypeScript)
+*   **Storage:** Amazon S3 (driver images, assets)
+*   **Hosting:** AWS Amplify Hosting
+*   **CI/CD:** GitHub integration with automatic deployments
+
+### External Integrations
+*   **F1 Data:** [OpenF1 API](https://openf1.org/) for real-time race data
+*   **Email:** AWS SES (planned for notifications)
+*   **Monitoring:** AWS CloudWatch for logging and analytics
 
 ## Contributing
 
@@ -199,12 +247,19 @@ See [ROADMAP.md](docs/ROADMAP.md) for detailed development plans.
 2. Create your feature branch: `git checkout -b feature/YourFeature`
 3. Commit your changes: `git commit -m 'Add YourFeature'`
 4. Push to the branch: `git push origin feature/YourFeature`
-5. Submit a pull request
+5. Open a Pull Request
+
+### Development Guidelines
+- Follow the modular architecture established in Phase 1
+- Each new feature should include its own implementation plan
+- Test locally with Amplify sandbox before pushing
+- Maintain backward compatibility during migration phases
+- Document any new localStorage → Amplify data mappings
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is open source. See LICENSE file for details.
 
-## Disclaimer
+## Contact
 
-F1 Survivor is an unofficial project and is not affiliated with Formula 1 companies. All F1-related trademarks are owned by Formula One Licensing B.V.
+For questions about development or contributions, please open an issue in the GitHub repository.

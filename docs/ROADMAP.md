@@ -71,246 +71,269 @@ This document outlines the development phases and tasks for the F1 Survivor game
   - League settings management
   - Leave/delete league functionality
 
-## Phase 2: Backend Foundation 🔌
+## Phase 2: AWS Amplify Gen2 Backend Foundation 🚀
 
-### Basic API Setup
-- [ ] Set up Node.js/Express project structure
-- [ ] Create API route configuration
-- [ ] Implement CORS and basic middleware
-- [ ] Set up error handling framework
+### AWS Amplify Gen2 Project Setup
+- [ ] Initialize Amplify Gen2 project structure
+- [ ] Configure build system integration (Vite + Amplify)
+- [ ] Set up cloud sandbox for development
+- [ ] Configure deployment pipeline (GitHub → Amplify)
+- [ ] Set up environment variables and configurations
 
-### Google Authentication
-- [ ] Set up Google OAuth integration
-- [ ] Create authentication middleware
-- [ ] Implement JWT token handling
-- [ ] Add protected routes
+### Core Data Schema Definition
+- [ ] Design GraphQL schema mapping current localStorage structures
+- [ ] Define User, League, DriverPick, and Race models
+- [ ] Set up model relationships and authorization rules
+- [ ] Configure DynamoDB table structure
+- [ ] Test schema with cloud sandbox
 
-### Database Models
-- [ ] Design and implement User model
-- [ ] Create League model with relations
-- [ ] Build DriverPick model for selections
-- [ ] Implement RaceResult model
+### Authentication Integration (Cognito Setup)
+- [ ] Configure Cognito User Pool for F1 Survivor
+- [ ] Set up authentication UI components (@aws-amplify/ui-react)
+- [ ] Replace "Sign In" placeholder with functional auth
+- [ ] Implement user session management
+- [ ] Add user profile management (username, preferences)
+- [ ] Test authentication flow and user experience
 
-### API Endpoints
-- [ ] Create user endpoints (profile, settings)
-- [ ] Build league endpoints (create, join, list)
-- [ ] Implement pick endpoints (submit, change, view)
-- [ ] Add race data endpoints
+### Data Migration Service
+- [ ] Create localStorage to Amplify data migration utility
+- [ ] Build user pick history migration functions
+- [ ] Implement league data migration system
+- [ ] Add rollback mechanisms for failed migrations
+- [ ] Test migration with existing user data
 
-## Phase 3: Core Game Logic 🎮
+### Real-time League Updates (AppSync Subscriptions)
+- [ ] Implement real-time pick submissions within leagues
+- [ ] Add live league member status updates
+- [ ] Create real-time elimination notifications
+- [ ] Build live countdown synchronization across users
+- [ ] Test multi-user real-time functionality
 
-### League Management
-- [ ] Connect league creation form to API
-- [ ] Implement league invitation system
-- [ ] Build league admin controls
-- [ ] Add league settings management
+### Auto-Pick Lambda Function
+- [ ] Convert current JavaScript auto-pick logic to Lambda
+- [ ] Integrate with OpenF1 API for qualifying results
+- [ ] Implement P15 fallback system in serverless environment
+- [ ] Add error handling and retry mechanisms
+- [ ] Test auto-pick triggers and notifications
 
-### Pick System Integration
-- [ ] Connect driver selection UI to backend
-- [ ] Implement pick validation against deadline
-- [ ] Add pick history API integration
-- [ ] Build pick confirmation workflow
+### Pick Validation & Business Logic
+- [ ] Server-side pick deadline enforcement
+- [ ] Driver already-picked validation via GraphQL
+- [ ] Race result processing automation
+- [ ] Survival status calculation logic
+- [ ] Comprehensive validation testing
 
-### F1 Data Integration
-- [ ] Set up OpenF1 API client
-- [ ] Create race calendar integration
-- [ ] Implement driver grid data sync
-- [ ] Build qualifying results fetcher
+## Phase 3: Enhanced Game Logic & F1 Integration 🏎️
 
-### Results Processing
-- [ ] Create race results processor
-- [ ] Implement survival calculation logic
-- [ ] Build elimination notification system
-- [ ] Add league standings updater
+### F1 Data Integration Service
+- [ ] OpenF1 API client with robust error handling
+- [ ] Real-time race calendar synchronization
+- [ ] Qualifying results fetching and caching
+- [ ] Race results processing automation
+- [ ] Driver and team data management
 
-## Phase 4: User Experience 🚀
+### Advanced League Management
+- [ ] League invitation system via email
+- [ ] Advanced league settings (custom rules, scoring)
+- [ ] League admin controls and moderation tools
+- [ ] League statistics and analytics
+- [ ] Public/private league discovery
 
-### Email Notifications
-- [ ] Set up email delivery service
-- [ ] Create email templates for key events
-- [ ] Implement race results notification
-- [ ] Build elimination notice
+### Results Processing Engine
+- [ ] Automated race result processing
+- [ ] Survival calculation and elimination logic
+- [ ] League standings calculation
+- [ ] Historical statistics generation
+- [ ] Performance analytics dashboard
 
-### Dashboard Enhancements
-- [ ] Create interactive league standings
-- [ ] Build player statistics component
-- [ ] Implement race countdown widget
-- [ ] Add driver performance stats
+### Notification System
+- [ ] Email notifications for key events
+- [ ] Push notifications for mobile users
+- [ ] In-app notification center
+- [ ] Customizable notification preferences
+- [ ] Multi-channel notification delivery
 
-### Mobile Optimization
-- [ ] Optimize responsive layouts
-- [ ] Implement touch-friendly controls
-- [ ] Add mobile navigation improvements
-- [ ] Create offline capabilities
+## Phase 4: User Experience & Platform Enhancement 🌟
+
+### Advanced Dashboard Features
+- [ ] Interactive charts and visualizations
+- [ ] Detailed player performance analytics
+- [ ] Comparative league statistics
+- [ ] Historical trend analysis
+- [ ] Export functionality for data
+
+### Mobile App Development
+- [ ] Progressive Web App (PWA) implementation
+- [ ] Mobile-optimized UI components
+- [ ] Offline functionality for core features
+- [ ] Push notification support
+- [ ] App store preparation
 
 ### Social Features
-- [ ] Add league chat functionality
-- [ ] Implement social sharing
-- [ ] Build friend invitation system
-- [ ] Create league activity feed
+- [ ] User profiles and achievements
+- [ ] Social sharing integration
+- [ ] Friend system and recommendations
+- [ ] League discovery and joining
+- [ ] Community features and forums
+
+### Advanced Competition Features
+- [ ] Multi-season support
+- [ ] Tournament brackets and playoffs
+- [ ] Custom scoring systems
+- [ ] Detailed racing statistics integration
+- [ ] Fantasy-style additional features
 
 ## Technical Implementation Notes
 
-### Local Storage Schema (Phase 1)
+### Current Local Storage Schema (Phase 1)
 ```javascript
 // User data structure
 const userData = {
-  id: "user123",
-  name: "Player Name",
-  email: "player@example.com",
-  leagues: ["league1", "league2"],
+  userId: "local-user",
+  currentSeason: "2025",
+  picks: [
+    {
+      driverId: 5,
+      raceId: "mon-2025",
+      timestamp: "2025-05-25T10:00:00Z",
+      driverName: "George Russell",
+      teamName: "Mercedes",
+      isAutoPick: false
+    }
+  ]
+};
+
+// League data structure  
+const leagueData = {
+  leagueId: "league_12345",
+  name: "My F1 League",
+  ownerId: "user123",
+  members: ["user123", "user456"],
+  inviteCode: "ABC12345",
   picks: {
-    "race1": { driverId: 5, result: "survived" },
-    "race2": { driverId: 9, result: "eliminated" }
+    "user123": [/* picks array */],
+    "user456": [/* picks array */]
   }
 };
-
-// League data structure
-const leagueData = {
-  id: "league1",
-  name: "My F1 League",
-  owner: "user123",
-  members: ["user123", "user456"],
-  inviteCode: "F1LEAGUE2024"
-};
 ```
 
-### Database Schema (Phase 2)
-```sql
--- Users
-CREATE TABLE users (
-  id SERIAL PRIMARY KEY,
-  google_id VARCHAR(255) UNIQUE,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  display_name VARCHAR(100) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+### AWS Amplify Gen2 Schema (Phase 2+)
+```typescript
+// GraphQL Schema Definition
+const schema = a.schema({
+  UserProfile: a.model({
+    userId: a.id().required(),
+    username: a.string().required(),
+    email: a.string().required(),
+    totalSurvivedRaces: a.integer().default(0),
+    isEliminated: a.boolean().default(false),
+    preferredTeam: a.string(),
+    joinedAt: a.datetime().required()
+  }).authorization((allow) => [
+    allow.owner(),
+    allow.authenticated().to(['read'])
+  ]),
 
--- Leagues
-CREATE TABLE leagues (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  owner_id INTEGER REFERENCES users(id),
-  invite_code VARCHAR(20) UNIQUE NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+  League: a.model({
+    name: a.string().required(),
+    inviteCode: a.string().required(),
+    ownerId: a.id().required(),
+    maxMembers: a.integer().default(50),
+    season: a.string().required(),
+    members: a.hasMany('LeagueMember', 'leagueId'),
+    picks: a.hasMany('DriverPick', 'leagueId')
+  }),
 
--- League Members
-CREATE TABLE league_members (
-  id SERIAL PRIMARY KEY,
-  league_id INTEGER REFERENCES leagues(id),
-  user_id INTEGER REFERENCES users(id),
-  is_alive BOOLEAN DEFAULT TRUE,
-  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(league_id, user_id)
-);
-
--- Driver Picks
-CREATE TABLE driver_picks (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id),
-  league_id INTEGER REFERENCES leagues(id),
-  race_id VARCHAR(50) NOT NULL,
-  driver_id INTEGER NOT NULL,
-  is_auto_pick BOOLEAN DEFAULT FALSE,
-  result VARCHAR(20),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(user_id, league_id, race_id)
-);
+  DriverPick: a.model({
+    userId: a.id().required(),
+    leagueId: a.id(),
+    raceId: a.string().required(),
+    driverId: a.integer().required(),
+    submittedAt: a.datetime().required(),
+    isAutoPick: a.boolean().default(false),
+    survived: a.boolean(),
+    finalPosition: a.integer()
+  }).authorization((allow) => [
+    allow.owner(),
+    allow.authenticated().to(['read'])
+  ])
+});
 ```
 
-## Future Considerations
+### Development Workflow (Updated)
+```bash
+# Local Development with Cloud Sandbox
+npx ampx sandbox          # Start cloud backend
+npm run dev              # Start frontend (Vite)
 
-### Expansion Ideas
-- [ ] Mobile app development
-- [ ] API marketplace
-- [ ] White-label solution
-- [ ] Integration with other racing series
-- [ ] Fantasy racing platform
+# Deploy to Production
+git push origin master   # Auto-deploys via Amplify
+```
 
-### Community Building
-- [ ] Developer documentation
-- [ ] API documentation
-- [ ] Community guidelines
-- [ ] Contribution guide
-- [ ] Bug bounty program
+## Migration Strategy
+
+### Week 1: Foundation Setup
+- AWS Amplify Gen2 project initialization
+- Basic schema definition and testing
+- Authentication setup and testing
+
+### Week 2: Data Migration
+- Implement migration utilities
+- Test localStorage → Amplify data transfer
+- Validate data integrity and rollback capabilities
+
+### Week 3: Feature Parity
+- Replace localStorage calls with Amplify data client
+- Maintain existing UI and user experience
+- Test all current features with new backend
+
+### Week 4: Enhanced Features
+- Real-time league updates
+- Server-side auto-pick implementation
+- Advanced validation and security
+
+### Week 5: Production Deployment
+- End-to-end testing
+- Performance optimization
+- Production deployment and monitoring
 
 ## Timeline Estimates
 
 - **Phase 1:** ✅ Completed (May 2025 - December 2024)
-  - Driver Selection: May 2025
-  - Race Countdown & Auto-Pick: May 2025
-  - User Dashboard: May 2025
-  - League System Prototype: December 2024
-- **Phase 2:** Q1 2025 (2-3 months)
-- **Phase 3:** Q2 2025 (2-3 months)
-- **Phase 4:** Q3 2025 (3-4 months)
-- **Technical Improvements:** Ongoing
+- **Phase 2:** Q1 2025 (5-6 weeks, modular implementation)
+  - Each feature can be implemented independently
+  - Gradual migration preserving existing functionality
+- **Phase 3:** Q2 2025 (8-10 weeks)
+- **Phase 4:** Q3-Q4 2025 (12-16 weeks)
 
-## Integration Points
+## Technology Stack Updates
 
-### OpenF1 API Integration
-```javascript
-const API_CONFIG = {
-    BASE_URL: '/api/v1',
-    ENDPOINTS: {
-        DRIVERS: '/drivers',
-        USER_PICKS: '/picks',
-        RACE_INFO: '/races/current',
-        QUALIFYING: '/qualifying',
-        RESULTS: '/results'
-    }
-};
-```
+### Frontend (Unchanged)
+- HTML5, CSS3, JavaScript (ES6 modules)
+- Vite build system
+- Anime.js for animations
+- Responsive design principles
 
-### Authentication Integration
-```javascript
-// User authentication state
-function isUserAuthenticated() {
-    const token = localStorage.getItem('userToken');
-    return token && !isTokenExpired(token);
-}
+### Backend (Updated to AWS Amplify Gen2)
+- **Authentication:** Amazon Cognito
+- **API:** AWS AppSync (GraphQL)
+- **Database:** Amazon DynamoDB
+- **Functions:** AWS Lambda
+- **Storage:** Amazon S3
+- **Real-time:** GraphQL Subscriptions
+- **Deployment:** AWS Amplify Hosting
 
-// API request authentication
-const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${getUserToken()}`
-};
-```
-
-### Database Schema (Draft)
-```sql
--- Users
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Leagues
-CREATE TABLE leagues (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    owner_id INTEGER REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Picks
-CREATE TABLE picks (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id),
-    league_id INTEGER REFERENCES leagues(id),
-    driver_id INTEGER NOT NULL,
-    race_id INTEGER NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+### Integration Points
+- OpenF1 API for race data
+- Email services for notifications
+- Progressive Web App capabilities
+- CI/CD via GitHub integration
 
 ## Notes
 
-- All timelines are estimates and may be adjusted based on development progress and priorities
-- Features may be added, modified, or removed based on user feedback and technical constraints
-- Security and performance optimizations will be ongoing throughout all phases
-- Documentation will be maintained and updated throughout the development process 
+- All Phase 1 functionality will be preserved during migration
+- Modular approach allows for independent feature development
+- Each Phase 2 feature includes its own implementation plan
+- Rollback strategies ensure data safety during migration
+- Performance improvements expected with managed AWS services
+- Real-time capabilities will enhance user experience significantly 

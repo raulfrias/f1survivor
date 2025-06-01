@@ -2,7 +2,7 @@
  * Race Countdown Timer Component
  * Displays the time remaining until the next F1 race with real-time updates
  */
-import { getNextRace } from './race-calendar-2025.js';
+import { getNextRace, F1_2025_CALENDAR } from './race-calendar-2025.js';
 import { RaceStateManager } from './race-state-manager.js';
 
 class RaceCountdown {
@@ -63,8 +63,33 @@ class RaceCountdown {
         return;
       }
       
-      // If no cached data, get from calendar
-      console.log('No cached data found, fetching from calendar...');
+      // If no cached data, check for currently running race first
+      console.log('No cached data found, checking for current race...');
+      const currentRace = this.getCurrentRace();
+      
+      if (currentRace) {
+        console.log('Found current race in progress:', currentRace.raceName);
+        
+        const raceData = {
+          raceId: currentRace.id,
+          meetingKey: currentRace.round,
+          raceName: currentRace.raceName,
+          raceDate: currentRace.dateStart,
+          qualifyingDate: this.calculateQualifyingDate(currentRace.dateStart),
+          raceCircuit: currentRace.circuit,
+          location: currentRace.location,
+          country: currentRace.country,
+          pickDeadline: currentRace.dateStart
+        };
+        
+        this.currentRaceData = raceData;
+        localStorage.setItem('nextRaceData', JSON.stringify(raceData));
+        console.log('Current race data prepared and cached:', raceData);
+        return;
+      }
+      
+      // If no current race, get next upcoming race from calendar
+      console.log('No current race found, fetching next race from calendar...');
       const nextRace = getNextRace();
       
       if (nextRace) {
@@ -179,6 +204,25 @@ class RaceCountdown {
   
   getCurrentRaceState() {
     return this.stateManager.getCurrentState(this.currentRaceData);
+  }
+  
+  getCurrentRace() {
+    const now = new Date();
+    const POST_RACE_DURATION = 10 * 60 * 60 * 1000; // 10 hours (same as RaceStateManager)
+    
+    for (const race of F1_2025_CALENDAR) {
+      const raceStart = new Date(race.dateStart);
+      const raceEnd = new Date(raceStart.getTime() + POST_RACE_DURATION);
+      
+      // Check if current time is between race start and end (including post-race buffer)
+      if (now >= raceStart && now <= raceEnd) {
+        console.log(`Found current race: ${race.raceName} (${race.dateStart})`);
+        return race;
+      }
+    }
+    
+    console.log('No current race found');
+    return null;
   }
   
   updateCountdown() {

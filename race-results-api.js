@@ -147,6 +147,34 @@ function getMockRaceResults(sessionKey) {
         { position: 19, driver_number: 22, full_name: "Yuki Tsunoda", team_name: "RB" },
         { position: 20, driver_number: 3, full_name: "Daniel Ricciardo", team_name: "RB" }
       ]
+    },
+    'esp-2025-race': {
+      session_key: sessionKey,
+      session_name: 'Race',
+      location: 'Barcelona',
+      date: '2025-06-01',
+      positions: [
+        { position: 1, driver_number: 1, full_name: "Max Verstappen", team_name: "Red Bull Racing" },
+        { position: 2, driver_number: 4, full_name: "Lando Norris", team_name: "McLaren" },
+        { position: 3, driver_number: 16, full_name: "Charles Leclerc", team_name: "Ferrari" },
+        { position: 4, driver_number: 81, full_name: "Oscar Piastri", team_name: "McLaren" },
+        { position: 5, driver_number: 63, full_name: "George Russell", team_name: "Mercedes" },
+        { position: 6, driver_number: 44, full_name: "Lewis Hamilton", team_name: "Mercedes" },
+        { position: 7, driver_number: 11, full_name: "Sergio Perez", team_name: "Red Bull Racing" },
+        { position: 8, driver_number: 14, full_name: "Fernando Alonso", team_name: "Aston Martin" },
+        { position: 9, driver_number: 18, full_name: "Lance Stroll", team_name: "Aston Martin" },
+        { position: 10, driver_number: 27, full_name: "Nico Hulkenberg", team_name: "Kick Sauber" },
+        { position: 11, driver_number: 20, full_name: "Kevin Magnussen", team_name: "Haas" },
+        { position: 12, driver_number: 10, full_name: "Pierre Gasly", team_name: "Alpine" },
+        { position: 13, driver_number: 31, full_name: "Esteban Ocon", team_name: "Alpine" },
+        { position: 14, driver_number: 22, full_name: "Yuki Tsunoda", team_name: "RB" },
+        { position: 15, driver_number: 55, full_name: "Carlos Sainz", team_name: "Williams" },
+        { position: 16, driver_number: 23, full_name: "Alexander Albon", team_name: "Williams" },
+        { position: 17, driver_number: 77, full_name: "Valtteri Bottas", team_name: "Kick Sauber" },
+        { position: 18, driver_number: 24, full_name: "Zhou Guanyu", team_name: "Kick Sauber" },
+        { position: 19, driver_number: 2, full_name: "Logan Sargeant", team_name: "Williams" },
+        { position: 20, driver_number: 3, full_name: "Daniel Ricciardo", team_name: "RB" }
+      ]
     }
   };
   

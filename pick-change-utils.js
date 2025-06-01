@@ -7,7 +7,8 @@ export const PickChangeUtils = {
   canChangePick(raceId) {
     try {
       const deadlineManager = new PickDeadlineManager();
-      const isDeadlinePassed = deadlineManager.initialize(); // Use initialize instead of loadRaceData
+      deadlineManager.loadRaceData(); // Load race data first
+      const isDeadlinePassed = deadlineManager.initialize(); // Then initialize
       return !isDeadlinePassed;
     } catch (error) {
       console.error('Error checking if pick can be changed:', error);

@@ -764,6 +764,7 @@ const initializeDriverSelection = () => {
                 if (currentRacePick) {
                     try {
                         const deadlineManager = new PickDeadlineManager();
+                        deadlineManager.loadRaceData(); // Load race data first
                         const canChange = !deadlineManager.isDeadlinePassed();
                         PickChangeUtils.updateMakePickButtonText(currentRacePick, canChange);
                     } catch (error) {
@@ -983,6 +984,7 @@ async function initializeApp() {
         if (currentPick) {
             try {
                 const deadlineManager = new PickDeadlineManager();
+                deadlineManager.loadRaceData(); // Load race data first
                 const canChange = !deadlineManager.isDeadlinePassed();
                 PickChangeUtils.updateMakePickButtonText(currentPick, canChange);
             } catch (error) {

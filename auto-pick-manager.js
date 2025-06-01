@@ -99,7 +99,14 @@ class AutoPickManager {
         // Ensure we have the absolute latest qualifying results for the auto-pick decision
         this.log('debug', 'Forcing refresh of qualifying results to get latest completed session for auto-pick.');
         try {
-            await this.qualifyingManager.fetchQualifyingResults(null); // Pass null for latest
+            // Use the actual qualifying date from race data instead of null
+            const raceData = this.getNextRaceData();
+            const qualifyingDate = raceData?.qualifyingDate;
+            if (qualifyingDate) {
+                await this.qualifyingManager.fetchQualifyingResults(qualifyingDate);
+            } else {
+                this.log('warn', 'No qualifying date available for auto-pick, using existing data');
+            }
         } catch (error) {
             this.log('error', 'Failed to fetch latest qualifying results for auto-pick.', error);
             // Optionally, notify user of failure to auto-pick due to data issues

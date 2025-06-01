@@ -628,21 +628,24 @@ const initializeDriverSelection = () => {
     const deadlineManager = new PickDeadlineManager();
     const isDeadlinePassed = deadlineManager.initialize({
         onDeadlineApproaching: (timeRemaining) => {
-            console.log('Deadline approaching callback triggered:', timeRemaining);
+            // Removed console.log to stop debug spam - only log significant events
             
             // Update warning message
             const statusElement = document.createElement('div');
             statusElement.id = 'deadline-message';
             
-            // Add urgent class if less than 30 minutes remaining
-            const isUrgent = timeRemaining.hours === 0 && timeRemaining.minutes < 30;
-            statusElement.className = `deadline-status deadline-warning${isUrgent ? ' urgent' : ''}`;
+            // Add urgent class if less than 60 minutes remaining (was 30)
+            const isUrgent = timeRemaining.hours === 0 && timeRemaining.minutes < 60;
+            statusElement.className = `deadline-status deadline-warning${isUrgent ? ' urgent-pulse' : ''}`;
             statusElement.textContent = `Selection closes in: ${timeRemaining.hours}h ${timeRemaining.minutes}m ${timeRemaining.seconds}s`;
             
             // Add pick change deadline warning
             const currentPick = getCurrentRacePickWithContext();
             if (currentPick && timeRemaining.totalMinutes < 60) {
-                console.log('Warning user about pick change deadline approaching');
+                // Only log once when we cross the 60-minute threshold
+                if (timeRemaining.totalMinutes === 59 && timeRemaining.seconds === 59) {
+                    console.log('Warning user about pick change deadline approaching');
+                }
             }
             
             // Update or add the status element in the modal
@@ -651,7 +654,10 @@ const initializeDriverSelection = () => {
             const driverGrid = document.querySelector('.driver-grid');
             
             if (existingStatus) {
-                console.log('Replacing existing status element');
+                // Only log on minute changes to reduce spam
+                if (timeRemaining.seconds === 59) {
+                    console.log('Replacing existing status element');
+                }
                 existingStatus.replaceWith(statusElement);
             } else if (driverSelectionContent && driverGrid) {
                 console.log('Inserting new status element');
@@ -661,7 +667,7 @@ const initializeDriverSelection = () => {
             // Update countdown container warning
             const countdownWarning = document.querySelector('.race-countdown-container .pick-status');
             if (countdownWarning) {
-                countdownWarning.className = `pick-status${isUrgent ? ' urgent' : ''}`;
+                countdownWarning.className = `pick-status${isUrgent ? ' urgent-pulse' : ''}`;
                 countdownWarning.textContent = 'Pick deadline approaching!';
             }
         },

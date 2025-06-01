@@ -182,9 +182,10 @@ f1survivor/
   - Persistent league data using localStorage
 
 🔄 **In Progress:**
-  - AWS Amplify Gen2 backend migration
-  - Cognito authentication integration
-  - Real-time league updates via GraphQL subscriptions
+  - ✅ AWS Amplify Gen2 backend migration (Project setup complete, cloud sandbox operational)
+  - ✅ OpenF1 API integration fixes (Successfully fetching real qualifying data - Spanish GP 2025 verified)
+  - 🔄 Cognito authentication integration (Next phase)
+  - 🔄 Real-time league updates via GraphQL subscriptions (Next phase)
 
 ## Development Roadmap
 

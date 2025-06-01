@@ -4,7 +4,7 @@ class AutoPickManager {
     constructor() {
         this.qualifyingManager = new QualifyingResultsManager();
         this.raceData = null;
-        this.debug = false;
+        this.debug = true;
     }
 
     log(level, message, data = null) {

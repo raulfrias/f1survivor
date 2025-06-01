@@ -127,6 +127,8 @@ const TestScenarios = {
 // Add minimal test controls to the page if in development
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     document.addEventListener('DOMContentLoaded', () => {
+        // DISABLED: Automatic test controls to prevent interference with normal app operation
+        /*
         const testControls = document.createElement('div');
         testControls.style.cssText = `
             position: fixed;
@@ -150,19 +152,20 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
         `;
         
         document.body.appendChild(testControls);
+        */
 
         // Only show test instructions in console when in development
         console.log(`
 Monaco 2025 Test Scenarios Ready!
 
-To run scenarios, use:
-1. scenarios.postQualifying()     - Test just after qualifying
-2. scenarios.withExistingPicks()  - Test with P15/P16 already picked
-3. scenarios.apiError()           - Test API error handling
+To run scenarios manually, use:
+1. TestScenarios.simulateQualiDone()     - Test just after qualifying
+2. TestScenarios.simulateSomePicks()      - Test with P15/P16 already picked
+3. TestScenarios.simulateDeadlinePassed() - Test deadline passed
+4. TestScenarios.reset()                  - Reset to default
 
 Example:
-const qrm = scenarios.postQualifying();
-console.log(qrm.getAutoPick());
+TestScenarios.simulateQualiDone();
 `);
     });
 }

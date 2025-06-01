@@ -73,12 +73,13 @@ This document outlines the development phases and tasks for the F1 Survivor game
 
 ## Phase 2: AWS Amplify Gen2 Backend Foundation 🚀
 
-### AWS Amplify Gen2 Project Setup
-- [ ] Initialize Amplify Gen2 project structure
-- [ ] Configure build system integration (Vite + Amplify)
-- [ ] Set up cloud sandbox for development
-- [ ] Configure deployment pipeline (GitHub → Amplify)
-- [ ] Set up environment variables and configurations
+### AWS Amplify Gen2 Project Setup ✅ (Completed June 2025)
+- [x] Initialize Amplify Gen2 project structure
+- [x] Configure build system integration (Vite + Amplify)
+- [x] Set up cloud sandbox for development
+- [x] Configure deployment pipeline (GitHub → Amplify)
+- [x] Set up environment variables and configurations
+- [x] **CRITICAL FIX:** Resolved OpenF1 API integration bug - cache-busting parameters were causing empty responses, now successfully fetching real qualifying data (Spanish GP 2025 verified with Carlos Sainz P15)
 
 ### Core Data Schema Definition
 - [ ] Design GraphQL schema mapping current localStorage structures
@@ -111,8 +112,8 @@ This document outlines the development phases and tasks for the F1 Survivor game
 
 ### Auto-Pick Lambda Function
 - [ ] Convert current JavaScript auto-pick logic to Lambda
-- [ ] Integrate with OpenF1 API for qualifying results
-- [ ] Implement P15 fallback system in serverless environment
+- [x] ✅ **COMPLETED:** Integrate with OpenF1 API for qualifying results (Fixed cache-busting bug, successfully fetching real data)
+- [x] ✅ **COMPLETED:** Implement P15 fallback system in serverless environment (Tested with Spanish GP 2025: Carlos Sainz P15, Alexander Albon P16 fallback)
 - [ ] Add error handling and retry mechanisms
 - [ ] Test auto-pick triggers and notifications
 
@@ -300,7 +301,10 @@ git push origin master   # Auto-deploys via Amplify
 ## Timeline Estimates
 
 - **Phase 1:** ✅ Completed (May 2025 - December 2024)
-- **Phase 2:** Q1 2025 (5-6 weeks, modular implementation)
+- **Phase 2:** 🚀 IN PROGRESS - Q1 2025 (5-6 weeks, modular implementation)
+  - ✅ AWS Amplify Gen2 Project Setup (Completed June 2025)
+  - ✅ Critical OpenF1 API integration fixes (Auto-pick foundation ready)
+  - 🔄 Next: Core Data Schema Definition & Authentication Integration
   - Each feature can be implemented independently
   - Gradual migration preserving existing functionality
 - **Phase 3:** Q2 2025 (8-10 weeks)

@@ -75,7 +75,7 @@ class RaceCountdown {
           meetingKey: nextRace.round,
           raceName: nextRace.raceName,
           raceDate: nextRace.dateStart,
-          qualifyingDate: nextRace.dateStart.substring(0, 10),
+          qualifyingDate: this.calculateQualifyingDate(nextRace.dateStart),
           raceCircuit: nextRace.circuit,
           location: nextRace.location,
           country: nextRace.country,
@@ -294,6 +294,14 @@ class RaceCountdown {
       minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
       seconds: Math.floor((difference % (1000 * 60)) / 1000)
     };
+  }
+  
+  calculateQualifyingDate(raceDate) {
+    // F1 qualifying is typically on Saturday, race on Sunday
+    // Subtract 1 day from race date to get qualifying date
+    const date = new Date(raceDate);
+    const qualifyingDate = new Date(date.getTime() - 24 * 60 * 60 * 1000);
+    return qualifyingDate.toISOString().split('T')[0];
   }
   
   destroy() {

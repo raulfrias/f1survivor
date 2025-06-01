@@ -1,5 +1,5 @@
 import { leagueStorageManager } from './league-storage-manager.js';
-import { saveUserPicks, loadUserPicks, isDriverAlreadyPicked } from './storage-utils.js';
+import { saveUserPicks, loadUserPicks, isDriverAlreadyPicked, getCurrentRacePick } from './storage-utils.js';
 
 /**
  * League Integration Module
@@ -72,9 +72,8 @@ export function getCurrentRacePickWithContext() {
   if (context.isLeagueMode) {
     return leagueStorageManager.getCurrentRacePickForLeague(context.leagueId);
   } else {
-    // Use the existing getCurrentRacePick function
-    const { getCurrentRacePick } = window;
-    return getCurrentRacePick ? getCurrentRacePick() : null;
+    // Use the imported getCurrentRacePick function
+    return getCurrentRacePick();
   }
 }
 

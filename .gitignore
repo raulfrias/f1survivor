@@ -5,3 +5,7 @@ node_modules/
 generate-placeholder.js
 docs/implementation-plans/
     
+# amplify
+.amplify
+amplify_outputs*
+amplifyconfiguration*

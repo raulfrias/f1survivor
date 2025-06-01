@@ -7,7 +7,7 @@ export class QualifyingResultsManager {
         this.retryDelay = 2000; // 2 seconds
         this.qualifyingResults = null;
         this.raceData = null;
-        this.debug = false;
+        this.debug = true; // Enable debug by default to see what's happening
         this._isInitialized = false;
     }
 
@@ -88,9 +88,27 @@ export class QualifyingResultsManager {
     async fetchWithRetry(url, retries = this.maxRetries) {
         for (let i = 0; i < retries; i++) {
             try {
-                const response = await fetch(url);
+                // Configure fetch for external APIs
+                const fetchOptions = {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                };
+
+                // Don't modify OpenF1 API URLs - use them as-is
+                // Only add cache-busting for other external APIs
+                const cacheBustUrl = url.includes('api.openf1.org') ? 
+                    url : 
+                    (url.includes('?') ? `${url}&_t=${Date.now()}` : `${url}?_t=${Date.now()}`);
+
+                this.log('debug', `Fetching URL: ${cacheBustUrl}`);
+
+                const response = await fetch(cacheBustUrl, fetchOptions);
+                
                 if (response.ok) {
-                    return await response.json();
+                    const data = await response.json();
+                    return data;
                 }
                 
                 // For 404s, just return null without logging an error
@@ -98,12 +116,9 @@ export class QualifyingResultsManager {
                     return null;
                 }
                 
-                throw new Error(`HTTP ${response.status}`);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             } catch (error) {
-                // Only log non-404 errors
-                if (!error.message?.includes('404')) {
-                    this.logger.log('warn', `Attempt ${i + 1} failed:`, error);
-                }
+                this.log('warn', `Attempt ${i + 1} failed for ${url}:`, error.message);
                 
                 if (i < retries - 1) {
                     await new Promise(resolve => setTimeout(resolve, this.retryDelay));
@@ -124,13 +139,13 @@ export class QualifyingResultsManager {
         // Check if this is a future date
         const requestDate = new Date(date);
         const now = new Date();
+        this.log('debug', `Date comparison: requestDate=${requestDate.toISOString()}, now=${now.toISOString()}, isFuture=${requestDate > now}`);
+        
         if (requestDate > now) {
-            this.log('debug', 'Using fallback for future race');
+            this.log('debug', `Race date ${date} is in the future (${requestDate.toISOString()} > ${now.toISOString()}). Using fallback instead of fetching from OpenF1 API.`);
             this.qualifyingResults = this.getFallbackDriver();
             return this.qualifyingResults;
         }
-
-        const apiUrl = date === null || date === 'latest' ? '/api/qualifying' : `/api/qualifying?date=${date}`;
 
         try {
             const cachedResults = localStorage.getItem('qualifyingResults');
@@ -138,33 +153,211 @@ export class QualifyingResultsManager {
             if (cachedResults) {
                 const parsedResults = JSON.parse(cachedResults);
                 if (this.raceData && parsedResults.raceId === this.raceData.raceId) {
-                    this.log('debug', 'Using cached qualifying results');
-                    this.qualifyingResults = parsedResults.results;
-                    return this.qualifyingResults;
+                    // Check if cached data is stale (older than 1 hour) for recent races
+                    const cacheAge = Date.now() - new Date(parsedResults.timestamp).getTime();
+                    const isStale = cacheAge > (60 * 60 * 1000); // 1 hour
+                    
+                    if (isStale && requestDate <= now) {
+                        this.log('debug', 'Cached qualifying data is stale, fetching fresh data');
+                        localStorage.removeItem('qualifyingResults'); // Clear stale cache
+                    } else {
+                        this.log('debug', 'Using cached qualifying results');
+                        this.qualifyingResults = parsedResults.results;
+                        return this.qualifyingResults;
+                    }
+                } else {
+                    this.log('debug', 'Cache race ID mismatch, clearing cache');
+                    localStorage.removeItem('qualifyingResults');
                 }
             }
 
             // Only attempt API call for past races
             if (requestDate <= now) {
-                const data = await this.fetchWithRetry(apiUrl);
+                // Call OpenF1 API directly instead of local endpoint
+                const qualifying = await this.fetchFromOpenF1API(date);
                 
-                if (data === null) {
+                if (!qualifying || qualifying.length === 0) {
                     this.log('debug', 'Using fallback driver (no data available)');
                     return this.getFallbackDriver();
                 }
                 
-                return this._processResults(data, this.raceData ? this.raceData.raceId : 'unknown_race');
+                return this._processResults(qualifying, this.raceData ? this.raceData.raceId : 'unknown_race');
             } else {
                 this.log('debug', 'Using fallback for future race');
                 return this.getFallbackDriver();
             }
         } catch (error) {
-            // Only log non-404 errors as actual errors
-            if (!error.message?.includes('404')) {
-                this.log('error', 'Error fetching qualifying results', error);
-            }
+            this.log('error', 'Error fetching qualifying results', error);
             return this.getFallbackDriver();
         }
+    }
+
+    async fetchFromOpenF1API(date) {
+        try {
+            const year = date.split('-')[0];
+            this.log('debug', `Fetching qualifying data from OpenF1 API for date: ${date}, year: ${year}`);
+            
+            // First try: Search for all recent qualifying sessions (like Python script does)
+            this.log('debug', 'Searching for recent qualifying sessions...');
+            const allQualifyingUrl = `https://api.openf1.org/v1/sessions?session_name=Qualifying`;
+            const allSessions = await this.fetchWithRetry(allQualifyingUrl);
+            
+            this.log('debug', `API response for all qualifying sessions:`, { 
+                isArray: Array.isArray(allSessions), 
+                length: allSessions ? allSessions.length : 'null/undefined',
+                type: typeof allSessions,
+                firstFewChars: allSessions ? JSON.stringify(allSessions).substring(0, 200) : 'null',
+                actualValue: allSessions
+            });
+            
+            if (allSessions && allSessions.length > 0) {
+                this.log('debug', `Found ${allSessions.length} total qualifying sessions`);
+                
+                // Debug: Show last few sessions to see if our target is there
+                const recentSessions = allSessions.slice(-5);
+                this.log('debug', 'Recent qualifying sessions:', recentSessions.map(s => ({
+                    session_key: s.session_key,
+                    location: s.location,
+                    date_start: s.date_start,
+                    year: s.year
+                })));
+                
+                // Find session that starts on our target date
+                const targetSession = allSessions.find(session => 
+                    session.date_start && session.date_start.startsWith(date)
+                );
+
+                if (targetSession) {
+                    this.log('debug', `Found qualifying session: ${targetSession.session_key} at ${targetSession.location}`);
+                    
+                    // Get drivers and laps for this session
+                    const qualifying = await this.fetchSessionData(targetSession.session_key);
+                    if (qualifying && qualifying.length > 0) {
+                        return qualifying;
+                    } else {
+                        this.log('debug', `Session ${targetSession.session_key} found but no qualifying data returned`);
+                    }
+                } else {
+                    this.log('debug', `No session found with date_start starting with: ${date}`);
+                    // Debug: Show what dates we actually have for 2025
+                    const sessions2025 = allSessions.filter(s => s.year === 2025);
+                    this.log('debug', `Found ${sessions2025.length} sessions for 2025:`, sessions2025.map(s => ({
+                        session_key: s.session_key,
+                        location: s.location,
+                        date_start: s.date_start
+                    })));
+                }
+            } else {
+                this.log('debug', 'allSessions is empty or null/undefined');
+            }
+            
+            // Fallback: Try year-based search
+            this.log('debug', `No session found for ${date}, trying year-based search...`);
+            const sessionsUrl = `https://api.openf1.org/v1/sessions?year=${year}&session_name=Qualifying`;
+            const sessionsResponse = await this.fetchWithRetry(sessionsUrl);
+            
+            this.log('debug', `Year-based API response:`, { 
+                isArray: Array.isArray(sessionsResponse), 
+                length: sessionsResponse ? sessionsResponse.length : 'null/undefined',
+                type: typeof sessionsResponse,
+                actualValue: sessionsResponse
+            });
+            
+            if (!sessionsResponse || sessionsResponse.length === 0) {
+                this.log('debug', 'No qualifying sessions found for year', year);
+                return [];
+            }
+
+            // Find session that starts on the given date
+            const targetSession = sessionsResponse.find(session => 
+                session.date_start && session.date_start.startsWith(date)
+            );
+
+            if (!targetSession) {
+                this.log('debug', `No qualifying session found starting on ${date}`);
+                return [];
+            }
+
+            this.log('debug', `Found qualifying session: ${targetSession.session_key} at ${targetSession.location}`);
+            
+            return await this.fetchSessionData(targetSession.session_key);
+
+        } catch (error) {
+            this.log('error', 'Error fetching from OpenF1 API', error);
+            return [];
+        }
+    }
+
+    async fetchSessionData(sessionKey) {
+        try {
+            // Get drivers for this session
+            const driversUrl = `https://api.openf1.org/v1/drivers?session_key=${sessionKey}`;
+            const drivers = await this.fetchWithRetry(driversUrl);
+
+            if (!drivers || drivers.length === 0) {
+                this.log('debug', 'No drivers found for session', sessionKey);
+                return [];
+            }
+
+            // Get laps for this session to determine qualifying order
+            const lapsUrl = `https://api.openf1.org/v1/laps?session_key=${sessionKey}`;
+            const laps = await this.fetchWithRetry(lapsUrl);
+
+            if (!laps || laps.length === 0) {
+                this.log('debug', 'No lap data found for session', sessionKey);
+                return [];
+            }
+
+            // Calculate best lap times and create qualifying order
+            const qualifying = this.calculateQualifyingOrder(drivers, laps);
+            this.log('debug', `Processed ${qualifying.length} drivers from OpenF1 API for session ${sessionKey}`);
+
+            return qualifying;
+
+        } catch (error) {
+            this.log('error', 'Error fetching session data', error);
+            return [];
+        }
+    }
+
+    calculateQualifyingOrder(drivers, laps) {
+        // Create a map of best lap times for each driver
+        const bestLaps = {};
+        
+        laps.forEach(lap => {
+            if (lap.lap_duration && lap.driver_number) {
+                const currentBest = bestLaps[lap.driver_number];
+                if (!currentBest || lap.lap_duration < currentBest.lap_duration) {
+                    bestLaps[lap.driver_number] = lap;
+                }
+            }
+        });
+
+        // Create qualifying results by combining driver info with best lap times
+        const qualifyingResults = drivers.map(driver => {
+            const bestLap = bestLaps[driver.driver_number];
+            return {
+                driver_number: driver.driver_number,
+                full_name: driver.full_name,
+                team_name: driver.team_name,
+                lap_duration: bestLap ? bestLap.lap_duration : null
+            };
+        });
+
+        // Sort by lap time (null times go to the end)
+        qualifyingResults.sort((a, b) => {
+            if (a.lap_duration === null && b.lap_duration === null) return 0;
+            if (a.lap_duration === null) return 1;
+            if (b.lap_duration === null) return -1;
+            return a.lap_duration - b.lap_duration;
+        });
+
+        // Add position numbers
+        qualifyingResults.forEach((result, index) => {
+            result.position = index + 1;
+        });
+
+        return qualifyingResults;
     }
 
     getFallbackDriver() {

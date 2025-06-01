@@ -423,10 +423,19 @@ function initializeConfirmationModal() {
             }
             
             // Update UI with pick change capability check
-            const deadlineManager = new PickDeadlineManager();
-            const canChange = !deadlineManager.isDeadlinePassed();
-            const currentPick = getCurrentRacePickWithContext();
-            PickChangeUtils.updateMakePickButtonText(currentPick, canChange);
+            try {
+                const deadlineManager = new PickDeadlineManager();
+                const canChange = !deadlineManager.isDeadlinePassed();
+                const currentPick = getCurrentRacePickWithContext();
+                PickChangeUtils.updateMakePickButtonText(currentPick, canChange);
+            } catch (error) {
+                console.warn('Deadline manager failed during pick confirmation, using fallback:', error);
+                // Fallback: get current pick and assume can change
+                const currentPick = getCurrentRacePickWithContext();
+                if (currentPick) {
+                    PickChangeUtils.updateMakePickButtonText(currentPick, true);
+                }
+            }
             driverSelectionScreen.style.display = 'none';
             
             // Add animation using Anime.js
@@ -611,8 +620,8 @@ const initializeDriverSelection = () => {
     
     // Initialize auto-pick manager
     const autoPickManager = new AutoPickManager();
-    autoPickManager.debug = false; // Set to false
-    autoPickManager.qualifyingManager.debug = false; // Set to false
+    autoPickManager.debug = true; // Enable debug to see what's happening
+    autoPickManager.qualifyingManager.debug = true; // Enable debug to see what's happening
     autoPickManager.initialize();
     
     // Initialize deadline manager
@@ -744,12 +753,18 @@ const initializeDriverSelection = () => {
                     }
                 });
                 
-                // Update the button text based on current race pick
+                // Update button text based on current race pick
                 const currentRacePick = getCurrentRacePickWithContext();
                 if (currentRacePick) {
-                    const deadlineManager = new PickDeadlineManager();
-                    const canChange = !deadlineManager.isDeadlinePassed();
-                    PickChangeUtils.updateMakePickButtonText(currentRacePick, canChange);
+                    try {
+                        const deadlineManager = new PickDeadlineManager();
+                        const canChange = !deadlineManager.isDeadlinePassed();
+                        PickChangeUtils.updateMakePickButtonText(currentRacePick, canChange);
+                    } catch (error) {
+                        console.warn('Deadline manager failed, using fallback for button text:', error);
+                        // Fallback: assume we can change pick if we're here during initialization
+                        PickChangeUtils.updateMakePickButtonText(currentRacePick, true);
+                    }
                 }
                 
                 console.log('Loaded user picks from localStorage:', savedPicks);
@@ -956,6 +971,20 @@ async function initializeApp() {
         
         // Initialize driver selection
         initializeDriverSelection();
+        
+        // Update button text based on current pick (fix for button not showing current pick on load)
+        const currentPick = getCurrentRacePickWithContext();
+        if (currentPick) {
+            try {
+                const deadlineManager = new PickDeadlineManager();
+                const canChange = !deadlineManager.isDeadlinePassed();
+                PickChangeUtils.updateMakePickButtonText(currentPick, canChange);
+            } catch (error) {
+                console.warn('Deadline manager failed, using fallback for button text:', error);
+                // Fallback: assume we can change pick if we're here during initialization
+                PickChangeUtils.updateMakePickButtonText(currentPick, true);
+            }
+        }
         
         // Initialize league system
         initializeLeagueIntegration();

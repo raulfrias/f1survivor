@@ -71,29 +71,36 @@ This document outlines the development phases and tasks for the F1 Survivor game
   - League settings management
   - Leave/delete league functionality
 
-## Phase 1.5: Mobile Responsiveness & UI Polish 📱
+## Phase 1.5: Mobile Responsiveness & UI Polish ✅ (Completed June 2025)
 
-### Mobile-First Responsive Design 🚀 IN PROGRESS
-- [ ] Audit current mobile experience and identify key issues
-- [ ] Fix driver selection grid layout for mobile screens
-- [ ] Optimize league modals and forms for touch interfaces
-- [ ] Improve navigation and menu systems for mobile
-- [ ] Enhance dashboard layout for smaller screens
-- [ ] Test countdown timer and status displays on mobile
-- [ ] Optimize elimination zone component for mobile viewing
-- [ ] Fix CSS breakpoints and viewport meta configurations
-- [ ] Test across multiple device sizes (phone, tablet, desktop)
-- [ ] Implement mobile-specific interactions and touch gestures
+### Mobile-First Responsive Design ✅ (Completed June 2025)
+- [x] Audit current mobile experience and identify key issues
+- [x] Fix driver selection grid layout for mobile screens (100px min vs 130px for mobile)
+- [x] Optimize league modals and forms for touch interfaces
+- [x] Improve navigation and menu systems for mobile (fixed stacking issues)
+- [x] Enhance dashboard layout for smaller screens
+- [x] Test countdown timer and status displays on mobile (reduced from 2rem to 1.5rem)
+- [x] Optimize elimination zone component for mobile viewing
+- [x] Fix CSS breakpoints and viewport meta configurations (768px, 480px breakpoints)
+- [x] Test across multiple device sizes (phone, tablet, desktop)
+- [x] Implement mobile-specific interactions and touch gestures
+- [x] **UX Enhancement:** Removed distracting track animation for cleaner, focused experience
 
 ## Phase 2: AWS Amplify Gen2 Backend Foundation 🚀
 
 ### AWS Amplify Gen2 Project Setup ✅ (Completed June 2025)
 - [x] Initialize Amplify Gen2 project structure
-- [x] Configure build system integration (Vite + Amplify)
+- [x] Configure build system integration (Vite + Amplify Gen2)
 - [x] Set up cloud sandbox for development
-- [x] Configure deployment pipeline (GitHub → Amplify)
+- [x] Configure deployment pipeline (GitHub → Vercel auto-deployment)
 - [x] Set up environment variables and configurations
 - [x] **CRITICAL FIX:** Resolved OpenF1 API integration bug - cache-busting parameters were causing empty responses, now successfully fetching real qualifying data (Spanish GP 2025 verified with Carlos Sainz P15)
+- [x] **PRODUCTION FIX:** Resolved 404 issues with Vite multi-page configuration
+  - Added proper vite.config.js for index.html and dashboard.html
+  - Fixed asset bundling and path resolution
+  - Removed incorrect amplify.yml (not needed for Gen2)
+  - Fixed dashboard favicon and CSS loading issues
+  - All production routing now works correctly
 
 ### Core Data Schema Definition
 - [ ] Design GraphQL schema mapping current localStorage structures
@@ -315,15 +322,16 @@ git push origin master   # Auto-deploys via Amplify
 ## Timeline Estimates
 
 - **Phase 1:** ✅ Completed (May 2025 - December 2024)
-- **Phase 1.5:** 🚀 IN PROGRESS - Mobile Responsiveness (1-2 weeks, high priority)
-- **Phase 2:** Q1 2025 (5-6 weeks, modular implementation)
+- **Phase 1.5:** ✅ Completed (June 2025) - Mobile Responsiveness & Production Fixes
+- **Phase 2:** Q2-Q3 2025 (5-6 weeks, modular implementation)
   - ✅ AWS Amplify Gen2 Project Setup (Completed June 2025)
   - ✅ Critical OpenF1 API integration fixes (Auto-pick foundation ready)
+  - ✅ Production deployment fixes (Vite multi-page configuration)
   - 🔄 Next: Core Data Schema Definition & Authentication Integration
   - Each feature can be implemented independently
   - Gradual migration preserving existing functionality
-- **Phase 3:** Q2 2025 (8-10 weeks)
-- **Phase 4:** Q3-Q4 2025 (12-16 weeks)
+- **Phase 3:** Q3-Q4 2025 (8-10 weeks)
+- **Phase 4:** Q4 2025-Q1 2026 (12-16 weeks)
 
 ## Technology Stack Updates
 

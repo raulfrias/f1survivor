@@ -64,9 +64,10 @@ The rules are designed to be simple yet challenging:
    ```
 
 ### Production Deployment
-- **Automatic Deployment:** Connected to GitHub, deploys on push to `master` branch
-- **Frontend:** AWS Amplify Hosting
-- **Backend:** Serverless AWS infrastructure (auto-managed)
+- **Automatic Deployment:** Connected to GitHub, deploys on push to `master` branch via Vercel
+- **Frontend:** Vite build system with multi-page configuration
+- **Backend:** AWS Amplify Gen2 (serverless infrastructure, auto-managed)
+- **Build Output:** Optimized `dist/` directory with proper asset bundling
 
 ## Project Structure
 
@@ -120,6 +121,7 @@ f1survivor/
 ├── storage-utils.js            # Storage utilities
 ├── styles.css                  # Main styling
 ├── test-league-system.html     # League testing page
+├── vite.config.js              # Vite build configuration (multi-page)
 ├── amplify_outputs.json        # Generated backend configuration
 ├── package.json                # Dependencies and scripts
 └── README.md
@@ -168,6 +170,7 @@ f1survivor/
   - Responsive design optimized for all device sizes
   - Real-time survival calculations and status updates
   - Navigation between Pick and Dashboard pages
+  - Fixed production 404 issues with proper Vite multi-page configuration
 
 ✅ **League System (Prototype):**
   - Create private leagues with custom names and settings
@@ -180,6 +183,15 @@ f1survivor/
   - Multi-user simulation for testing (within same browser)
   - Owner controls: member management, settings updates
   - Persistent league data using localStorage
+
+✅ **Mobile Responsiveness & Production Ready:**
+  - Complete mobile-first responsive design (768px, 480px breakpoints)
+  - Fixed navigation menu stacking issues on mobile devices
+  - Optimized countdown timer and driver grid layouts for mobile
+  - Enhanced touch targets and mobile-specific interactions
+  - Removed distracting track animation for cleaner UX
+  - Production deployment fixes with Vite multi-page configuration
+  - All 404 issues resolved (dashboard, favicon, asset loading)
 
 🔄 **In Progress:**
   - ✅ AWS Amplify Gen2 backend migration (Project setup complete, cloud sandbox operational)
@@ -197,9 +209,17 @@ Our development is organized into manageable phases with modular features:
    - User dashboard with pick history
    - League system prototype with local storage
 
+1.5. **Mobile Responsiveness & Production Polish** ✅ (Completed June 2025)
+   - Complete mobile-first responsive design
+   - Production deployment fixes with Vite configuration
+   - Enhanced UX with track animation removal
+   - All 404 issues resolved (dashboard, favicon, assets)
+
 2. **AWS Amplify Gen2 Backend Foundation** 🚀 (Current Focus)
    - Modular backend setup with independent features
-   - AWS Amplify Gen2 project initialization
+   - AWS Amplify Gen2 project initialization ✅
+   - OpenF1 API integration fixes ✅
+   - Production build and deployment configuration ✅
    - Cognito authentication integration
    - GraphQL schema definition mapping localStorage structures
    - Data migration utilities (localStorage → DynamoDB)

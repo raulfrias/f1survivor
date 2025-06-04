@@ -35,6 +35,12 @@ nav {
     z-index: 100;
 }
 
+.nav-right {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
 .logo {
     font-weight: 700;
     font-size: 1.5rem;
@@ -69,6 +75,7 @@ nav {
     justify-content: center;
     position: relative;
     padding: 2rem;
+    padding-top: 120px; /* Account for fixed nav */
     background: linear-gradient(
         to bottom,
         var(--background) 0%,
@@ -866,6 +873,192 @@ nav {
     }
 }
 
+/* Mobile Navigation Fixes */
+@media (max-width: 768px) {
+    nav {
+        padding: 1rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .logo {
+        font-size: 1.2rem;
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .f1-logo-img {
+        height: 24px;
+    }
+    
+    .nav-right {
+        flex-direction: row;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+    
+    .nav-link {
+        font-size: 0.9rem;
+        padding: 0.4rem 0.8rem;
+        white-space: nowrap;
+    }
+    
+    .sign-in {
+        font-size: 0.9rem;
+        padding: 0.4rem 0.8rem;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 480px) {
+    nav {
+        padding: 0.75rem;
+        min-height: 60px;
+    }
+    
+    .logo {
+        font-size: 1rem;
+        min-width: 150px;
+    }
+    
+    .f1-logo-img {
+        height: 20px;
+        margin-right: 8px;
+    }
+    
+    .nav-right {
+        gap: 0.3rem;
+    }
+    
+    .nav-link,
+    .sign-in {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.6rem;
+    }
+    
+    /* Mobile countdown timer adjustments */
+    .race-countdown-container {
+        margin: 0.5rem 0;
+        padding: 0.75rem;
+    }
+    
+    .race-name {
+        font-size: 1.2rem;
+    }
+    
+    .race-circuit {
+        font-size: 0.9rem;
+    }
+    
+    .countdown-timer {
+        gap: 0.3rem;
+        margin: 0.75rem 0;
+    }
+    
+    .time-unit {
+        min-width: 50px;
+        max-width: 70px;
+    }
+    
+    .time-unit span {
+        font-size: 1.5rem;
+        padding: 0.4rem 0.5rem;
+        min-width: 40px;
+    }
+    
+    .time-unit label {
+        font-size: 0.7rem;
+        margin-top: 0.3rem;
+    }
+    
+    /* Mobile hero section adjustments */
+    .hero {
+        padding: 1rem;
+        padding-top: 80px; /* Adjust for smaller mobile nav */
+    }
+    
+    .content {
+        padding: 0 1rem;
+    }
+    
+    .title {
+        font-size: clamp(2.5rem, 8vw, 4rem);
+        margin-bottom: 1.5rem;
+    }
+    
+    .description p {
+        font-size: 1.2rem;
+        margin: 0.3rem 0;
+    }
+    
+    .next-race {
+        margin-top: 1.5rem;
+        padding: 0.75rem;
+        max-width: 350px;
+    }
+    
+    /* Mobile driver selection adjustments */
+    #driver-selection-screen {
+        padding: 1rem;
+    }
+    
+    .driver-selection-content {
+        padding: 1rem;
+        max-height: 90vh;
+        border-radius: 8px;
+    }
+    
+    .driver-selection-content h2 {
+        font-size: 1.3rem;
+        margin-bottom: 0.6rem;
+    }
+    
+    .deadline {
+        font-size: 0.8rem;
+        margin-bottom: 1rem;
+    }
+    
+    #driver-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 0.6rem;
+        padding: 0.75rem;
+        min-height: 250px;
+    }
+    
+    .driver-card {
+        padding: 0.6rem;
+        min-height: 120px;
+        gap: 0.2rem;
+    }
+    
+    .driver-card img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .driver-card .driver-name {
+        font-size: 0.8rem;
+    }
+    
+    .driver-card .driver-team {
+        font-size: 0.7rem;
+    }
+    
+    #confirm-pick-btn {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
+        margin-top: 0.75rem;
+    }
+    
+    .cta-button {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
+        width: 100%;
+        max-width: 300px;
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .driver-confirmation-card {
@@ -909,9 +1102,10 @@ nav {
 
 .countdown-timer {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     margin: 1rem 0;
     gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .time-unit {
@@ -919,6 +1113,8 @@ nav {
     flex-direction: column;
     align-items: center;
     min-width: 60px;
+    flex: 1;
+    max-width: 80px;
 }
 
 .time-unit span {
@@ -931,6 +1127,8 @@ nav {
     min-width: 50px;
     text-align: center;
     font-family: 'Courier New', monospace;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .time-unit label {
@@ -938,6 +1136,7 @@ nav {
     font-size: 0.8rem;
     text-transform: uppercase;
     color: #c0c0c0;
+    text-align: center;
 }
 
 .pick-status {

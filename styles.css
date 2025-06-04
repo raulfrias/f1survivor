@@ -222,73 +222,7 @@ nav {
     filter: drop-shadow(0 0 6px var(--primary-red)) drop-shadow(0 0 10px rgba(225, 6, 0, 0.7));
 }
 
-/* Track Animation Section - Moved to Bottom */
-.track-section {
-    padding: 4rem 2rem;
-    background: linear-gradient(
-        to bottom,
-        var(--background) 0%,
-        rgba(225, 6, 0, 0.05) 100%
-    );
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    border-top: 1px solid rgba(225, 6, 0, 0.1);
-}
 
-.track-wrapper {
-    position: relative;
-    width: 100%;
-    max-width: 600px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.track-wrapper svg {
-    width: 100%;
-    height: auto;
-}
-
-.track-bg-car-img {
-    position: absolute;
-    bottom: -200%;
-    left: 50%;
-    transform: translateX(-50%);
-
-    opacity: 0.15;
-    z-index: -1;
-    pointer-events: none;
-}
-
-.car-dot {
-    width: 24px;
-    height: 12px;
-    background: var(--primary-red);
-    border-radius: 6px;
-    position: absolute;
-    top: 0;
-    left: 0;
-    box-shadow: 
-        0 0 20px var(--primary-red),
-        0 0 35px var(--primary-red);
-    transform-origin: center;
-    pointer-events: none;
-}
-
-.car-dot::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 100%;
-    width: 6px;
-    height: 6px;
-    background: rgba(225, 6, 0, 0.3);
-    border-radius: 50%;
-    transform: translateY(-50%);
-}
 
 .next-race h2 {
     font-size: 1.2rem;
@@ -1071,15 +1005,6 @@ nav {
         font-size: 0.9rem;
         width: 100%;
         max-width: 300px;
-    }
-    
-    /* Mobile track section */
-    .track-section {
-        padding: 2rem 1rem;
-    }
-    
-    .track-wrapper {
-        max-width: 400px;
     }
 }
 

@@ -71,6 +71,20 @@ This document outlines the development phases and tasks for the F1 Survivor game
   - League settings management
   - Leave/delete league functionality
 
+## Phase 1.5: Mobile Responsiveness & UI Polish 📱
+
+### Mobile-First Responsive Design 🚀 IN PROGRESS
+- [ ] Audit current mobile experience and identify key issues
+- [ ] Fix driver selection grid layout for mobile screens
+- [ ] Optimize league modals and forms for touch interfaces
+- [ ] Improve navigation and menu systems for mobile
+- [ ] Enhance dashboard layout for smaller screens
+- [ ] Test countdown timer and status displays on mobile
+- [ ] Optimize elimination zone component for mobile viewing
+- [ ] Fix CSS breakpoints and viewport meta configurations
+- [ ] Test across multiple device sizes (phone, tablet, desktop)
+- [ ] Implement mobile-specific interactions and touch gestures
+
 ## Phase 2: AWS Amplify Gen2 Backend Foundation 🚀
 
 ### AWS Amplify Gen2 Project Setup ✅ (Completed June 2025)
@@ -301,7 +315,8 @@ git push origin master   # Auto-deploys via Amplify
 ## Timeline Estimates
 
 - **Phase 1:** ✅ Completed (May 2025 - December 2024)
-- **Phase 2:** 🚀 IN PROGRESS - Q1 2025 (5-6 weeks, modular implementation)
+- **Phase 1.5:** 🚀 IN PROGRESS - Mobile Responsiveness (1-2 weeks, high priority)
+- **Phase 2:** Q1 2025 (5-6 weeks, modular implementation)
   - ✅ AWS Amplify Gen2 Project Setup (Completed June 2025)
   - ✅ Critical OpenF1 API integration fixes (Auto-pick foundation ready)
   - 🔄 Next: Core Data Schema Definition & Authentication Integration

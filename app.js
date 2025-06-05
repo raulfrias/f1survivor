@@ -6,6 +6,9 @@ import RaceCountdown from './race-countdown.js';
 import { PickDeadlineManager } from './pick-deadline-manager.js';
 import { AutoPickManager } from './auto-pick-manager.js';
 import { PickChangeUtils } from './pick-change-utils.js';
+// Import authentication
+import { authManager } from './auth-manager.js';
+import { authUI } from './auth-ui.js';
 
 console.log('app.js loaded - start');
 
@@ -782,12 +785,22 @@ const initializeDriverSelection = () => {
     }
 
     // Open modal and render grid
-    makePickBtn.addEventListener('click', () => {
+    makePickBtn.addEventListener('click', async () => {
         console.log('Make pick button clicked');
         
         // Check if button is disabled
         if (makePickBtn.disabled) {
             console.log('Button is disabled, ignoring click');
+            return;
+        }
+        
+        // Check authentication first
+        const isAuthenticated = await authManager.isAuthenticated();
+        if (!isAuthenticated) {
+            console.log('User not authenticated, showing auth modal');
+            // Store current page for redirect after auth
+            sessionStorage.setItem('redirectAfterAuth', window.location.href);
+            authUI.showModal('signin');
             return;
         }
         
@@ -997,6 +1010,9 @@ async function initializeApp() {
         // Initialize league system
         initializeLeagueIntegration();
         
+        // Initialize authentication state management
+        initializeAuthState();
+        
     } catch (error) {
         console.error('App initialization failed:', error);
         // Show error to user
@@ -1006,6 +1022,135 @@ async function initializeApp() {
         document.body.prepend(errorContainer);
     }
 }
+
+// Initialize authentication state management
+async function initializeAuthState() {
+    try {
+        console.log('Initializing authentication state management');
+        
+        // Set up auth state listener
+        authManager.onAuthStateChange((isAuthenticated) => {
+            updateUIForAuthState(isAuthenticated);
+        });
+        
+        // Check initial auth state
+        const isAuthenticated = await authManager.isAuthenticated();
+        updateUIForAuthState(isAuthenticated);
+        
+        console.log('Authentication state management initialized');
+    } catch (error) {
+        console.error('Failed to initialize authentication state:', error);
+    }
+}
+
+// Update UI based on authentication state
+async function updateUIForAuthState(isAuthenticated) {
+    console.log('Updating UI for auth state:', isAuthenticated);
+    
+    const signInLinks = document.querySelectorAll('.sign-in');
+    
+    if (isAuthenticated) {
+        try {
+            const user = await authManager.getCurrentUser();
+            const userEmail = user?.signInDetails?.loginId || user?.username || 'User';
+            
+            // Update sign in links to show user menu
+            signInLinks.forEach(link => {
+                link.textContent = userEmail.split('@')[0]; // Show username part of email
+                link.onclick = () => showUserMenu();
+                link.classList.add('authenticated');
+            });
+            
+            console.log('UI updated for authenticated user:', userEmail);
+        } catch (error) {
+            console.error('Error getting user info:', error);
+            // Fallback
+            signInLinks.forEach(link => {
+                link.textContent = 'User';
+                link.onclick = () => showUserMenu();
+                link.classList.add('authenticated');
+            });
+        }
+    } else {
+        // Update sign in links to show sign in
+        signInLinks.forEach(link => {
+            link.textContent = 'Sign In';
+            link.onclick = () => showAuthModal('signin');
+            link.classList.remove('authenticated');
+        });
+        
+        console.log('UI updated for unauthenticated user');
+    }
+}
+
+// Show user menu (simple implementation)
+function showUserMenu() {
+    const menu = document.createElement('div');
+    menu.className = 'user-menu';
+    menu.innerHTML = `
+        <div class="user-menu-content">
+            <button onclick="handleSignOut()">Sign Out</button>
+        </div>
+    `;
+    
+    // Position menu near the user link
+    const signInLink = document.querySelector('.sign-in');
+    if (signInLink) {
+        const rect = signInLink.getBoundingClientRect();
+        menu.style.position = 'fixed';
+        menu.style.top = `${rect.bottom + 5}px`;
+        menu.style.right = '20px';
+        menu.style.zIndex = '9999';
+        menu.style.background = 'var(--card-background)';
+        menu.style.border = '1px solid var(--border-color)';
+        menu.style.borderRadius = '6px';
+        menu.style.padding = '0.5rem';
+        menu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+    }
+    
+    document.body.appendChild(menu);
+    
+    // Close menu when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 100);
+}
+
+// Handle sign out
+async function handleSignOut() {
+    try {
+        console.log('Signing out user');
+        const result = await authManager.signOut();
+        
+        if (result.success) {
+            console.log('Sign out successful');
+            // Remove any user menus
+            const userMenus = document.querySelectorAll('.user-menu');
+            userMenus.forEach(menu => menu.remove());
+            
+            // Optionally redirect to home page
+            if (window.location.pathname.includes('dashboard')) {
+                window.location.href = 'index.html';
+            }
+        } else {
+            console.error('Sign out failed:', result.error);
+        }
+    } catch (error) {
+        console.error('Sign out error:', error);
+    }
+}
+
+// Make functions available globally
+window.showAuthModal = (tab = 'signin') => {
+    authUI.showModal(tab);
+};
+
+window.handleSignOut = handleSignOut;
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {

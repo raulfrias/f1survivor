@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="league-modal.css">
     <link rel="stylesheet" href="league-selector.css">
     <link rel="stylesheet" href="league-indicator.css">
+    <link rel="stylesheet" href="auth-modal.css">
 </head>
 <body>
     <nav>
@@ -19,7 +20,7 @@
         <div class="nav-right">
             <a href="index.html" class="nav-link active">Pick</a>
             <a href="dashboard.html" class="nav-link">Dashboard</a>
-            <a href="#" class="sign-in">Sign In</a>
+            <a href="#" class="sign-in" onclick="showAuthModal('signin')">Sign In</a>
         </div>
     </nav>
     
@@ -133,6 +134,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <script type="module" src="race-calendar-2025.js"></script>
     <script type="module" src="race-countdown.js"></script>
+    <!-- Authentication Scripts -->
+    <script type="module" src="./auth-manager.js"></script>
+    <script type="module" src="./auth-ui.js"></script>
     <!-- Test Scripts for Development -->
     <script type="module" src="./test-monaco-scenarios.js"></script>
     <script type="module" src="./test-post-race.js"></script>

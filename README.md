@@ -193,11 +193,15 @@ f1survivor/
   - Production deployment fixes with Vite multi-page configuration
   - All 404 issues resolved (dashboard, favicon, asset loading)
 
-🔄 **In Progress:**
-  - ✅ AWS Amplify Gen2 backend migration (Project setup complete, cloud sandbox operational)
+✅ **AWS Amplify Gen2 Backend (Phase 2):**
+  - ✅ AWS Amplify Gen2 project setup (Cloud sandbox operational)
+  - ✅ Core Data Schema Definition (Complete 9-model GraphQL schema with dual authorization)
   - ✅ OpenF1 API integration fixes (Successfully fetching real qualifying data - Spanish GP 2025 verified)
-  - 🔄 Cognito authentication integration (Next phase)
-  - 🔄 Real-time league updates via GraphQL subscriptions (Next phase)
+
+🔄 **In Progress:**
+  - 🔄 Cognito authentication integration (Next: Replace Sign In placeholder with functional auth)
+  - 🔄 Data migration service (localStorage → DynamoDB)
+  - 🔄 Real-time league updates via GraphQL subscriptions
 
 ## Development Roadmap
 

@@ -800,7 +800,7 @@ const initializeDriverSelection = () => {
             console.log('User not authenticated, showing auth modal');
             // Store current page for redirect after auth
             sessionStorage.setItem('redirectAfterAuth', window.location.href);
-            authUI.showModal('signin');
+            await authUI.showModal('signin');
             return;
         }
         
@@ -1048,6 +1048,8 @@ async function updateUIForAuthState(isAuthenticated) {
     console.log('Updating UI for auth state:', isAuthenticated);
     
     const signInLinks = document.querySelectorAll('.sign-in');
+    const navLinks = document.querySelectorAll('.nav-link'); // Pick and Dashboard buttons
+    const makePickBtn = document.getElementById('make-pick-btn');
     
     if (isAuthenticated) {
         try {
@@ -1057,19 +1059,49 @@ async function updateUIForAuthState(isAuthenticated) {
             // Update sign in links to show user menu
             signInLinks.forEach(link => {
                 link.textContent = userEmail.split('@')[0]; // Show username part of email
-                link.onclick = () => showUserMenu();
+                link.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showUserMenu();
+                };
                 link.classList.add('authenticated');
             });
             
-            console.log('UI updated for authenticated user:', userEmail);
+            // Show navigation links for authenticated users
+            navLinks.forEach(link => {
+                link.style.display = 'block';
+            });
+            
+                    // Show Make Your Pick button for authenticated users
+        if (makePickBtn) {
+            makePickBtn.style.display = 'block';
+        }
+        
+        // Remove unauthenticated message if it exists
+        removeUnauthenticatedMessage();
+        
+        console.log('UI updated for authenticated user:', userEmail);
         } catch (error) {
             console.error('Error getting user info:', error);
             // Fallback
             signInLinks.forEach(link => {
                 link.textContent = 'User';
-                link.onclick = () => showUserMenu();
+                link.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showUserMenu();
+                };
                 link.classList.add('authenticated');
             });
+            
+            // Still show navigation for fallback authenticated state
+            navLinks.forEach(link => {
+                link.style.display = 'block';
+            });
+            
+            if (makePickBtn) {
+                makePickBtn.style.display = 'block';
+            }
         }
     } else {
         // Update sign in links to show sign in
@@ -1079,17 +1111,48 @@ async function updateUIForAuthState(isAuthenticated) {
             link.classList.remove('authenticated');
         });
         
+        // Hide navigation links for unauthenticated users
+        navLinks.forEach(link => {
+            link.style.display = 'none';
+        });
+        
+        // Hide Make Your Pick button for unauthenticated users
+        if (makePickBtn) {
+            makePickBtn.style.display = 'none';
+        }
+        
+        // Show a sign up call-to-action for unauthenticated users
+        showUnauthenticatedMessage();
+        
         console.log('UI updated for unauthenticated user');
     }
 }
 
-// Show user menu (simple implementation)
+// Show user menu with better styling
 function showUserMenu() {
+    // Remove any existing user menus
+    const existingMenus = document.querySelectorAll('.user-menu');
+    existingMenus.forEach(menu => menu.remove());
+    
     const menu = document.createElement('div');
     menu.className = 'user-menu';
     menu.innerHTML = `
         <div class="user-menu-content">
-            <button onclick="handleSignOut()">Sign Out</button>
+            <button onclick="handleSignOut()" style="
+                background: #ffffff;
+                border: 2px solid #dc2626;
+                color: #dc2626;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: 600;
+                width: 100%;
+                transition: all 0.2s ease;
+            " 
+            onmouseover="this.style.background='#dc2626'; this.style.color='#ffffff'" 
+            onmouseout="this.style.background='#ffffff'; this.style.color='#dc2626'">
+                Sign Out
+            </button>
         </div>
     `;
     
@@ -1101,8 +1164,8 @@ function showUserMenu() {
         menu.style.top = `${rect.bottom + 5}px`;
         menu.style.right = '20px';
         menu.style.zIndex = '9999';
-        menu.style.background = 'var(--card-background)';
-        menu.style.border = '1px solid var(--border-color)';
+        menu.style.background = '#ffffff';
+        menu.style.border = '2px solid #374151';
         menu.style.borderRadius = '6px';
         menu.style.padding = '0.5rem';
         menu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
@@ -1133,7 +1196,10 @@ async function handleSignOut() {
             const userMenus = document.querySelectorAll('.user-menu');
             userMenus.forEach(menu => menu.remove());
             
-            // Optionally redirect to home page
+            // Update UI for unauthenticated state
+            updateUIForAuthState(false);
+            
+            // Redirect to home page if on dashboard
             if (window.location.pathname.includes('dashboard')) {
                 window.location.href = 'index.html';
             }
@@ -1145,9 +1211,76 @@ async function handleSignOut() {
     }
 }
 
+// Show message for unauthenticated users
+function showUnauthenticatedMessage() {
+    // Remove existing message first
+    removeUnauthenticatedMessage();
+    
+    const mainActionArea = document.getElementById('main-action-area');
+    if (mainActionArea) {
+        const ctaMessage = document.createElement('div');
+        ctaMessage.id = 'unauthenticated-cta';
+        ctaMessage.className = 'unauthenticated-message';
+        ctaMessage.innerHTML = `
+            <div class="auth-cta-content">
+                <h3>🏁 Ready to Play F1 Survivor?</h3>
+                <p>Sign up to start picking drivers and compete with other F1 fans!</p>
+                <button class="cta-button" onclick="showAuthModal('signup')">
+                    Join the Game
+                </button>
+                <p class="sign-in-text">Already have an account? 
+                    <a href="#" onclick="showAuthModal('signin')" class="sign-in-link">Sign In</a>
+                </p>
+            </div>
+        `;
+        
+        // Replace the main action area content
+        mainActionArea.innerHTML = '';
+        mainActionArea.appendChild(ctaMessage);
+    }
+}
+
+// Remove unauthenticated message and restore Make Your Pick button
+function removeUnauthenticatedMessage() {
+    const existingMessage = document.getElementById('unauthenticated-cta');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+    
+    // Restore Make Your Pick button for authenticated users
+    const mainActionArea = document.getElementById('main-action-area');
+    if (mainActionArea && !document.getElementById('make-pick-btn')) {
+        mainActionArea.innerHTML = `
+            <button class="cta-button" id="make-pick-btn">MAKE YOUR PICK</button>
+        `;
+        
+        // Re-initialize the button event listener
+        const makePickBtn = document.getElementById('make-pick-btn');
+        if (makePickBtn) {
+            // Remove any existing listeners first
+            makePickBtn.replaceWith(makePickBtn.cloneNode(true));
+            // Re-add the listener (it will be attached by the existing initialization code)
+        }
+    }
+}
+
+// Add click handler for navigation Pick button
+document.addEventListener('DOMContentLoaded', () => {
+    const navPickBtn = document.getElementById('nav-pick-btn');
+    const makePickBtn = document.getElementById('make-pick-btn');
+    
+    if (navPickBtn && makePickBtn) {
+        navPickBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Trigger the same action as Make Your Pick button
+            makePickBtn.click();
+        });
+    }
+});
+
 // Make functions available globally
-window.showAuthModal = (tab = 'signin') => {
-    authUI.showModal(tab);
+window.showAuthModal = async (tab = 'signin') => {
+    await authUI.showModal(tab);
 };
 
 window.handleSignOut = handleSignOut;

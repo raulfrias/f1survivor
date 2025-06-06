@@ -34,7 +34,10 @@ class AuthUI {
   // Load the auth modal HTML into the page
   async loadAuthModal() {
     try {
-      const response = await fetch('./auth-modal.html');
+      const response = await fetch('/auth-modal.html');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       const modalHTML = await response.text();
       
       // Create a container for the modal
@@ -49,55 +52,126 @@ class AuthUI {
       console.log('Auth modal loaded successfully');
     } catch (error) {
       console.error('Failed to load auth modal:', error);
-      // Fallback: create a basic modal programmatically
-      this.createBasicModal();
+      console.log('Using fallback modal creation');
+      // Fallback: create a comprehensive modal programmatically
+      this.createComprehensiveModal();
     }
   }
 
-  // Create a basic modal if loading from file fails
-  createBasicModal() {
-    console.log('Creating fallback modal');
-    // This is a simplified fallback - in production, you'd include the full HTML here
+  // Create a comprehensive modal if loading from file fails
+  createComprehensiveModal() {
+    console.log('Creating comprehensive fallback modal');
     const modalHTML = `
       <div id="auth-modal" class="auth-modal">
         <div class="auth-modal-content">
           <button class="close-btn" id="close-auth-modal">&times;</button>
+          
+          <!-- Tab Navigation -->
           <div class="auth-tabs">
             <button class="auth-tab active" data-tab="signin">Sign In</button>
             <button class="auth-tab" data-tab="signup">Sign Up</button>
           </div>
+          
+          <!-- Sign In Form -->
           <form id="signin-form" class="auth-form active">
             <h2>Welcome Back</h2>
             <p class="auth-subtitle">Sign in to make your picks</p>
+            
             <div class="form-group">
               <input type="email" id="signin-email" placeholder="Email" required>
             </div>
+            
             <div class="form-group">
               <input type="password" id="signin-password" placeholder="Password" required>
             </div>
+            
+            <div class="form-options">
+              <label>
+                <input type="checkbox" id="remember-me"> Remember me
+              </label>
+              <a href="#" id="forgot-password-link">Forgot password?</a>
+            </div>
+            
             <button type="submit" class="cta-button auth-submit">
               <span class="button-text">Sign In</span>
               <span class="loading-spinner" style="display: none;">⏳</span>
             </button>
+            
             <div class="auth-error" id="signin-error"></div>
           </form>
+          
+          <!-- Sign Up Form -->
           <form id="signup-form" class="auth-form">
             <h2>Join F1 Survivor</h2>
             <p class="auth-subtitle">Create an account to start playing</p>
+            
             <div class="form-group">
               <input type="email" id="signup-email" placeholder="Email" required>
             </div>
+            
             <div class="form-group">
               <input type="password" id="signup-password" placeholder="Password" required>
+              <div class="password-requirements">
+                <span class="requirement" data-req="length">8+ characters</span>
+                <span class="requirement" data-req="lowercase">Lowercase</span>
+                <span class="requirement" data-req="uppercase">Uppercase</span>
+                <span class="requirement" data-req="number">Number</span>
+                <span class="requirement" data-req="symbol">Symbol</span>
+              </div>
             </div>
+            
             <div class="form-group">
               <input type="password" id="signup-confirm" placeholder="Confirm Password" required>
             </div>
+            
             <button type="submit" class="cta-button auth-submit">
               <span class="button-text">Create Account</span>
               <span class="loading-spinner" style="display: none;">⏳</span>
             </button>
+            
             <div class="auth-error" id="signup-error"></div>
+          </form>
+          
+          <!-- Email Verification Form -->
+          <form id="verify-form" class="auth-form" style="display: none;">
+            <h2>Verify Your Email</h2>
+            <p class="auth-subtitle">We sent a verification code to <span id="verify-email"></span></p>
+            
+            <div class="form-group">
+              <input type="text" id="verification-code" placeholder="Enter 6-digit code" maxlength="6" required>
+            </div>
+            
+            <button type="submit" class="cta-button auth-submit">
+              <span class="button-text">Verify Email</span>
+              <span class="loading-spinner" style="display: none;">⏳</span>
+            </button>
+            
+            <div class="form-options">
+              <a href="#" id="resend-code-link">Resend code</a>
+            </div>
+            
+            <div class="auth-error" id="verify-error"></div>
+          </form>
+
+          <!-- Password Reset Form -->
+          <form id="reset-form" class="auth-form" style="display: none;">
+            <h2>Reset Password</h2>
+            <p class="auth-subtitle">Enter your email to reset your password</p>
+            
+            <div class="form-group">
+              <input type="email" id="reset-email" placeholder="Email" required>
+            </div>
+            
+            <button type="submit" class="cta-button auth-submit">
+              <span class="button-text">Send Reset Code</span>
+              <span class="loading-spinner" style="display: none;">⏳</span>
+            </button>
+            
+            <div class="form-options">
+              <a href="#" id="back-to-signin-link">Back to Sign In</a>
+            </div>
+            
+            <div class="auth-error" id="reset-error"></div>
           </form>
         </div>
       </div>
@@ -144,6 +218,7 @@ class AuthUI {
     const signinForm = this.modal.querySelector('#signin-form');
     const signupForm = this.modal.querySelector('#signup-form');
     const verifyForm = this.modal.querySelector('#verify-form');
+    const resetForm = this.modal.querySelector('#reset-form');
 
     if (signinForm) {
       signinForm.addEventListener('submit', (e) => this.handleSignIn(e));
@@ -155,6 +230,10 @@ class AuthUI {
     
     if (verifyForm) {
       verifyForm.addEventListener('submit', (e) => this.handleVerification(e));
+    }
+    
+    if (resetForm) {
+      resetForm.addEventListener('submit', (e) => this.handlePasswordReset(e));
     }
 
     // Forgot password link
@@ -221,9 +300,15 @@ class AuthUI {
   }
 
   // Show the modal
-  showModal(tab = 'signin') {
+  async showModal(tab = 'signin') {
+    // Ensure modal is initialized
     if (!this.modal) {
-      console.error('Auth modal not initialized');
+      console.log('Modal not ready, initializing...');
+      await this.init();
+    }
+    
+    if (!this.modal) {
+      console.error('Auth modal could not be initialized');
       return;
     }
 
@@ -250,6 +335,7 @@ class AuthUI {
   switchTab(tabName) {
     if (!this.modal) return;
 
+    console.log('Switching to tab:', tabName);
     this.currentForm = tabName;
     
     // Update tab buttons
@@ -258,15 +344,20 @@ class AuthUI {
       tab.classList.toggle('active', tab.dataset.tab === tabName);
     });
 
-    // Update forms
+    // Update forms - use inline styles to override any existing inline styles
     const forms = this.modal.querySelectorAll('.auth-form');
     forms.forEach(form => {
+      form.style.display = 'none';
       form.classList.remove('active');
     });
 
     const activeForm = this.modal.querySelector(`#${tabName}-form`);
     if (activeForm) {
+      activeForm.style.display = 'block';
       activeForm.classList.add('active');
+      console.log('Form displayed:', tabName, activeForm);
+    } else {
+      console.error('Form not found:', `#${tabName}-form`);
     }
 
     this.clearErrors();
@@ -296,7 +387,23 @@ class AuthUI {
           this.handleSuccessfulAuth();
         }, 1000);
       } else {
-        this.showError('signin', result.error);
+        console.log('Sign in failed:', result);
+        
+        // Handle unverified user case
+        if (result.needsVerification) {
+          console.log('User needs email verification');
+          this.pendingEmail = result.email || email;
+          this.showError('signin', result.error + ' Redirecting to verification...');
+          
+          // Switch to verification tab after a short delay
+          setTimeout(() => {
+            this.switchTab('verify');
+            this.modal.querySelector('#verify-email').textContent = this.pendingEmail;
+            this.clearErrors(); // Clear the error message in the new tab
+          }, 2000);
+        } else {
+          this.showError('signin', result.error);
+        }
       }
     } catch (error) {
       console.error('Sign in error:', error);
@@ -333,15 +440,20 @@ class AuthUI {
       const result = await authManager.signUp(email, password);
       
       if (result.success) {
-        console.log('Sign up successful');
+        console.log('Sign up successful, result:', result);
+        console.log('needsVerification:', result.needsVerification);
+        console.log('nextStep:', result.nextStep);
         this.pendingEmail = email;
         
-        if (result.needsVerification) {
+        // Always show verification step for now (for debugging)
+        if (result.needsVerification !== false) {
+          console.log('Switching to verification tab');
           this.switchTab('verify');
           this.modal.querySelector('#verify-email').textContent = email;
         } else {
-          this.showSuccess('signup', 'Account created successfully!');
-          setTimeout(() => this.switchTab('signin'), 2000);
+          console.log('Auto-confirmed user, showing success');
+          this.showSuccess('signup', 'Account created and confirmed successfully!');
+          setTimeout(() => this.switchTab('signin'), 3000);
         }
       } else {
         this.showError('signup', result.error);
@@ -417,6 +529,40 @@ class AuthUI {
     } catch (error) {
       console.error('Resend code error:', error);
       this.showError('verify', 'Failed to resend code. Please try again.');
+    }
+  }
+
+  // Handle password reset form submission
+  async handlePasswordReset(e) {
+    e.preventDefault();
+    
+    const email = this.modal.querySelector('#reset-email').value;
+
+    if (!email) {
+      this.showError('reset', 'Please enter your email address');
+      return;
+    }
+
+    this.setLoading('reset', true);
+    this.clearErrors();
+
+    try {
+      // For now, show a message that this feature is coming soon
+      // In a full implementation, this would call authManager.resetPassword(email)
+      this.showError('reset', 'Password reset functionality is not yet implemented. Please contact support.');
+      
+      // TODO: Implement actual password reset
+      // const result = await authManager.resetPassword(email);
+      // if (result.success) {
+      //   this.showSuccess('reset', 'Reset code sent to your email!');
+      // } else {
+      //   this.showError('reset', result.error);
+      // }
+    } catch (error) {
+      console.error('Password reset error:', error);
+      this.showError('reset', 'An unexpected error occurred. Please try again.');
+    } finally {
+      this.setLoading('reset', false);
     }
   }
 
@@ -516,6 +662,6 @@ class AuthUI {
 export const authUI = new AuthUI();
 
 // Global function to show auth modal (for compatibility)
-window.showAuthModal = (tab = 'signin') => {
-  authUI.showModal(tab);
+window.showAuthModal = async (tab = 'signin') => {
+  await authUI.showModal(tab);
 }; 

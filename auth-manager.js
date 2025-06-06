@@ -39,6 +39,38 @@ class AuthManager {
         password
       });
       
+      console.log('Sign in result:', result);
+      
+      // Check if the sign in result indicates further steps are needed
+      if (result.nextStep) {
+        console.log('Sign in requires additional steps:', result.nextStep);
+        
+        if (result.nextStep.signInStep === 'CONFIRM_SIGN_UP') {
+          return {
+            success: false,
+            error: 'Please verify your email first',
+            code: 'UserNotConfirmedException',
+            needsVerification: true,
+            email: email
+          };
+        }
+        
+        // DONE means authentication completed successfully
+        if (result.nextStep.signInStep === 'DONE') {
+          console.log('Authentication completed successfully');
+          // Continue to success flow below
+        } else {
+          // For other steps that require user intervention
+          return {
+            success: false,
+            error: 'Additional authentication step required: ' + result.nextStep.signInStep,
+            nextStep: result.nextStep
+          };
+        }
+      }
+      
+      // If we get here, sign in was successful
+      console.log('Sign in successful, creating user profile...');
       this.currentUser = result;
       await this.createOrUpdateUserProfile(result);
       this.notifyAuthStateChange(true);

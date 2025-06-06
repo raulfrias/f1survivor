@@ -18,7 +18,7 @@
             SURVIVOR
         </div>
         <div class="nav-right">
-            <a href="index.html" class="nav-link active">Pick</a>
+            <a href="#" class="nav-link active" id="nav-pick-btn">Pick</a>
             <a href="dashboard.html" class="nav-link">Dashboard</a>
             <a href="#" class="sign-in" onclick="showAuthModal('signin')">Sign In</a>
         </div>
@@ -58,12 +58,15 @@
                 <p class="animate-text">Last player standing wins.</p>
             </div>
             <div class="next-race">
+                <!-- Main Action Area (for auth prompts or Make Your Pick) -->
+                <div id="main-action-area" class="main-action-area">
+                    <button class="cta-button" id="make-pick-btn">MAKE YOUR PICK</button>
+                </div>
+                
                 <!-- Race Countdown Timer -->
                 <div id="race-countdown-container" class="race-countdown-container">
                     <!-- Countdown content will be dynamically populated -->
                 </div>
-                
-                <button class="cta-button" id="make-pick-btn">MAKE YOUR PICK</button>
             </div>
         </div>
         

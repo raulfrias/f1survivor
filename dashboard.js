@@ -2,9 +2,176 @@
 
 import { getDashboardData, getRaceName, formatDate, addTestDashboardData } from './dashboard-utils.js';
 import EliminationZone from './elimination-zone.js';
+import { authManager } from './auth-manager.js';
+import { authUI } from './auth-ui.js';
 
 // Dashboard state
 let dashboardData = null;
+
+// Initialize authentication state management (copied from app.js)
+async function initializeAuthState() {
+  try {
+    console.log('Initializing authentication state management');
+    
+    // Set up auth state listener
+    authManager.onAuthStateChange((isAuthenticated) => {
+      updateUIForAuthState(isAuthenticated);
+    });
+    
+    // Check initial auth state
+    const isAuthenticated = await authManager.isAuthenticated();
+    updateUIForAuthState(isAuthenticated);
+    
+    console.log('Authentication state management initialized');
+  } catch (error) {
+    console.error('Failed to initialize authentication state:', error);
+  }
+}
+
+// Update UI based on authentication state (copied from app.js)
+async function updateUIForAuthState(isAuthenticated) {
+  console.log('Updating UI for auth state:', isAuthenticated);
+  
+  const signInLinks = document.querySelectorAll('.sign-in');
+  const navLinks = document.querySelectorAll('.nav-link'); // Pick and Dashboard buttons
+  
+  if (isAuthenticated) {
+    try {
+      const user = await authManager.getCurrentUser();
+      const userEmail = user?.signInDetails?.loginId || user?.username || 'User';
+      
+      // Update sign in links to show user menu
+      signInLinks.forEach(link => {
+        link.textContent = userEmail.split('@')[0]; // Show username part of email
+        link.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          showUserMenu();
+        };
+        link.classList.add('authenticated');
+      });
+      
+      // Show navigation links for authenticated users
+      navLinks.forEach(link => {
+        link.style.display = 'block';
+      });
+      
+      console.log('UI updated for authenticated user:', userEmail);
+    } catch (error) {
+      console.error('Error getting user info:', error);
+      // Fallback
+      signInLinks.forEach(link => {
+        link.textContent = 'User';
+        link.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          showUserMenu();
+        };
+        link.classList.add('authenticated');
+      });
+      
+      // Still show navigation for fallback authenticated state
+      navLinks.forEach(link => {
+        link.style.display = 'block';
+      });
+    }
+  } else {
+    // Update sign in links to show sign in
+    signInLinks.forEach(link => {
+      link.textContent = 'Sign In';
+      link.onclick = () => showAuthModal('signin');
+      link.classList.remove('authenticated');
+    });
+    
+    // Hide navigation links for unauthenticated users
+    navLinks.forEach(link => {
+      link.style.display = 'none';
+    });
+    
+    console.log('UI updated for unauthenticated user');
+  }
+}
+
+// Show user menu (copied from app.js)
+function showUserMenu() {
+  // Remove any existing user menus
+  const existingMenus = document.querySelectorAll('.user-menu');
+  existingMenus.forEach(menu => menu.remove());
+  
+  const menu = document.createElement('div');
+  menu.className = 'user-menu';
+  menu.innerHTML = `
+    <div class="user-menu-content">
+      <button onclick="handleSignOut()" style="
+        background: #ffffff;
+        border: 2px solid #dc2626;
+        color: #dc2626;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        width: 100%;
+        transition: all 0.2s ease;
+      " 
+      onmouseover="this.style.background='#dc2626'; this.style.color='#ffffff'" 
+      onmouseout="this.style.background='#ffffff'; this.style.color='#dc2626'">
+        Sign Out
+      </button>
+    </div>
+  `;
+  
+  // Position menu near the user link
+  const signInLink = document.querySelector('.sign-in');
+  if (signInLink) {
+    const rect = signInLink.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.top = `${rect.bottom + 5}px`;
+    menu.style.right = '20px';
+    menu.style.zIndex = '9999';
+    menu.style.background = '#ffffff';
+    menu.style.border = '2px solid #374151';
+    menu.style.borderRadius = '6px';
+    menu.style.padding = '0.5rem';
+    menu.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+  }
+  
+  document.body.appendChild(menu);
+  
+  // Close menu when clicking outside
+  setTimeout(() => {
+    document.addEventListener('click', function closeMenu(e) {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+      }
+    });
+  }, 100);
+}
+
+// Handle sign out
+async function handleSignOut() {
+  try {
+    console.log('Signing out user');
+    const result = await authManager.signOut();
+    
+    if (result.success) {
+      console.log('Sign out successful');
+      // Remove any user menus
+      const userMenus = document.querySelectorAll('.user-menu');
+      userMenus.forEach(menu => menu.remove());
+      
+      // Update UI for unauthenticated state
+      updateUIForAuthState(false);
+      
+      // Redirect to home page
+      window.location.href = 'index.html';
+    } else {
+      console.error('Sign out failed:', result.error);
+    }
+  } catch (error) {
+    console.error('Sign out error:', error);
+  }
+}
 
 /**
  * Initialize the dashboard
@@ -15,6 +182,9 @@ async function initializeDashboard() {
     
     // Show loading overlay
     showLoading();
+    
+    // Initialize authentication state first
+    await initializeAuthState();
     
     // Add test data if needed (for demonstration)
     addTestDashboardData();
@@ -236,6 +406,13 @@ async function refreshDashboard() {
   console.log('Refreshing dashboard...');
   await initializeDashboard();
 }
+
+// Make functions available globally
+window.showAuthModal = async (tab = 'signin') => {
+  await authUI.showModal(tab);
+};
+
+window.handleSignOut = handleSignOut;
 
 // Initialize dashboard when page loads
 document.addEventListener('DOMContentLoaded', initializeDashboard);

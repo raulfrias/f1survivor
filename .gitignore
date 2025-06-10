@@ -5,5 +5,5 @@ amplify_outputs*
 amplifyconfiguration*
 
 # docs folder - keep only ROADMAP.md in version control
-docs/
-!docs/ROADMAP.md
+docs/implementation-plans/
+

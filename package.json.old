@@ -1,0 +1,26 @@
+{
+  "name": "f1survivor",
+  "version": "1.0.0",
+  "description": "F1 Survivor - A Formula 1 survival game",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "sandbox": "npx ampx sandbox --profile developer",
+    "dev:full": "concurrently \"npm run dev\" \"npm run sandbox\""
+  },
+  "devDependencies": {
+    "@aws-amplify/backend": "^1.16.1",
+    "@aws-amplify/backend-cli": "^1.7.2",
+    "aws-cdk-lib": "^2.189.1",
+    "concurrently": "^7.6.0",
+    "constructs": "^10.4.2",
+    "esbuild": "^0.25.5",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  },
+  "dependencies": {
+    "aws-amplify": "^6.15.0"
+  }
+}

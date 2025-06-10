@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F1 Survivor - Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="./favicon.ico">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="elimination-zone.css">
+    <link rel="stylesheet" href="league-modal.css">
+    <link rel="stylesheet" href="league-selector.css">
+    <link rel="stylesheet" href="league-indicator.css">
+    <link rel="stylesheet" href="auth-modal.css">
+</head>
+<body>
+    <nav>
+        <div class="logo">
+            <img src="assets/images/F1-Logo.png" alt="F1 Logo" class="f1-logo-img">
+            SURVIVOR
+        </div>
+        <div class="nav-right">
+            <a href="index.html" class="nav-link">Pick</a>
+            <a href="dashboard.html" class="nav-link active">Dashboard</a>
+            <a href="#" class="sign-in" onclick="showAuthModal('signin')">Sign In</a>
+        </div>
+    </nav>
+    
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Top Row: Player Status and Season Progress -->
+            <div class="dashboard-top-row">
+                <div class="player-status-card">
+                    <h2>Player Status</h2>
+                    <div class="status-info">
+                        <div class="player-header">
+                            <div class="player-name">Player 1</div>
+                            <div class="survival-status" id="survival-status">
+                                <span class="status-indicator alive"></span>
+                                <span class="status-text">ALIVE</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="season-progress-card">
+                    <h2>Season & Next Race</h2>
+                    <div class="progress-info">
+                        <div class="progress-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Races Completed</span>
+                                <span class="stat-value"><span id="races-completed">0</span>/<span id="total-races">24</span></span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Remaining Drivers</span>
+                                <span class="stat-value" id="remaining-drivers">20</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Next Race</span>
+                                <span class="stat-value next-race-name" id="next-race-name">Australian GP</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Elimination Zone Section -->
+            <div id="elimination-zone-container">
+                <!-- Elimination Zone will be dynamically populated -->
+            </div>
+            
+            <!-- Pick History Section -->
+            <div class="pick-history-section">
+                <h2>Pick History</h2>
+                <div class="pick-history-container">
+                    <div class="pick-history-header">
+                        <div class="header-cell">Race</div>
+                        <div class="header-cell">Driver</div>
+                        <div class="header-cell">Position</div>
+                        <div class="header-cell">Status</div>
+                    </div>
+                    <div class="pick-history-body" id="pick-history-body">
+                        <!-- Pick history rows will be dynamically populated -->
+                        <div class="no-picks-message" id="no-picks-message">
+                            No picks made yet. <a href="index.html">Make your first pick!</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Loading overlay -->
+            <div id="dashboard-loading" class="dashboard-loading">
+                <div class="loading-spinner"></div>
+                <p>Loading dashboard...</p>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="race-calendar-2025.js"></script>
+
+    <!-- Authentication Scripts -->
+    <script type="module" src="./auth-manager.js"></script>
+    <script type="module" src="./auth-ui.js"></script>
+    <script type="module" src="storage-utils.js"></script>
+    <script type="module" src="dashboard-utils.js"></script>
+    <script type="module" src="race-results-api.js"></script>
+    <script type="module" src="league-dashboard.js"></script>
+    <script type="module" src="dashboard.js"></script>
+</body>
+</html> 

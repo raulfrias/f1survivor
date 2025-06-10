@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test AutoPickManager</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Include styles for notifications -->
+    <script type="module">
+        // Managers
+        import { QualifyingResultsManager } from './qualifying-results-manager.js';
+        import { AutoPickManager } from './auto-pick-manager.js';
+
+        // Make them globally accessible for inspection if needed
+        window.QualifyingResultsManager = QualifyingResultsManager;
+        window.AutoPickManager = AutoPickManager;
+
+        async function runAutoPickTests() {
+            console.log("Starting AutoPickManager tests...");
+
+            // --- Test Setup ---
+            localStorage.removeItem('qualifyingResults');
+            localStorage.removeItem('qualifyingResultsTimestamp');
+            localStorage.removeItem('nextRaceData');
+            localStorage.removeItem('f1survivor_user_picks');
+            document.querySelectorAll('.auto-pick-notification').forEach(el => el.remove());
+            console.log("LocalStorage and notifications cleared for testing.");
+
+            // Set mock nextRaceData for testing
+            const mockNextRaceData = {
+                raceId: "bahrain-2025", // Updated to 2025
+                raceName: "Bahrain Grand Prix 2025",
+                qualifyingDate: "2025-03-01", // Updated to 2025
+                pickDeadline: "2025-03-02T12:00:00Z", // Updated to 2025
+                raceCircuit: "Bahrain International Circuit"
+            };
+            localStorage.setItem('nextRaceData', JSON.stringify(mockNextRaceData));
+            console.log("Mock nextRaceData set:", mockNextRaceData);
+
+            // Mock some driver cards for UI update tests
+            const driverGrid = document.getElementById('driver-grid-mock');
+            // Assume driver IDs 3 (Ricciardo P15), 24 (Zhou P16), 1 (Verstappen) might be used
+            [3, 24, 1, 44, 16].forEach(id => {
+                const card = document.createElement('div');
+                card.className = 'driver-card';
+                card.dataset.driverId = id;
+                card.textContent = `Driver ${id}`;
+                driverGrid.appendChild(card);
+            });
+            document.getElementById('make-pick-btn').textContent = "Make Pick";
+            document.getElementById('make-pick-btn').disabled = false;
+            document.querySelector('.pick-status').textContent = "-";
+
+
+            const apm = new AutoPickManager();
+            apm.debug = true; // Enable debug logging for AutoPickManager
+            apm.qualifyingManager.debug = true; // Also for QualifyingResultsManager
+            window.apm = apm; // Make instance accessible in console
+            await apm.initialize(); // This will also initialize QualifyingResultsManager
+            console.log("AutoPickManager initialized.");
+
+            // --- Test 1: Auto-pick when no prior pick exists ---
+            console.log("\n--- Test 1: Auto-pick - no prior pick ---");
+            localStorage.removeItem('f1survivor_user_picks'); // Ensure no picks
+            console.log("Dispatching triggerAutoPick event (Test 1)");
+            window.dispatchEvent(new CustomEvent('triggerAutoPick', { detail: { raceId: mockNextRaceData.raceId } }));
+            
+            // Need a slight delay for async operations and DOM updates
+            await new Promise(resolve => setTimeout(resolve, 500)); 
+
+            let userPicks1 = JSON.parse(localStorage.getItem('f1survivor_user_picks') || '{"picks":[]}').picks;
+            let autoPickMade1 = userPicks1.find(p => p.raceId === mockNextRaceData.raceId && p.isAutoPick);
+            if (autoPickMade1 && autoPickMade1.driverId === 27) { // Expects P15 (Hulkenberg, ID 27)
+                console.log("Test 1 PASSED: Auto-pick correctly made and saved for P15.", autoPickMade1);
+            } else {
+                console.error("Test 1 FAILED: Auto-pick not saved correctly or wrong driver.", { autoPickMade1, userPicks1 });
+            }
+            if (document.querySelector('.auto-pick-notification')) {
+                console.log("Test 1 PASSED: Notification was shown (element found).");
+            } else {
+                console.error("Test 1 FAILED: Notification element not found.");
+            }
+            document.querySelectorAll('.auto-pick-notification').forEach(el => el.remove()); // Clean up
+
+            // --- Test 2: Auto-pick when a pick already exists (should not overwrite) ---
+            console.log("\n--- Test 2: Auto-pick - prior pick exists ---");
+            const manualPick = { driverId: 1, raceId: mockNextRaceData.raceId, driverName: "Manual Pick", isAutoPick: false };
+            localStorage.setItem('f1survivor_user_picks', JSON.stringify({
+                userId: 'local-user',
+                currentSeason: '2025',
+                picks: [manualPick]
+            }));
+            console.log("Dispatching triggerAutoPick event (Test 2)");
+            window.dispatchEvent(new CustomEvent('triggerAutoPick', { detail: { raceId: mockNextRaceData.raceId } }));
+            
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            let userPicks2 = JSON.parse(localStorage.getItem('f1survivor_user_picks') || '{"picks":[]}').picks;
+            if (userPicks2.length === 1 && userPicks2[0].driverId === 1 && !userPicks2[0].isAutoPick) {
+                console.log("Test 2 PASSED: Existing manual pick was not overwritten.");
+            } else {
+                console.error("Test 2 FAILED: Manual pick was overwritten or state is incorrect.", userPicks2);
+            }
+            if (!document.querySelector('.auto-pick-notification')) {
+                console.log("Test 2 PASSED: Notification was NOT shown (as expected).");
+            } else {
+                console.error("Test 2 FAILED: Notification element was shown but should not have been.");
+                document.querySelectorAll('.auto-pick-notification').forEach(el => el.remove()); // Clean up
+            }
+
+            // --- Test 3: Auto-pick when P15 is taken by another user (simulated by adding to userPicks) ---
+            console.log("\n--- Test 3: Auto-pick - P15 taken ---");
+            localStorage.setItem('f1survivor_user_picks', JSON.stringify({
+                userId: 'local-user',
+                currentSeason: '2025',
+                picks: [{ driverId: 3, raceId: 'some-other-race' }]
+            }));
+            console.log("Dispatching triggerAutoPick event (Test 3)");
+            window.dispatchEvent(new CustomEvent('triggerAutoPick', { detail: { raceId: mockNextRaceData.raceId } }));
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            let userPicks3 = JSON.parse(localStorage.getItem('f1survivor_user_picks') || '{"picks":[]}').picks;
+            // There will be two picks now: the one for 'some-other-race' and the new auto-pick for 'bahrain-gp-2024'
+            let autoPickMade3 = userPicks3.find(p => p.raceId === mockNextRaceData.raceId && p.isAutoPick);
+            if (autoPickMade3 && autoPickMade3.driverId === 5) { // Expects P16 (Bortoleto, ID 5)
+                console.log("Test 3 PASSED: Auto-pick correctly made for P16 as P15 was taken.", autoPickMade3);
+            } else {
+                console.error("Test 3 FAILED: Auto-pick not P16 or not saved correctly.", { autoPickMade3, userPicks3 });
+            }
+            if (document.querySelector('.auto-pick-notification')) {
+                console.log("Test 3 PASSED: Notification for P16 was shown.");
+            } else {
+                console.error("Test 3 FAILED: Notification element for P16 not found.");
+            }
+            document.querySelectorAll('.auto-pick-notification').forEach(el => el.remove()); // Clean up
+
+            console.log("\n--- AutoPickManager tests complete ---");
+            console.log("Inspect 'apm' object and localStorage in browser dev tools.");
+        }
+
+        document.addEventListener('DOMContentLoaded', runAutoPickTests);
+    </script>
+</head>
+<body>
+    <h1>Testing AutoPickManager</h1>
+    <p>Open the browser console to see test logs and results.</p>
+    <p>Ensure your Python backend for <code>/api/qualifying</code> is running with the test hack for Bahrain 2024.</p>
+    
+    <!-- Mock UI elements AutoPickManager might interact with -->
+    <div id="driver-grid-mock"></div>
+    <button id="make-pick-btn">Make Pick</button>
+    <div class="pick-status">-</div>
+    <!-- Notifications will be appended to body by the script -->
+</body>
+</html> 

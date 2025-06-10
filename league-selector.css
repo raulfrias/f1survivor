@@ -1,0 +1,131 @@
+/* League Selector Styles */
+.league-selector-wrapper {
+  margin-bottom: 1.5rem;
+}
+
+.league-selector {
+  background: var(--card-bg-color);
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid rgba(225, 6, 0, 0.2);
+  flex-wrap: wrap;
+}
+
+.league-selector label {
+  font-weight: 600;
+  color: var(--text-color);
+  white-space: nowrap;
+}
+
+.league-selector select {
+  background: var(--background);
+  color: var(--text-color);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  min-width: 200px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.league-selector select:hover {
+  border-color: var(--primary-red);
+}
+
+.league-selector select:focus {
+  outline: none;
+  border-color: var(--primary-red);
+  box-shadow: 0 0 0 2px rgba(225, 6, 0, 0.2);
+}
+
+.manage-leagues-btn {
+  background: var(--primary-red);
+  color: var(--text-color);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin-left: auto;
+}
+
+.manage-leagues-btn:hover {
+  background: #ff1f00;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(225, 6, 0, 0.3);
+}
+
+.manage-leagues-btn .icon {
+  font-size: 1.1rem;
+}
+
+/* League Name in Dashboard Title */
+.league-name {
+  color: var(--primary-red);
+  font-weight: normal;
+}
+
+/* League-specific styles for player cards */
+.player-card.current-user {
+  border: 2px solid var(--primary-red);
+  background: rgba(225, 6, 0, 0.1);
+}
+
+.player-card .owner-badge {
+  display: inline-block;
+  background: var(--primary-red);
+  color: var(--text-color);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.player-card .last-pick {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-top: 0.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .league-selector {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .league-selector label {
+    margin-bottom: -0.5rem;
+  }
+
+  .league-selector select {
+    width: 100%;
+  }
+
+  .manage-leagues-btn {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .league-selector {
+    background: rgba(20, 20, 20, 0.9);
+  }
+
+  .league-selector select {
+    background: rgba(10, 10, 10, 0.9);
+  }
+} 

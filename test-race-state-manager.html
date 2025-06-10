@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test RaceStateManager</title>
+    <script type="module">
+        import { RaceStateManager } from './race-state-manager.js';
+
+        class RaceTimeTester {
+            constructor() {
+                this.originalDate = Date;
+            }
+            
+            setRaceTime(hoursFromStart) {
+                const raceData = JSON.parse(localStorage.getItem('nextRaceData'));
+                const raceStart = new Date(raceData.raceDate);
+                const testTime = new Date(raceStart.getTime() + hoursFromStart * 60 * 60 * 1000);
+                
+                // Override Date constructor
+                window.Date = class extends Date {
+                    constructor(...args) {
+                        if (args.length === 0) {
+                            super(testTime);
+                        } else {
+                            super(...args);
+                        }
+                    }
+                };
+            }
+            
+            reset() {
+                window.Date = this.originalDate;
+            }
+        }
+
+        async function runTests() {
+            console.log("Starting RaceStateManager tests...");
+
+            // Setup
+            const rsm = new RaceStateManager();
+            const tester = new RaceTimeTester();
+
+            // Mock race data
+            const mockRaceData = {
+                raceId: "monaco-2025",
+                raceName: "Monaco Grand Prix 2025",
+                raceDate: "2025-05-25T13:00:00Z",
+                raceCircuit: "Monaco"
+            };
+            localStorage.setItem('nextRaceData', JSON.stringify(mockRaceData));
+
+            // Test 1: Pre-race state
+            console.log("\n--- Test 1: Pre-race state ---");
+            tester.setRaceTime(-1); // 1 hour before race
+            const state1 = rsm.getCurrentState(mockRaceData);
+            console.assert(state1 === rsm.states.COUNTDOWN, 
+                "Test 1 Failed: Expected COUNTDOWN state, got " + state1);
+            console.log("Test 1 Passed: Pre-race state is correct");
+
+            // Test 2: Race in progress
+            console.log("\n--- Test 2: Race in progress ---");
+            tester.setRaceTime(1); // 1 hour into race
+            const state2 = rsm.getCurrentState(mockRaceData);
+            console.assert(state2 === rsm.states.RACE_LIVE,
+                "Test 2 Failed: Expected RACE_LIVE state, got " + state2);
+            console.log("Test 2 Passed: Race in progress state is correct");
+
+            // Test 3: Post-race state
+            console.log("\n--- Test 3: Post-race state ---");
+            tester.setRaceTime(3); // 3 hours after race start
+            const state3 = rsm.getCurrentState(mockRaceData);
+            console.assert(state3 === rsm.states.POST_RACE,
+                "Test 3 Failed: Expected POST_RACE state, got " + state3);
+            console.log("Test 3 Passed: Post-race state is correct");
+
+            // Test 4: Next race state
+            console.log("\n--- Test 4: Next race state ---");
+            tester.setRaceTime(11); // 11 hours after race start
+            const state4 = rsm.getCurrentState(mockRaceData);
+            console.assert(state4 === rsm.states.NEXT_RACE,
+                "Test 4 Failed: Expected NEXT_RACE state, got " + state4);
+            console.log("Test 4 Passed: Next race state is correct");
+
+            // Test 5: State display messages
+            console.log("\n--- Test 5: State display messages ---");
+            const displays = {
+                [rsm.states.RACE_LIVE]: rsm.getStateDisplay(rsm.states.RACE_LIVE),
+                [rsm.states.POST_RACE]: rsm.getStateDisplay(rsm.states.POST_RACE),
+                [rsm.states.NEXT_RACE]: rsm.getStateDisplay(rsm.states.NEXT_RACE)
+            };
+            console.assert(displays[rsm.states.RACE_LIVE] === 'RACE IN PROGRESS',
+                "Test 5.1 Failed: Incorrect RACE_LIVE display");
+            console.assert(displays[rsm.states.POST_RACE] === 'RACE FINISHED - Results Pending',
+                "Test 5.2 Failed: Incorrect POST_RACE display");
+            console.assert(displays[rsm.states.NEXT_RACE] === 'Loading Next Race...',
+                "Test 5.3 Failed: Incorrect NEXT_RACE display");
+            console.log("Test 5 Passed: All state displays are correct");
+
+            // Cleanup
+            tester.reset();
+            localStorage.removeItem('nextRaceData');
+            console.log("\nAll tests completed!");
+        }
+
+        document.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</head>
+<body>
+    <h1>Testing RaceStateManager</h1>
+    <p>Open the browser console to see test results.</p>
+</body>
+</html> 

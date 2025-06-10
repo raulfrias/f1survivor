@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F1 Survivor - Survive the Grid</title>
+    <link rel="icon" type="image/x-icon" href="./favicon.ico">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="league-modal.css">
+    <link rel="stylesheet" href="league-selector.css">
+    <link rel="stylesheet" href="league-indicator.css">
+    <link rel="stylesheet" href="auth-modal.css">
+</head>
+<body>
+    <nav>
+        <div class="logo">
+            <img src="dist/assets/images/F1-Logo.png" alt="F1 Logo" class="f1-logo-img">
+            SURVIVOR
+        </div>
+        <div class="nav-right">
+            <a href="#" class="nav-link active" id="nav-pick-btn">Pick</a>
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="#" class="sign-in" onclick="showAuthModal('signin')">Sign In</a>
+        </div>
+    </nav>
+    
+    <main class="hero">
+        <div class="grid-background"></div>
+        <div class="content">
+            <div class="starting-lights">
+                <div class="lights-container">
+                    <div class="lights-row row1">
+                        <div class="light"></div>
+                        <div class="light"></div>
+                        <div class="light"></div>
+                        <div class="light"></div>
+                        <div class="light"></div>
+                    </div>
+                    <div class="lights-row row2">
+                        <div class="light"></div>
+                        <div class="light"></div>
+                        <div class="light"></div>
+                        <div class="light"></div>
+                        <div class="light"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="title-container">
+                <h1 class="title">
+                    <span class="animate-text">SURVIVE THE GRID</span>
+                </h1>
+            </div>
+
+            <div class="description">
+                <p class="animate-text">Pick one driver each race.</p>
+                <p class="animate-text">Can't pick the same driver twice.</p>
+                <p class="animate-text">Finish in top 10 or you're out.</p>
+                <p class="animate-text">Last player standing wins.</p>
+            </div>
+            <div class="next-race">
+                <!-- Main Action Area (for auth prompts or Make Your Pick) -->
+                <div id="main-action-area" class="main-action-area">
+                    <button class="cta-button" id="make-pick-btn">MAKE YOUR PICK</button>
+                </div>
+                
+                <!-- Race Countdown Timer -->
+                <div id="race-countdown-container" class="race-countdown-container">
+                    <!-- Countdown content will be dynamically populated -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="cursor-follower"></div>
+    </main>
+
+    <section id="driver-selection-screen">
+        <div class="driver-selection-content">
+            <button id="close-selection-btn" class="close-btn">&times;</button>
+            <h2>Pick Your Driver for <span id="current-gp-name">[Upcoming GP]</span></h2>
+            <p class="deadline">Selection deadline: <span id="selection-deadline">[Date and Time]</span></p>
+            
+            <!-- Current pick display (shows only when changing) -->
+            <div id="current-pick-display" class="current-pick-display" style="display: none;">
+                <p>Currently selected: <strong id="current-pick-name">Driver Name</strong></p>
+                <p class="change-note">Select a new driver to change your pick</p>
+            </div>
+            
+            <!-- Add error message container -->
+            <div id="error-message" class="error-message">
+                An error occurred while loading drivers. Please try again.
+            </div>
+            
+            <!-- Add loading overlay -->
+            <div id="loading-overlay" class="loading-overlay">
+                <div class="loading-spinner"></div>
+            </div>
+            
+            <div id="driver-grid" class="driver-grid">
+                <!-- Driver cards will be dynamically inserted here -->
+            </div>
+            
+            <button id="confirm-pick-btn" class="cta-button">Confirm Pick</button>
+        </div>
+    </section>
+
+    <!-- Driver Pick Confirmation Modal -->
+    <div id="confirmation-modal" class="confirmation-modal">
+        <div class="confirmation-modal-content">
+            <button id="close-confirmation-modal-btn" class="close-btn">&times;</button>
+            <h3>Confirm Your Pick</h3>
+            
+            <div class="driver-confirmation-card">
+                <div class="driver-image-container">
+                    <img id="confirmation-driver-image" src="" alt="Selected Driver">
+                </div>
+                
+                <div class="driver-details">
+                    <h4 id="confirmation-driver-name"></h4>
+                    <p>Team: <span id="confirmation-driver-team"></span></p>
+                    <p>Number: <span id="confirmation-driver-number"></span></p>
+                    
+                    <div class="confirmation-warning">
+                        <p><strong>Remember:</strong> Once confirmed, you cannot pick this driver again this season.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="confirmation-buttons">
+                <button id="cancel-pick-btn" class="cancel-btn">Cancel</button>
+                <button id="final-confirm-btn" class="cta-button">Confirm Pick</button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script type="module" src="race-calendar-2025.js"></script>
+    <script type="module" src="race-countdown.js"></script>
+    <!-- Authentication Scripts -->
+    <script type="module" src="./auth-manager.js"></script>
+    <script type="module" src="./auth-ui.js"></script>
+    <!-- Test Scripts for Development -->
+    <script type="module" src="./test-monaco-scenarios.js"></script>
+    <script type="module" src="./test-post-race.js"></script>
+
+    <!-- Main Application Script -->
+    <script type="module" src="./app.js"></script>
+    <!-- Test Controls (only visible in development) -->
+    <script>
+        // Only load test scenarios in development environment
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = 'test-monaco-scenarios.js';
+            document.body.appendChild(script);
+        }
+    </script>
+</body>
+</html> 

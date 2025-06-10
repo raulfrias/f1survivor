@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test League System</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="league-modal.css">
+    <link rel="stylesheet" href="league-selector.css">
+    <link rel="stylesheet" href="league-indicator.css">
+    <style>
+        body {
+            padding: 2rem;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--card-bg-color);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--primary-red);
+        }
+        h1 {
+            color: var(--primary-red);
+            margin-bottom: 2rem;
+        }
+        .test-section {
+            margin-bottom: 2rem;
+        }
+        .test-section h2 {
+            color: var(--text-color);
+            margin-bottom: 1rem;
+        }
+        .test-button {
+            background: var(--primary-red);
+            color: var(--text-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .test-button:hover {
+            background: #ff1f00;
+            transform: translateY(-2px);
+        }
+        .test-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>League System Test Page</h1>
+        
+        <div class="test-section">
+            <h2>League Modal Tests</h2>
+            <button class="test-button" id="test-create-league">Create League Modal</button>
+            <button class="test-button" id="test-join-league">Join League Modal</button>
+            <button class="test-button" id="test-manage-leagues">Manage Leagues Modal</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Quick Actions</h2>
+            <button class="test-button" id="create-test-league">Create Test League</button>
+            <button class="test-button" id="set-username">Set Username</button>
+            <button class="test-button" id="switch-user">Switch User (Simulate)</button>
+            <button class="test-button" id="clear-all-data">Clear All League Data</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Current State</h2>
+            <div class="test-info" id="current-state">
+                Loading current state...
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test Scenarios</h2>
+            <button class="test-button" id="simulate-multi-league">Simulate Multiple Leagues</button>
+            <button class="test-button" id="simulate-league-picks">Simulate League Picks</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Testing Join Functionality</h2>
+            <div style="background: rgba(225, 6, 0, 0.1); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                <p style="margin: 0 0 1rem 0;"><strong>To test joining leagues created by other users:</strong></p>
+                <ol style="margin: 0; padding-left: 1.5rem;">
+                    <li>Create a league with your current user</li>
+                    <li>Note the invite code</li>
+                    <li>Click "Switch User" and choose option 2 to create a new user</li>
+                    <li>Click "Join League Modal" and enter the invite code</li>
+                    <li>You'll now be a member (not owner) of that league</li>
+                </ol>
+                <p style="margin: 1rem 0 0 0;"><strong>Alternative:</strong> Use different browsers or incognito windows for true multi-user testing.</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { leagueModalManager } from './league-modal-manager.js';
+        import { leagueManager } from './league-manager.js';
+        import { leagueStorageManager } from './league-storage-manager.js';
+        
+        // Update current state display
+        function updateStateDisplay() {
+            const stateDiv = document.getElementById('current-state');
+            const userId = leagueStorageManager.getCurrentUserId();
+            const username = leagueStorageManager.getCurrentUsername();
+            const activeLeagueId = leagueStorageManager.getActiveLeagueId();
+            const userLeagues = leagueManager.getUserLeagues();
+            
+            let stateText = `User ID: ${userId}\n`;
+            stateText += `Username: ${username}\n`;
+            stateText += `Active League: ${activeLeagueId || 'None (Solo Mode)'}\n`;
+            stateText += `\nLeagues (${userLeagues.length}):\n`;
+            
+            userLeagues.forEach(league => {
+                stateText += `\n- ${league.leagueName} (${league.leagueId})\n`;
+                stateText += `  Invite Code: ${league.inviteCode}\n`;
+                stateText += `  Members: ${league.members.length}/${league.settings.maxMembers}\n`;
+                stateText += `  Role: ${league.isOwner ? 'Owner' : 'Member'}\n`;
+            });
+            
+            stateDiv.textContent = stateText;
+        }
+        
+        // Test buttons
+        document.getElementById('test-create-league').addEventListener('click', () => {
+            leagueModalManager.showCreateLeagueModal();
+        });
+        
+        document.getElementById('test-join-league').addEventListener('click', () => {
+            leagueModalManager.showJoinLeagueModal();
+        });
+        
+        document.getElementById('test-manage-leagues').addEventListener('click', () => {
+            leagueModalManager.showManageLeaguesModal();
+        });
+        
+        // Quick actions
+        document.getElementById('create-test-league').addEventListener('click', async () => {
+            try {
+                const league = await leagueManager.createLeague('Test League ' + Date.now());
+                alert(`League created!\nName: ${league.leagueName}\nInvite Code: ${league.inviteCode}`);
+                updateStateDisplay();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+        
+        document.getElementById('set-username').addEventListener('click', () => {
+            const newUsername = prompt('Enter new username:', leagueStorageManager.getCurrentUsername());
+            if (newUsername) {
+                leagueStorageManager.setUsername(newUsername);
+                updateStateDisplay();
+            }
+        });
+        
+        document.getElementById('switch-user').addEventListener('click', () => {
+            const options = [
+                'Keep current user',
+                'Create new user (simulate different person)',
+                'Switch to specific user ID'
+            ];
+            
+            const choice = prompt(`Choose an option:\n1. ${options[0]}\n2. ${options[1]}\n3. ${options[2]}\n\nEnter 1, 2, or 3:`);
+            
+            if (choice === '2') {
+                // Simulate a completely new user
+                const newUserId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const newUsername = prompt('Enter username for new user:', `Player${Math.floor(Math.random() * 10000)}`);
+                
+                // Save current user's data
+                const currentUserId = localStorage.getItem('f1survivor_user_id');
+                const currentUserLeagues = localStorage.getItem('f1survivor_user_leagues');
+                
+                // Store in a backup (in real app, this would be server-side)
+                if (!window.userSimulations) {
+                    window.userSimulations = {};
+                }
+                window.userSimulations[currentUserId] = {
+                    leagues: currentUserLeagues,
+                    username: localStorage.getItem('f1survivor_user_name')
+                };
+                
+                // Switch to new user
+                localStorage.setItem('f1survivor_user_id', newUserId);
+                localStorage.setItem('f1survivor_user_name', newUsername || `Player${Math.floor(Math.random() * 10000)}`);
+                localStorage.removeItem('f1survivor_user_leagues');
+                localStorage.removeItem('f1survivor_active_league');
+                
+                alert(`Switched to new user:\nID: ${newUserId}\nUsername: ${newUsername}\n\nYou can now join leagues created by other users!`);
+                window.location.reload();
+                
+            } else if (choice === '3') {
+                // Switch to a specific user ID
+                const userId = prompt('Enter user ID to switch to:');
+                if (userId && window.userSimulations && window.userSimulations[userId]) {
+                    localStorage.setItem('f1survivor_user_id', userId);
+                    localStorage.setItem('f1survivor_user_name', window.userSimulations[userId].username);
+                    localStorage.setItem('f1survivor_user_leagues', window.userSimulations[userId].leagues);
+                    alert(`Switched back to user: ${userId}`);
+                    window.location.reload();
+                } else if (userId) {
+                    alert('User ID not found in simulations');
+                }
+            }
+            
+            updateStateDisplay();
+        });
+        
+        document.getElementById('clear-all-data').addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear all league data?')) {
+                localStorage.removeItem('f1survivor_user_leagues');
+                localStorage.removeItem('f1survivor_league_data');
+                localStorage.removeItem('f1survivor_active_league');
+                alert('All league data cleared!');
+                updateStateDisplay();
+            }
+        });
+        
+        // Test scenarios
+        document.getElementById('simulate-multi-league').addEventListener('click', async () => {
+            try {
+                // Create multiple test leagues
+                const league1 = await leagueManager.createLeague('Speed Demons');
+                const league2 = await leagueManager.createLeague('Racing Legends');
+                
+                alert(`Created 2 test leagues:\n1. ${league1.leagueName} (${league1.inviteCode})\n2. ${league2.leagueName} (${league2.inviteCode})`);
+                updateStateDisplay();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+        
+        document.getElementById('simulate-league-picks').addEventListener('click', async () => {
+            const activeLeague = leagueManager.getActiveLeague();
+            if (!activeLeague) {
+                alert('Please select a league first!');
+                return;
+            }
+            
+            // Simulate adding picks to active league
+            const testPicks = [
+                { driverId: 1, driverName: 'Max Verstappen', teamName: 'Red Bull Racing' },
+                { driverId: 7, driverName: 'Lando Norris', teamName: 'McLaren' }
+            ];
+            
+            // Set mock race data
+            localStorage.setItem('nextRaceData', JSON.stringify({
+                raceId: 'test-race-' + Date.now(),
+                raceName: 'Test Grand Prix'
+            }));
+            
+            for (const pick of testPicks) {
+                try {
+                    await leagueStorageManager.saveLeaguePick(activeLeague.leagueId, pick.driverId, pick);
+                } catch (error) {
+                    console.error('Error saving pick:', error);
+                }
+            }
+            
+            alert(`Added ${testPicks.length} test picks to ${activeLeague.leagueName}`);
+            updateStateDisplay();
+        });
+        
+        // Update state on modal close
+        window.addEventListener('click', (e) => {
+            if (!document.querySelector('.league-modal')) {
+                updateStateDisplay();
+            }
+        });
+        
+        // Initial state display
+        updateStateDisplay();
+    </script>
+</body>
+</html> 

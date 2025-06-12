@@ -1,5 +1,4 @@
-// Import storage utilities
-import { saveUserPicks, loadUserPicks, isDriverAlreadyPicked, clearPickData, getCurrentSeason, getCurrentRacePick, addTestPreviousRacePicks } from './storage-utils.js';
+// AWS Backend Integration - NO LOCALSTORAGE
 import { savePickWithContext, loadPicksWithContext, isDriverAlreadyPickedWithContext, getCurrentRacePickWithContext, initializeLeagueIntegration } from './league-integration.js';
 import { leagueDashboard } from './league-dashboard.js';
 import RaceCountdown from './race-countdown.js';
@@ -409,32 +408,30 @@ function initializeConfirmationModal() {
                 throw new Error('Race data not initialized. Please refresh the page.');
             }
             
-            // Add to user picks
-            if (localStorageAvailable) {
-                const driverInfo = {
-                    driverName: selectedDriver.name,
-                    teamName: selectedDriver.team,
-                    isAutoPick: false
-                };
-                
-                const savedPick = await savePickWithContext(selectedDriverId, driverInfo);
-                if (!savedPick) {
-                    throw new Error('Failed to save pick. Please try again.');
-                }
-                
-                console.log('Successfully saved pick:', savedPick);
+            // Save pick to AWS backend (authentication required)
+            const driverInfo = {
+                driverName: selectedDriver.name,
+                teamName: selectedDriver.team,
+                isAutoPick: false
+            };
+            
+            const savedPick = await savePickWithContext(selectedDriverId, driverInfo);
+            if (!savedPick) {
+                throw new Error('Failed to save pick. Please try again.');
             }
+            
+            console.log('Successfully saved pick to AWS:', savedPick);
             
             // Update UI with pick change capability check
             try {
                 const deadlineManager = new PickDeadlineManager();
                 const canChange = !deadlineManager.isDeadlinePassed();
-                const currentPick = getCurrentRacePickWithContext();
+                const currentPick = await getCurrentRacePickWithContext();
                 PickChangeUtils.updateMakePickButtonText(currentPick, canChange);
             } catch (error) {
                 console.warn('Deadline manager failed during pick confirmation, using fallback:', error);
                 // Fallback: get current pick and assume can change
-                const currentPick = getCurrentRacePickWithContext();
+                const currentPick = await getCurrentRacePickWithContext();
                 if (currentPick) {
                     PickChangeUtils.updateMakePickButtonText(currentPick, true);
                 }
@@ -489,28 +486,28 @@ async function renderDriverGrid() {
             driver.isAlreadyPicked = false;
         });
         
-        // Load user picks and update driver states
-        if (localStorageAvailable) {
-            try {
-                const picks = loadPicksWithContext();
-                console.log('Loaded picks for grid:', picks);
-                
-                if (Array.isArray(picks)) {
-                    // Update each driver's picked status
-                    mockDrivers.forEach(driver => {
-                        const isPicked = picks.some(pick => {
-                            const pickDriverId = typeof pick === 'object' ? pick.driverId : pick;
-                            return pickDriverId === driver.id;
-                        });
-                        driver.isAlreadyPicked = isPicked;
-                        console.log(`Driver ${driver.name} (${driver.id}) picked status:`, isPicked);
+        // Load user picks from AWS backend and update driver states
+        try {
+            const picks = await loadPicksWithContext();
+            console.log('Loaded picks for grid from AWS:', picks);
+            
+            if (Array.isArray(picks)) {
+                // Update each driver's picked status
+                mockDrivers.forEach(driver => {
+                    const isPicked = picks.some(pick => {
+                        const pickDriverId = typeof pick === 'object' ? pick.driverId : pick;
+                        return pickDriverId === driver.id;
                     });
-                } else {
-                    console.error('Picks is not an array:', picks);
-                }
-            } catch (error) {
-                console.error('Error loading picks:', error);
+                    driver.isAlreadyPicked = isPicked;
+                    console.log(`Driver ${driver.name} (${driver.id}) picked status:`, isPicked);
+                });
+            } else {
+                console.error('Picks is not an array:', picks);
             }
+        } catch (error) {
+            console.error('Error loading picks from AWS:', error);
+            // For unauthenticated users, this is expected
+            console.log('No picks loaded - user may be unauthenticated');
         }
         
         // Debug: Log state before rendering
@@ -576,7 +573,7 @@ async function renderDriverGrid() {
         });
         
         // Highlight current pick in the grid
-        const currentPick = getCurrentRacePickWithContext();
+        const currentPick = await getCurrentRacePickWithContext();
         PickChangeUtils.highlightCurrentPickInGrid(currentPick);
     } catch (error) {
         console.error('Error rendering driver grid:', error);
@@ -587,7 +584,7 @@ async function renderDriverGrid() {
 }
 
 // Initialize driver selection with deadline logic
-const initializeDriverSelection = () => {
+const initializeDriverSelection = async () => {
     console.log('Initializing driver selection...');
     
     // Get UI elements first
@@ -642,9 +639,9 @@ const initializeDriverSelection = () => {
             statusElement.className = `deadline-status deadline-warning${isUrgent ? ' urgent-pulse' : ''}`;
             statusElement.textContent = `Selection closes in: ${timeRemaining.hours}h ${timeRemaining.minutes}m ${timeRemaining.seconds}s`;
             
-            // Add pick change deadline warning
-            const currentPick = getCurrentRacePickWithContext();
-            if (currentPick && timeRemaining.totalMinutes < 60) {
+            // Add pick change deadline warning (async not possible in this context)
+            // Note: Cannot await here due to callback context
+            if (timeRemaining.totalMinutes < 60) {
                 // Only log once when we cross the 60-minute threshold
                 if (timeRemaining.totalMinutes === 59 && timeRemaining.seconds === 59) {
                     console.log('Warning user about pick change deadline approaching');
@@ -674,7 +671,7 @@ const initializeDriverSelection = () => {
                 countdownWarning.textContent = 'Pick deadline approaching!';
             }
         },
-        onDeadlinePassed: () => {
+        onDeadlinePassed: async () => {
             console.log('Deadline passed callback triggered');
             
             // Update the countdown container
@@ -700,7 +697,7 @@ const initializeDriverSelection = () => {
             
             // Check if a pick was made
             const raceData = JSON.parse(localStorage.getItem('nextRaceData'));
-            const userPicks = loadPicksWithContext();
+            const userPicks = await loadPicksWithContext();
             console.log('Checking for existing pick:', { raceData, userPicks });
             
             const existingPick = userPicks.find(pick => pick.raceId === raceData?.raceId);
@@ -752,7 +749,7 @@ const initializeDriverSelection = () => {
     // Load user picks from localStorage if available
     if (localStorageAvailable) {
         try {
-            const savedPicks = loadPicksWithContext();
+            const savedPicks = await loadPicksWithContext();
             if (savedPicks && savedPicks.length > 0) {
                 // Update the mockDrivers array with previously picked drivers
                 savedPicks.forEach(pick => {
@@ -762,20 +759,7 @@ const initializeDriverSelection = () => {
                     }
                 });
                 
-                // Update button text based on current race pick
-                const currentRacePick = getCurrentRacePickWithContext();
-                if (currentRacePick) {
-                    try {
-                        const deadlineManager = new PickDeadlineManager();
-                        deadlineManager.loadRaceData(); // Load race data first
-                        const canChange = !deadlineManager.isDeadlinePassed();
-                        PickChangeUtils.updateMakePickButtonText(currentRacePick, canChange);
-                    } catch (error) {
-                        console.warn('Deadline manager failed, using fallback for button text:', error);
-                        // Fallback: assume we can change pick if we're here during initialization
-                        PickChangeUtils.updateMakePickButtonText(currentRacePick, true);
-                    }
-                }
+                // Button text will be updated after authentication completes
                 
                 console.log('Loaded user picks from localStorage:', savedPicks);
             }
@@ -784,7 +768,7 @@ const initializeDriverSelection = () => {
         }
     }
 
-    // Open modal and render grid
+    // Open modal and render grid - AUTHENTICATION REQUIRED
     makePickBtn.addEventListener('click', async () => {
         console.log('Make pick button clicked');
         
@@ -794,7 +778,7 @@ const initializeDriverSelection = () => {
             return;
         }
         
-        // Check authentication first
+        // REQUIRE authentication - no localStorage fallback
         const isAuthenticated = await authManager.isAuthenticated();
         if (!isAuthenticated) {
             console.log('User not authenticated, showing auth modal');
@@ -805,7 +789,7 @@ const initializeDriverSelection = () => {
         }
         
         // Check if this is a change vs new pick
-        const currentPick = getCurrentRacePickWithContext();
+        const currentPick = await getCurrentRacePickWithContext();
         const isChanging = !!currentPick;
         
         console.log('Current pick:', currentPick);
@@ -818,7 +802,7 @@ const initializeDriverSelection = () => {
         PickChangeUtils.showCurrentPickInModal(currentPick);
         PickChangeUtils.updateConfirmButton(isChanging);
         
-        renderDriverGrid();
+        await renderDriverGrid();
     });
 
     // Close modal
@@ -828,8 +812,8 @@ const initializeDriverSelection = () => {
         hideError();
     });
 
-    // Handle driver selection
-    driverGrid.addEventListener('click', (e) => {
+    // Handle driver selection - AWS BACKEND ONLY
+    driverGrid.addEventListener('click', async (e) => {
         const card = e.target.closest('.driver-card');
         if (!card || card.classList.contains('skeleton')) return;
 
@@ -837,7 +821,7 @@ const initializeDriverSelection = () => {
         const driver = mockDrivers.find(d => d.id === driverId);
         
         // Get current race pick
-        const currentPick = getCurrentRacePickWithContext();
+        const currentPick = await getCurrentRacePickWithContext();
         
         // If this is the current pick for this race, allow selecting it again
         if (currentPick && currentPick.driverId === driverId) {
@@ -847,8 +831,9 @@ const initializeDriverSelection = () => {
             return;
         }
         
-        // Otherwise, check if it was picked in a previous race
-        if (driver.isAlreadyPicked) {
+        // Otherwise, check if it was picked in a previous race (AWS backend check)
+        const isAlreadyPicked = await isDriverAlreadyPickedWithContext(driverId);
+        if (isAlreadyPicked) {
             showError('You have already picked this driver in a previous race!');
             return;
         }
@@ -863,7 +848,7 @@ const initializeDriverSelection = () => {
         hideError();
     });
 
-    // Handle confirm pick
+    // Handle confirm pick - AWS BACKEND ONLY
     confirmPickBtn.addEventListener('click', async () => {
         if (!selectedDriverId) {
             showError('Please select a driver first!');
@@ -876,7 +861,9 @@ const initializeDriverSelection = () => {
             return;
         }
 
-        if (localStorageAvailable && isDriverAlreadyPickedWithContext(selectedDriverId)) {
+        // Check AWS backend for already picked drivers
+        const isAlreadyPicked = await isDriverAlreadyPickedWithContext(selectedDriverId);
+        if (isAlreadyPicked) {
             showError('You have already picked this driver in a previous race!');
             return;
         }
@@ -990,22 +977,7 @@ async function initializeApp() {
         updateGPInfo(raceData);
         
         // Initialize driver selection
-        initializeDriverSelection();
-        
-        // Update button text based on current pick (fix for button not showing current pick on load)
-        const currentPick = getCurrentRacePickWithContext();
-        if (currentPick) {
-            try {
-                const deadlineManager = new PickDeadlineManager();
-                deadlineManager.loadRaceData(); // Load race data first
-                const canChange = !deadlineManager.isDeadlinePassed();
-                PickChangeUtils.updateMakePickButtonText(currentPick, canChange);
-            } catch (error) {
-                console.warn('Deadline manager failed, using fallback for button text:', error);
-                // Fallback: assume we can change pick if we're here during initialization
-                PickChangeUtils.updateMakePickButtonText(currentPick, true);
-            }
-        }
+        await initializeDriverSelection();
         
         // Initialize league system
         initializeLeagueIntegration();
@@ -1072,10 +1044,13 @@ async function updateUIForAuthState(isAuthenticated) {
                 link.style.display = 'block';
             });
             
-                    // Show Make Your Pick button for authenticated users
-        if (makePickBtn) {
-            makePickBtn.style.display = 'block';
-        }
+            // Restore Make Your Pick button for authenticated users
+            if (makePickBtn) {
+                // Check if there's an existing pick and update button accordingly
+                updatePickButtonTextAfterAuth();
+                makePickBtn.onclick = null; // Remove auth handler, let normal event listener work
+                makePickBtn.style.display = 'block';
+            }
         
         // Remove unauthenticated message if it exists
         removeUnauthenticatedMessage();
@@ -1100,6 +1075,9 @@ async function updateUIForAuthState(isAuthenticated) {
             });
             
             if (makePickBtn) {
+                // Check if there's an existing pick and update button accordingly
+                updatePickButtonTextAfterAuth();
+                makePickBtn.onclick = null; // Remove auth handler, let normal event listener work
                 makePickBtn.style.display = 'block';
             }
         }
@@ -1116,15 +1094,54 @@ async function updateUIForAuthState(isAuthenticated) {
             link.style.display = 'none';
         });
         
-        // Hide Make Your Pick button for unauthenticated users
+        // Update Make Your Pick button for unauthenticated users
         if (makePickBtn) {
-            makePickBtn.style.display = 'none';
+            makePickBtn.textContent = 'SIGN IN TO MAKE PICKS';
+            makePickBtn.onclick = () => authUI.showModal('signin');
+            makePickBtn.style.display = 'block'; // Show button but with auth requirement
         }
         
         // Show a sign up call-to-action for unauthenticated users
         showUnauthenticatedMessage();
         
         console.log('UI updated for unauthenticated user');
+    }
+}
+
+// Update pick button text after authentication, checking for existing picks
+async function updatePickButtonTextAfterAuth() {
+    try {
+        const makePickBtn = document.getElementById('make-pick-btn');
+        if (!makePickBtn) return;
+
+        // Get current race pick from AWS
+        const currentPick = await getCurrentRacePickWithContext();
+        
+        if (currentPick) {
+            // User has a pick for this race - show pick with change option
+            try {
+                const deadlineManager = new PickDeadlineManager();
+                deadlineManager.loadRaceData();
+                const canChange = !deadlineManager.isDeadlinePassed();
+                PickChangeUtils.updateMakePickButtonText(currentPick, canChange);
+                console.log('Updated button text for existing pick:', currentPick.driverName);
+            } catch (error) {
+                console.warn('Deadline manager failed, using fallback for button text:', error);
+                // Fallback: assume we can change pick
+                PickChangeUtils.updateMakePickButtonText(currentPick, true);
+            }
+        } else {
+            // No pick for this race - show make pick button
+            makePickBtn.textContent = 'MAKE YOUR PICK';
+            console.log('Updated button text for no existing pick');
+        }
+    } catch (error) {
+        console.error('Error updating pick button text after auth:', error);
+        // Fallback to default text
+        const makePickBtn = document.getElementById('make-pick-btn');
+        if (makePickBtn) {
+            makePickBtn.textContent = 'MAKE YOUR PICK';
+        }
     }
 }
 
@@ -1224,13 +1241,16 @@ function showUnauthenticatedMessage() {
         ctaMessage.innerHTML = `
             <div class="auth-cta-content">
                 <h3>🏁 Ready to Play F1 Survivor?</h3>
-                <p>Sign up to start picking drivers and compete with other F1 fans!</p>
-                <button class="cta-button" onclick="showAuthModal('signup')">
-                    Join the Game
-                </button>
-                <p class="sign-in-text">Already have an account? 
-                    <a href="#" onclick="showAuthModal('signin')" class="sign-in-link">Sign In</a>
-                </p>
+                <p>Authentication is required to save picks and compete in leagues!</p>
+                <div class="auth-buttons">
+                    <button class="cta-button" onclick="showAuthModal('signup')">
+                        Create Account
+                    </button>
+                    <button class="cta-button secondary" onclick="showAuthModal('signin')">
+                        Sign In
+                    </button>
+                </div>
+                <p class="auth-note">Your picks are securely stored in AWS and synced across devices.</p>
             </div>
         `;
         
@@ -1347,6 +1367,72 @@ function simulatePreviousRacePicks() {
 window.clearAllPicksData = clearAllPicksData;
 window.checkDriverState = checkDriverState;
 window.simulatePreviousRacePicks = simulatePreviousRacePicks;
+
+// Test function for previous race picks blocking
+window.addTestPreviousRacePicks = async function() {
+  try {
+    console.log('🧪 Adding test previous race picks...');
+    
+    // Import the service dynamically
+    const { amplifyDataService } = await import('./amplify-data-service.js');
+    
+    // Add Max Verstappen from Monaco GP (previous race)
+    await amplifyDataService.addTestPreviousRacePick(
+      1, 'Max Verstappen', 'Red Bull Racing', 'mon-2025', 'Monaco GP'
+    );
+    
+    // Add Lando Norris from Spanish GP (previous race)
+    await amplifyDataService.addTestPreviousRacePick(
+      7, 'Lando Norris', 'McLaren', 'esp-2025', 'Spanish GP'
+    );
+    
+    console.log('✅ Added test picks:');
+    console.log('  - Max Verstappen (Monaco GP)');
+    console.log('  - Lando Norris (Spanish GP)');
+    console.log('');
+    console.log('🧪 Now try to select these drivers - they should be BLOCKED!');
+    console.log('💡 Refresh the page and open the driver selection modal to test.');
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to add test picks:', error);
+    return false;
+  }
+};
+
+// Clean up test previous race picks
+window.clearTestPreviousRacePicks = async function() {
+  try {
+    console.log('🧹 Cleaning up test previous race picks...');
+    
+    // Import the services dynamically
+    const { amplifyDataService } = await import('./amplify-data-service.js');
+    const { authManager } = await import('./auth-manager.js');
+    
+    const user = await authManager.getCurrentUser();
+    if (!user) {
+      console.log('❌ Please sign in first');
+      return false;
+    }
+    
+    const allPicks = await amplifyDataService.getUserPicks();
+    const testPicks = allPicks.filter(pick => 
+      pick.raceId === 'mon-2025' || pick.raceId === 'esp-2025'
+    );
+    
+    for (const pick of testPicks) {
+      await amplifyDataService.deleteUserPick(pick.id);
+    }
+    
+    console.log(`✅ Cleaned up ${testPicks.length} test picks`);
+    console.log('💡 Refresh the page to see the changes.');
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to clean up test picks:', error);
+    return false;
+  }
+};
 
 // Wrap all anime.js related code in try-catch
 try {

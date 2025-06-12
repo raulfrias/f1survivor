@@ -1,4 +1,6 @@
 import { QualifyingResultsManager } from './qualifying-results-manager.js';
+import { loadPicksWithContext, savePickWithContext } from './league-integration.js';
+import { authManager } from './auth-manager.js';
 
 class AutoPickManager {
     constructor() {
@@ -70,17 +72,23 @@ class AutoPickManager {
         const raceId = event.detail.raceId;
         this.log('debug', 'handleAutoPickTrigger called for raceId:', raceId);
 
+        // Check if user is authenticated - auto-pick requires authentication
+        const isAuthenticated = await authManager.isAuthenticated();
+        if (!isAuthenticated) {
+            this.log('warn', 'User not authenticated, skipping auto-pick');
+            return;
+        }
+
         const raceData = this.getNextRaceData(); // Get current race context
         if (!raceData) {
             this.log('error', 'No raceData found for auto-pick trigger. Ensure nextRaceData is in localStorage.');
             return;
         }
-        // Ensure the event is for the current race defined by getNextRaceData if that's the design
-        // Or, if raceId from event is king, use that.
-        // For now, let's assume the event.detail.raceId is the one we must act upon.
+        
         const raceNameToUse = raceData.raceId === raceId ? raceData.raceName : "Selected Race"; // Get a name
 
-        const userPicks = this.loadUserPicks();
+        // Load picks from AWS backend
+        const userPicks = await this.loadUserPicks();
         const existingPick = userPicks.find(pick => pick.raceId === raceId);
 
         if (existingPick) {
@@ -117,26 +125,38 @@ class AutoPickManager {
         const autoPickedDriver = this.qualifyingManager.getAutoPick(); // Now uses freshly fetched data
 
         if (autoPickedDriver && autoPickedDriver.driverId) {
-            const autoPick = {
-                driverId: autoPickedDriver.driverId,
-                raceId: raceId,
-                raceName: raceName,
+            const driverInfo = {
                 driverName: autoPickedDriver.driverName,
-                position: autoPickedDriver.position,
                 teamName: autoPickedDriver.teamName,
-                timestamp: new Date().toISOString(),
-                isAutoPick: true
+                isAutoPick: true,
+                position: autoPickedDriver.position
             };
 
-            let userData = JSON.parse(localStorage.getItem('f1survivor_user_picks') || '{"userId":"local-user","currentSeason":"2025","picks":[]}');
-            // Remove any existing pick for this race if one somehow existed
-            userData.picks = (userData.picks || []).filter(p => p.raceId !== raceId);
-            userData.picks.push(autoPick);
-            localStorage.setItem('f1survivor_user_picks', JSON.stringify(userData));
-            this.log('debug', 'Auto-pick saved', autoPick);
+            try {
+                // Save auto-pick to AWS backend
+                const savedPick = await savePickWithContext(autoPickedDriver.driverId, driverInfo);
+                this.log('debug', 'Auto-pick saved to AWS backend', savedPick);
 
-            this.showAutopickNotification(autoPick);
-            this.updateDriverSelectionUI(autoPick);
+                const autoPick = {
+                    driverId: autoPickedDriver.driverId,
+                    raceId: raceId,
+                    raceName: raceName,
+                    driverName: autoPickedDriver.driverName,
+                    position: autoPickedDriver.position,
+                    teamName: autoPickedDriver.teamName,
+                    timestamp: new Date().toISOString(),
+                    isAutoPick: true
+                };
+
+                this.showAutopickNotification(autoPick);
+                this.updateDriverSelectionUI(autoPick);
+            } catch (error) {
+                this.log('error', 'Failed to save auto-pick to AWS backend', error);
+                this.showAutopickNotification({ 
+                    error: "Failed to save auto-pick. Please try making a manual pick.", 
+                    raceName: raceName 
+                });
+            }
         } else {
             this.log('warn', 'Could not determine a driver for auto-pick.', { raceId });
             // Optionally, notify user that auto-pick failed to find a driver
@@ -233,12 +253,13 @@ class AutoPickManager {
         }
     }
 
-    loadUserPicks() {
-        const data = localStorage.getItem('f1survivor_user_picks');
-        if (!data) return [];
-        
-        const parsed = JSON.parse(data);
-        return parsed.picks || [];
+    async loadUserPicks() {
+        try {
+            return await loadPicksWithContext();
+        } catch (error) {
+            this.log('error', 'Failed to load picks from AWS backend', error);
+            return [];
+        }
     }
 
     getNextRaceData() {

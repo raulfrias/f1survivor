@@ -1,29 +1,37 @@
 import { leagueManager } from './league-manager.js';
 import { leagueModalManager } from './league-modal-manager.js';
-import { leagueStorageManager } from './league-storage-manager.js';
+import { amplifyDataService } from './amplify-data-service.js';
+import { authManager } from './auth-manager.js';
+import { loadPicksWithContext, savePickWithContext } from './league-integration.js';
 
 export class LeagueDashboard {
   constructor() {
     this.leagueManager = leagueManager;
     this.modalManager = leagueModalManager;
-    this.storageManager = leagueStorageManager;
     this.currentLeague = null;
   }
 
   async initialize() {
+    // Check authentication first
+    const isAuthenticated = await authManager.isAuthenticated();
+    if (!isAuthenticated) {
+      console.log('User not authenticated, skipping league dashboard initialization');
+      return;
+    }
+
     // Load current active league
-    this.currentLeague = this.leagueManager.getActiveLeague();
+    this.currentLeague = await this.leagueManager.getActiveLeague();
     
     // Add league selector to dashboard
-    this.renderLeagueSelector();
+    await this.renderLeagueSelector();
     
     // Update dashboard to show league-specific data if in league mode
     if (this.currentLeague) {
-      this.updateDashboardForLeague();
+      await this.updateDashboardForLeague();
     }
   }
 
-  renderLeagueSelector() {
+  async renderLeagueSelector() {
     // Find the dashboard header or create one
     const dashboardContainer = document.querySelector('.dashboard-container');
     if (!dashboardContainer) return;
@@ -34,8 +42,8 @@ export class LeagueDashboard {
       existingSelector.remove();
     }
 
-    const userLeagues = this.leagueManager.getUserLeagues();
-    const activeLeagueId = this.storageManager.getActiveLeagueId();
+    const userLeagues = await this.leagueManager.getUserLeagues();
+    const activeLeagueId = localStorage.getItem('activeLeagueId');
 
     const selectorHTML = `
       <div class="league-selector-wrapper">
@@ -45,7 +53,7 @@ export class LeagueDashboard {
             <option value="" ${!activeLeagueId ? 'selected' : ''}>Solo Play</option>
             ${userLeagues.map(league => `
               <option value="${league.leagueId}" ${league.leagueId === activeLeagueId ? 'selected' : ''}>
-                ${this.escapeHtml(league.leagueName)}
+                ${this.escapeHtml(league.name)}
               </option>
             `).join('')}
           </select>

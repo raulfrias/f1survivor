@@ -1,5 +1,6 @@
 import { leagueStorageManager } from './league-storage-manager.js';
-import { saveUserPicks, loadUserPicks, isDriverAlreadyPicked, getCurrentRacePick } from './storage-utils.js';
+import { amplifyDataService } from './amplify-data-service.js';
+import { authManager } from './auth-manager.js';
 
 /**
  * League Integration Module
@@ -28,52 +29,99 @@ export function getLeagueContext() {
   };
 }
 
-// Save pick with automatic league context
+// Set active league ID
+export function setActiveLeagueId(leagueId) {
+  return leagueStorageManager.setActiveLeagueId(leagueId);
+}
+
+// Save pick with automatic league context - AWS BACKEND ONLY
 export async function savePickWithContext(driverId, driverInfo) {
+  // Ensure user is authenticated
+  const user = await authManager.getCurrentUser();
+  if (!user) {
+    throw new Error('Authentication required to save picks');
+  }
+
   const context = getLeagueContext();
   
   if (context.isLeagueMode) {
     console.log(`Saving pick to league: ${context.league.leagueName}`);
     return leagueStorageManager.saveLeaguePick(context.leagueId, driverId, driverInfo);
   } else {
-    console.log('Saving pick in solo mode');
-    return saveUserPicks(driverId, driverInfo);
+    console.log('Saving pick in solo mode via AWS backend');
+    
+    // Get race data from cache (this is application state, not user data)
+    // Race data comes from F1 calendar APIs and is cached in localStorage
+    const raceData = JSON.parse(localStorage.getItem('nextRaceData'));
+    if (!raceData || !raceData.raceId) {
+      throw new Error('No valid race data found. Cannot save pick.');
+    }
+    
+    const pickData = {
+      raceId: raceData.raceId,
+      driverId: parseInt(driverId),
+      driverName: driverInfo?.driverName || null,
+      teamName: driverInfo?.teamName || null,
+      raceName: raceData.raceName || 'Unknown Race',
+      isAutoPick: driverInfo?.isAutoPick || false
+    };
+    
+    return amplifyDataService.saveUserPick(pickData);
   }
 }
 
-// Load picks with automatic league context
-export function loadPicksWithContext() {
+// Load picks with automatic league context - AWS BACKEND ONLY
+export async function loadPicksWithContext() {
+  // Ensure user is authenticated
+  const user = await authManager.getCurrentUser();
+  if (!user) {
+    console.log('No authenticated user, returning empty picks');
+    return [];
+  }
+
   const context = getLeagueContext();
   
   if (context.isLeagueMode) {
     console.log(`Loading picks from league: ${context.league.leagueName}`);
     return leagueStorageManager.loadLeaguePicks(context.leagueId);
   } else {
-    console.log('Loading picks in solo mode');
-    return loadUserPicks();
+    console.log('Loading picks in solo mode via AWS backend');
+    const picks = await amplifyDataService.getUserPicks();
+    return amplifyDataService.transformPicksForUI(picks);
   }
 }
 
-// Check if driver is already picked with automatic league context
-export function isDriverAlreadyPickedWithContext(driverId) {
+// Check if driver is already picked with automatic league context - AWS BACKEND ONLY
+export async function isDriverAlreadyPickedWithContext(driverId) {
+  // Ensure user is authenticated
+  const user = await authManager.getCurrentUser();
+  if (!user) {
+    return false;
+  }
+
   const context = getLeagueContext();
   
   if (context.isLeagueMode) {
     return leagueStorageManager.isDriverAlreadyPickedInLeague(driverId, context.leagueId);
   } else {
-    return isDriverAlreadyPicked(driverId);
+    return amplifyDataService.isDriverAlreadyPicked(driverId);
   }
 }
 
-// Get current race pick with automatic league context
-export function getCurrentRacePickWithContext() {
+// Get current race pick with automatic league context - AWS BACKEND ONLY
+export async function getCurrentRacePickWithContext() {
+  // Ensure user is authenticated
+  const user = await authManager.getCurrentUser();
+  if (!user) {
+    return null;
+  }
+
   const context = getLeagueContext();
   
   if (context.isLeagueMode) {
     return leagueStorageManager.getCurrentRacePickForLeague(context.leagueId);
   } else {
-    // Use the imported getCurrentRacePick function
-    return getCurrentRacePick();
+    return amplifyDataService.getCurrentRacePick();
   }
 }
 
@@ -132,4 +180,4 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeLeagueIntegration);
 } else {
   initializeLeagueIntegration();
-} 
+}

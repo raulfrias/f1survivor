@@ -4,10 +4,22 @@ import { signIn, signUp, signOut, confirmSignUp, resendSignUpCode,
          resetPassword, confirmResetPassword, fetchAuthSession,
          getCurrentUser } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/data';
-import amplifyconfig from './amplify_outputs.json';
-
-// Configure Amplify
-Amplify.configure(amplifyconfig);
+// Use sandbox configuration for development and testing
+let amplifyconfig;
+try {
+  amplifyconfig = await import('./amplify_outputs.json');
+  console.log('Using sandbox Amplify configuration');
+  Amplify.configure(amplifyconfig.default || amplifyconfig);
+} catch (error) {
+  try {
+    amplifyconfig = await import('./amplify_outputs_production.json');
+    console.log('Using production Amplify configuration (fallback)');
+    Amplify.configure(amplifyconfig.default || amplifyconfig);
+  } catch (prodError) {
+    console.warn('No Amplify configuration found');
+    throw new Error('Amplify configuration required');
+  }
+}
 
 class AuthManager {
   constructor() {

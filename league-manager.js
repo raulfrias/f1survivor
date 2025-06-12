@@ -1,14 +1,32 @@
-import { leagueStorageManager } from './league-storage-manager.js';
-import { getCurrentSeason } from './storage-utils.js';
+import { amplifyDataService } from './amplify-data-service.js';
+import { authManager } from './auth-manager.js';
+import { setActiveLeagueId } from './league-integration.js';
+
+// Helper function for getting active league ID from local storage (UI state only)
+function getActiveLeagueIdFromStorage() {
+  try {
+    return localStorage.getItem('activeLeagueId');
+  } catch (error) {
+    console.error('Error getting active league ID:', error);
+    return null;
+  }
+}
 
 export class LeagueManager {
   constructor() {
-    this.storageManager = leagueStorageManager;
-    this.currentUserId = this.storageManager.getCurrentUserId();
-    this.activeLeagueId = this.storageManager.getActiveLeagueId();
+    this.currentSeason = "2025";
   }
 
-  // Core league operations
+  // Get current user (requires authentication)
+  async getCurrentUser() {
+    const user = await authManager.getCurrentUser();
+    if (!user) {
+      throw new Error('Authentication required for league operations');
+    }
+    return user;
+  }
+
+  // Core league operations - AWS BACKEND ONLY
   async createLeague(leagueName, settings = {}) {
     // Validate league name
     if (!leagueName || leagueName.trim().length === 0) {
@@ -19,40 +37,20 @@ export class LeagueManager {
       throw new Error('League name cannot exceed 50 characters');
     }
 
-    const leagueId = this.generateLeagueId();
+    const user = await this.getCurrentUser();
     const inviteCode = this.generateInviteCode();
 
-    const league = {
-      leagueId,
-      leagueName: leagueName.trim(),
-      ownerId: this.currentUserId,
+    const leagueData = {
+      name: leagueName.trim(),
       inviteCode,
-      season: getCurrentSeason(),
-      createdAt: new Date().toISOString(),
-      members: [{
-        userId: this.currentUserId,
-        username: this.storageManager.getCurrentUsername(),
-        joinedAt: new Date().toISOString(),
-        status: "ACTIVE",
-        isOwner: true
-      }],
-      picks: {},
-      settings: {
-        maxMembers: 20,
-        isPrivate: true,
-        autoPickEnabled: true,
-        ...settings
-      }
+      maxMembers: settings.maxMembers || 20,
+      isPrivate: settings.isPrivate !== false, // Default to private
+      autoPickEnabled: settings.autoPickEnabled !== false // Default to enabled
     };
 
-    // Save league to storage
-    if (!this.storageManager.saveLeague(league)) {
-      throw new Error('Failed to save league');
-    }
-
-    // Add user to league
-    this.storageManager.addUserToLeague(leagueId, true);
-
+    // Create league using AWS backend
+    const league = await amplifyDataService.createLeague(leagueData);
+    
     return league;
   }
 
@@ -61,51 +59,11 @@ export class LeagueManager {
       throw new Error('Invalid invite code');
     }
 
-    const league = this.storageManager.findLeagueByInviteCode(inviteCode.trim());
-    if (!league) {
-      throw new Error('Invalid invite code');
-    }
-
-    // Check if league is from current season
-    if (league.season !== getCurrentSeason()) {
-      throw new Error('This league is from a different season');
-    }
-
-    // Check if already a member
-    if (league.members.some(m => m.userId === this.currentUserId)) {
-      throw new Error('Already a member of this league');
-    }
-
-    // Check if league is full
-    if (league.members.length >= league.settings.maxMembers) {
-      throw new Error('League is full');
-    }
-
-    // Add new member
-    const newMember = {
-      userId: this.currentUserId,
-      username: this.storageManager.getCurrentUsername(),
-      joinedAt: new Date().toISOString(),
-      status: "ACTIVE",
-      isOwner: false
-    };
-
-    league.members.push(newMember);
+    const user = await this.getCurrentUser();
     
-    // Initialize empty picks array for new member
-    if (!league.picks) {
-      league.picks = {};
-    }
-    league.picks[this.currentUserId] = [];
-
-    // Save updated league
-    if (!this.storageManager.saveLeague(league)) {
-      throw new Error('Failed to join league');
-    }
-
-    // Add user to league membership
-    this.storageManager.addUserToLeague(league.leagueId, false);
-
+    // Join league using AWS backend
+    const league = await amplifyDataService.joinLeague(inviteCode.trim());
+    
     return league;
   }
 
@@ -290,31 +248,54 @@ export class LeagueManager {
     return code;
   }
 
-  // Get current active league
-  getActiveLeague() {
-    return this.storageManager.getActiveLeague();
+  // Get current active league - AWS BACKEND
+  async getActiveLeague() {
+    const activeLeagueId = getActiveLeagueIdFromStorage();
+    if (!activeLeagueId) return null;
+    
+    try {
+      return await amplifyDataService.getLeague(activeLeagueId);
+    } catch (error) {
+      console.error('Error getting active league:', error);
+      return null;
+    }
   }
 
   // Set active league
   setActiveLeague(leagueId) {
-    this.storageManager.setActiveLeagueId(leagueId);
-    this.activeLeagueId = leagueId;
+    setActiveLeagueId(leagueId);
   }
 
-  // Get user's leagues
-  getUserLeagues() {
-    return this.storageManager.getUserLeagues();
+  // Get user's leagues - AWS BACKEND
+  async getUserLeagues() {
+    try {
+      return await amplifyDataService.getUserLeagues();
+    } catch (error) {
+      console.error('Error getting user leagues:', error);
+      return [];
+    }
   }
 
-  // Check if user owns a league
-  isLeagueOwner(leagueId) {
-    const league = this.storageManager.getLeague(leagueId);
-    return league && league.ownerId === this.currentUserId;
+  // Check if user owns a league - AWS BACKEND
+  async isLeagueOwner(leagueId) {
+    try {
+      const user = await this.getCurrentUser();
+      const league = await amplifyDataService.getLeague(leagueId);
+      return league && league.ownerId === user.userId;
+    } catch (error) {
+      console.error('Error checking league ownership:', error);
+      return false;
+    }
   }
 
-  // Get league by ID
-  getLeague(leagueId) {
-    return this.storageManager.getLeague(leagueId);
+  // Get league by ID - AWS BACKEND
+  async getLeague(leagueId) {
+    try {
+      return await amplifyDataService.getLeague(leagueId);
+    } catch (error) {
+      console.error('Error getting league:', error);
+      return null;
+    }
   }
 
   // Preview league by invite code

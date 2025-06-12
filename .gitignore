@@ -6,4 +6,5 @@ amplifyconfiguration*
 
 # docs folder - keep only ROADMAP.md in version control
 docs/implementation-plans/
-
+.cursor/rules/
+.cursorrules/

@@ -1,5 +1,6 @@
 // auth-ui.js - Authentication UI management for F1 Survivor
 import { authManager } from './auth-manager.js';
+import { oAuthHandler } from './oauth-handler.js';
 
 class AuthUI {
   constructor() {
@@ -272,6 +273,18 @@ class AuthUI {
         e.preventDefault();
         this.switchTab('reset');
       });
+    }
+
+    // NEW: Google OAuth buttons
+    const googleSigninBtn = this.modal.querySelector('#google-signin-btn');
+    const googleSignupBtn = this.modal.querySelector('#google-signup-btn');
+    
+    if (googleSigninBtn) {
+      googleSigninBtn.addEventListener('click', (e) => this.handleGoogleAuth(e));
+    }
+    
+    if (googleSignupBtn) {
+      googleSignupBtn.addEventListener('click', (e) => this.handleGoogleAuth(e));
     }
   }
 
@@ -648,6 +661,96 @@ class AuthUI {
       this.showError('confirm-reset', 'An unexpected error occurred. Please try again.');
     } finally {
       this.setLoading('confirm-reset', false);
+    }
+  }
+
+  // NEW: Handle Google OAuth
+  async handleGoogleAuth(e) {
+    e.preventDefault();
+    
+    try {
+      console.log('Starting Google OAuth flow');
+      
+      // Show loading state on the button
+      this.setGoogleLoading(e.target, true);
+      
+      // Store current page for redirect after auth
+      sessionStorage.setItem('redirectAfterAuth', window.location.pathname);
+      
+      // Initiate Google OAuth
+      const result = await authManager.signInWithGoogle();
+      
+      if (result.success) {
+        // OAuth redirect will happen automatically
+        console.log('Google OAuth initiated successfully');
+        
+        // Show loading message
+        this.showGoogleLoadingMessage();
+      } else {
+        this.showError('signin', result.error || 'Google sign-in failed');
+        this.setGoogleLoading(e.target, false);
+      }
+      
+    } catch (error) {
+      console.error('Google OAuth error:', error);
+      this.showError('signin', 'Google sign-in failed. Please try again.');
+      this.setGoogleLoading(e.target, false);
+    }
+  }
+
+  // NEW: Show Google loading message
+  showGoogleLoadingMessage() {
+    const overlay = document.createElement('div');
+    overlay.id = 'google-auth-loading';
+    overlay.innerHTML = `
+      <div class="google-loading-content">
+        <div class="spinner-ring large"></div>
+        <h3>Redirecting to Google...</h3>
+        <p>You'll be redirected back after signing in with Google.</p>
+      </div>
+    `;
+    
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10002;
+      color: white;
+      font-family: Arial, sans-serif;
+    `;
+    
+    const content = overlay.querySelector('.google-loading-content');
+    content.style.cssText = `
+      text-align: center;
+      padding: 2rem;
+    `;
+    
+    document.body.appendChild(overlay);
+  }
+
+  // NEW: Set loading state for Google buttons
+  setGoogleLoading(button, isLoading) {
+    if (isLoading) {
+      button.disabled = true;
+      button.style.opacity = '0.7';
+      const originalText = button.innerHTML;
+      button.dataset.originalText = originalText;
+      button.innerHTML = `
+        <div class="spinner-ring small"></div>
+        Connecting to Google...
+      `;
+    } else {
+      button.disabled = false;
+      button.style.opacity = '1';
+      if (button.dataset.originalText) {
+        button.innerHTML = button.dataset.originalText;
+      }
     }
   }
 

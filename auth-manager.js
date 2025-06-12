@@ -2,7 +2,7 @@
 import { Amplify } from 'aws-amplify';
 import { signIn, signUp, signOut, confirmSignUp, resendSignUpCode, 
          resetPassword, confirmResetPassword, fetchAuthSession,
-         getCurrentUser } from 'aws-amplify/auth';
+         getCurrentUser, signInWithRedirect } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/data';
 
 class AuthManager {
@@ -223,25 +223,32 @@ class AuthManager {
     }
   }
   
-  // Create or update user profile in DynamoDB
+  // ENHANCED: Create or update user profile in DynamoDB with Google OAuth data
   async createOrUpdateUserProfile(cognitoUser) {
     try {
       await this.ensureInitialized();
       
       const userId = cognitoUser.userId || cognitoUser.username;
-      console.log('Creating/updating user profile for:', userId);
+      const attributes = cognitoUser.attributes || {};
+      console.log('Creating/updating user profile for:', userId, 'with attributes:', attributes);
       
       // Check if profile exists
       const existingProfile = await this.client.models.UserProfile.get({ userId });
       
       if (!existingProfile.data) {
-        // Create new profile
-        const username = this.generateUsername(cognitoUser.signInDetails?.loginId || userId);
+        // Create new profile with enhanced Google OAuth data
+        const email = attributes.email || cognitoUser.signInDetails?.loginId || userId;
+        const username = this.generateUsername(email);
         
         await this.client.models.UserProfile.create({
           userId,
           username,
-          email: cognitoUser.signInDetails?.loginId || userId,
+          email,
+          displayName: attributes.name || attributes.given_name || username,
+          firstName: attributes.given_name || null,
+          lastName: attributes.family_name || null,
+          profilePicture: attributes.picture || null,
+          googleId: attributes.sub || null, // Google user ID
           currentSeason: "2025",
           totalSurvivedRaces: 0,
           isEliminated: false,
@@ -249,18 +256,36 @@ class AuthManager {
           joinedAt: new Date().toISOString()
         });
         
-        console.log('Created new user profile');
+        console.log('Created new user profile with enhanced data');
         
         // Migrate localStorage picks if any
         await this.migrateLocalStoragePicks(userId);
       } else {
-        // Update last active
-        await this.client.models.UserProfile.update({
+        // Update existing profile with any new Google data and last active
+        const updateData = {
           userId,
           lastActiveAt: new Date().toISOString()
-        });
+        };
         
-        console.log('Updated existing user profile');
+        // Only update Google data if it's available and not already set
+        if (attributes.name && !existingProfile.data.displayName) {
+          updateData.displayName = attributes.name;
+        }
+        if (attributes.given_name && !existingProfile.data.firstName) {
+          updateData.firstName = attributes.given_name;
+        }
+        if (attributes.family_name && !existingProfile.data.lastName) {
+          updateData.lastName = attributes.family_name;
+        }
+        if (attributes.picture && !existingProfile.data.profilePicture) {
+          updateData.profilePicture = attributes.picture;
+        }
+        if (attributes.sub && !existingProfile.data.googleId) {
+          updateData.googleId = attributes.sub;
+        }
+        
+        await this.client.models.UserProfile.update(updateData);
+        console.log('Updated existing user profile with enhanced data');
       }
     } catch (error) {
       console.error('Error managing user profile:', error);
@@ -359,6 +384,63 @@ class AuthManager {
     } catch {
       return false;
     }
+  }
+
+  // NEW: Google OAuth sign-in
+  async signInWithGoogle() {
+    try {
+      console.log('Initiating Google OAuth flow');
+      
+      await signInWithRedirect({ 
+        provider: 'Google',
+        customState: 'f1survivor-google-auth'
+      });
+      
+      return { success: true, provider: 'Google' };
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      return this.handleAuthError(error);
+    }
+  }
+
+  // NEW: Handle OAuth callback
+  async handleOAuthCallback() {
+    try {
+      const user = await getCurrentUser();
+      console.log('OAuth callback successful:', user);
+      
+      // Create/update user profile with Google data
+      await this.createOrUpdateUserProfile(user);
+      this.notifyAuthStateChange(true);
+      
+      return { success: true, user };
+    } catch (error) {
+      console.error('OAuth callback error:', error);
+      return this.handleAuthError(error);
+    }
+  }
+
+  // NEW: Enhanced session management
+  async refreshSession() {
+    try {
+      const session = await fetchAuthSession({ forceRefresh: true });
+      return session;
+    } catch (error) {
+      console.error('Session refresh failed:', error);
+      this.notifyAuthStateChange(false);
+      throw error;
+    }
+  }
+
+  // NEW: Session monitoring
+  startSessionMonitoring() {
+    setInterval(async () => {
+      try {
+        await this.refreshSession();
+      } catch (error) {
+        console.log('Session expired, user needs to re-authenticate');
+      }
+    }, 15 * 60 * 1000); // Check every 15 minutes
   }
   
   // Get auth session (tokens)

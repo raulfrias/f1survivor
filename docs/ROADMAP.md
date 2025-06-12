@@ -153,21 +153,25 @@ This document outlines the development phases and tasks for the F1 Survivor game
 - [x] **Console Log Cleanup:** Removed noisy test suite startup logs for cleaner development experience
 - [x] **Testing & Validation:** All 7 integration tests passing - pick saving, loading, changing, and validation working correctly
 - [x] **PRODUCTION DEPLOYMENT FIXES:**
-  - **CORS Authentication Resolution:** Fixed Cognito User Pool Client callback URLs for production domains
-  - **Button Event Listener Fix:** Resolved button click handlers being removed during authentication state changes
-  - **Amplify Build Issues:** Fixed top-level await and configuration import issues
-  - **Production Button Functionality:** All buttons now work correctly in deployed environment
-  - **End-to-End Production Testing:** Complete authentication and pick flow validated in live environment
+- [x] **CORS Authentication Resolution:** Fixed Cognito User Pool Client callback URLs for production domains
+- [x] **Button Event Listener Fix:** Resolved button click handlers being removed during authentication state changes
+- [x] **Amplify Build Issues:** Fixed top-level await and configuration import issues
+- [x] **Production Button Functionality:** All buttons now work correctly in deployed environment
+- [x] **End-to-End Production Testing:** Complete authentication and pick flow validated in live environment
 
-### Enhanced Authentication & User Experience ⭐ (New - Immediate Priority)
-- [ ] Google OAuth integration via Cognito Social Identity Providers
-- [ ] Research and implement additional social providers (Facebook, Apple) if incremental effort
-- [ ] Streamlined sign-up flow with social account linking
-- [ ] Automatic name extraction from social profiles during registration
-- [ ] Manual name input fallback for email/password users
-- [ ] Enhanced user profile completion flow
+### Enhanced Authentication & User Experience ⭐ (New - Immediate Priority - FOCUSED SCOPE)
+**CORE FEATURES (1-2 weeks):**
+- [ ] Google OAuth integration via Cognito Social Identity Providers (backend ready)
+- [ ] Mobile authentication optimization (current system broken on mobile)
+- [ ] Enhanced loading states & error handling (low effort, high impact)
 - [ ] Social login UI integration in existing auth modal
-- [ ] Display name vs username handling in UI
+- [ ] Touch-friendly authentication on mobile devices
+
+**DEFERRED TO FUTURE PHASES:**
+- [ ] Profile completion flows and profile pictures (Phase 3)
+- [ ] Display name vs username handling (Phase 3)
+- [ ] Additional social providers (Facebook, Apple) (Phase 4)
+- [ ] Advanced session management and account linking (Phase 4)
 
 ### Multi-League Core Architecture ⭐ (New - Foundation Feature)
 - [ ] Data model redesign for multi-league participation (unlimited leagues per user)
@@ -395,11 +399,12 @@ git push origin master   # Auto-deploys via Amplify
 
 ## Development Strategy
 
-### Week 1-2: Enhanced Authentication & User Experience (Immediate Priority)
-- Google OAuth integration via Cognito Social Identity Providers
-- Research additional social providers (Facebook, Apple) for incremental implementation
-- Automatic name extraction from social profiles
-- Enhanced user onboarding and profile completion flow
+### Week 1-2: Enhanced Authentication & User Experience (Immediate Priority - FOCUSED SCOPE)
+- Google OAuth integration via Cognito Social Identity Providers (backend already configured)
+- Mobile authentication optimization and responsive design fixes
+- Enhanced loading states and error handling
+- Basic "Remember Me" functionality implementation
+- **DEFERRED:** Profile completion flows, additional social providers, advanced features
 
 ### Week 3-4: Multi-League Core Architecture (Foundation Feature)
 - Data model redesign for unlimited league participation per user
@@ -448,7 +453,7 @@ git push origin master   # Auto-deploys via Amplify
   - ✅ Critical OpenF1 API integration fixes (Auto-pick foundation ready)
   - ✅ Production deployment fixes (Vite multi-page configuration)
   - ✅ Frontend-Backend Integration (Completed June 12, 2025)
-  - 🔄 Next: Enhanced Authentication & User Experience (Google Auth, social login)
+  - 🔄 Next: Enhanced Authentication & User Experience (1-2 weeks - Google OAuth, mobile optimization)
   - 🔄 Multi-League Core Architecture (unlimited leagues per user, shareable links)
   - 🔄 League Operations AWS Migration (enhanced with multi-league support)
   - 🔄 Advanced League Customization (multiple lives system, admin controls)

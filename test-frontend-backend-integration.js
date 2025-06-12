@@ -154,7 +154,7 @@ class FrontendBackendIntegrationTests {
         console.log('  ✅ Pick updated successfully');
         
         // Verify the change
-        const currentPick = await amplifyDataService.getCurrentRacePick(raceData.raceId);
+        const currentPick = await amplifyDataService.getCurrentRacePick();
         if (currentPick && currentPick.driverName === 'Updated Test Driver') {
           console.log('  ✅ Pick change verified');
           
@@ -375,7 +375,5 @@ window.runIntegrationTests = async function() {
   await testSuite.runAllTests();
 };
 
-console.log('🧪 Frontend-Backend Integration Test Suite Loaded');
-console.log('📋 Available commands:');
-console.log('  - runIntegrationTests()');
-console.log('  - new FrontendBackendIntegrationTests().runAllTests()'); 
+// Frontend-backend integration test suite loaded silently - available via runIntegrationTests()
+// Console logs removed to avoid clutter during normal development 

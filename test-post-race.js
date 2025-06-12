@@ -362,13 +362,7 @@ class PostRaceTestSuite {
 // Global access for manual testing
 window.PostRaceTestSuite = PostRaceTestSuite;
 
-// Auto-run tests when loaded
-if (typeof window !== 'undefined') {
-    console.log('🧪 Post-Race Test Suite Loaded');
-    console.log('📋 Available commands:');
-    console.log('  - new PostRaceTestSuite().runAllTests()');
-    console.log('  - PostRaceTestSuite.simulateRaceFinished()');
-    console.log('  - PostRaceTestSuite.simulatePostRaceResults()');
-}
+// Post-race test suite loaded silently - available via window.PostRaceTestSuite
+// Console logs removed to avoid clutter during normal development
 
 export default PostRaceTestSuite; 

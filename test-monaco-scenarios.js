@@ -154,19 +154,8 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
         document.body.appendChild(testControls);
         */
 
-        // Only show test instructions in console when in development
-        console.log(`
-Monaco 2025 Test Scenarios Ready!
-
-To run scenarios manually, use:
-1. TestScenarios.simulateQualiDone()     - Test just after qualifying
-2. TestScenarios.simulateSomePicks()      - Test with P15/P16 already picked
-3. TestScenarios.simulateDeadlinePassed() - Test deadline passed
-4. TestScenarios.reset()                  - Reset to default
-
-Example:
-TestScenarios.simulateQualiDone();
-`);
+        // Test scenarios are available silently in development via window.TestScenarios
+        // Console logs removed to avoid clutter during normal development
     });
 }
 

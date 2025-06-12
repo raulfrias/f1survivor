@@ -1048,7 +1048,7 @@ async function updateUIForAuthState(isAuthenticated) {
             if (makePickBtn) {
                 // Check if there's an existing pick and update button accordingly
                 updatePickButtonTextAfterAuth();
-                makePickBtn.onclick = null; // Remove auth handler, let normal event listener work
+                // Don't modify onclick - let addEventListener handle all clicks
                 makePickBtn.style.display = 'block';
             }
         
@@ -1077,7 +1077,7 @@ async function updateUIForAuthState(isAuthenticated) {
             if (makePickBtn) {
                 // Check if there's an existing pick and update button accordingly
                 updatePickButtonTextAfterAuth();
-                makePickBtn.onclick = null; // Remove auth handler, let normal event listener work
+                // Don't modify onclick - let addEventListener handle all clicks
                 makePickBtn.style.display = 'block';
             }
         }
@@ -1097,7 +1097,7 @@ async function updateUIForAuthState(isAuthenticated) {
         // Update Make Your Pick button for unauthenticated users
         if (makePickBtn) {
             makePickBtn.textContent = 'SIGN IN TO MAKE PICKS';
-            makePickBtn.onclick = () => authUI.showModal('signin');
+            // Don't modify onclick - let addEventListener handle auth check
             makePickBtn.style.display = 'block'; // Show button but with auth requirement
         }
         

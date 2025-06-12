@@ -583,6 +583,61 @@ async function renderDriverGrid() {
     }
 }
 
+// Attach event listener to Make Your Pick button (reusable function)
+function attachMakePickButtonListener() {
+    const makePickBtn = document.getElementById('make-pick-btn');
+    if (!makePickBtn) {
+        console.warn('Make pick button not found when trying to attach listener');
+        return;
+    }
+    
+    // Remove any existing listeners by cloning the button
+    const newMakePickBtn = makePickBtn.cloneNode(true);
+    makePickBtn.parentNode.replaceChild(newMakePickBtn, makePickBtn);
+    
+    // Add the click event listener to the new button
+    newMakePickBtn.addEventListener('click', async () => {
+        console.log('Make pick button clicked');
+        
+        // Check if button is disabled
+        if (newMakePickBtn.disabled) {
+            console.log('Button is disabled, ignoring click');
+            return;
+        }
+        
+        // REQUIRE authentication - no localStorage fallback
+        const isAuthenticated = await authManager.isAuthenticated();
+        if (!isAuthenticated) {
+            console.log('User not authenticated, showing auth modal');
+            // Store current page for redirect after auth
+            sessionStorage.setItem('redirectAfterAuth', window.location.href);
+            await authUI.showModal('signin');
+            return;
+        }
+        
+        // Check if this is a change vs new pick
+        const currentPick = await getCurrentRacePickWithContext();
+        const isChanging = !!currentPick;
+        
+        console.log('Current pick:', currentPick);
+        console.log('Is changing:', isChanging);
+        
+        selectedDriverId = null;
+        const driverSelectionScreen = document.getElementById('driver-selection-screen');
+        if (driverSelectionScreen) {
+            driverSelectionScreen.style.display = 'flex';
+        }
+        
+        // Show current pick info if changing
+        PickChangeUtils.showCurrentPickInModal(currentPick);
+        PickChangeUtils.updateConfirmButton(isChanging);
+        
+        await renderDriverGrid();
+    });
+    
+    console.log('Make pick button event listener attached');
+}
+
 // Initialize driver selection with deadline logic
 const initializeDriverSelection = async () => {
     console.log('Initializing driver selection...');
@@ -768,42 +823,8 @@ const initializeDriverSelection = async () => {
         }
     }
 
-    // Open modal and render grid - AUTHENTICATION REQUIRED
-    makePickBtn.addEventListener('click', async () => {
-        console.log('Make pick button clicked');
-        
-        // Check if button is disabled
-        if (makePickBtn.disabled) {
-            console.log('Button is disabled, ignoring click');
-            return;
-        }
-        
-        // REQUIRE authentication - no localStorage fallback
-        const isAuthenticated = await authManager.isAuthenticated();
-        if (!isAuthenticated) {
-            console.log('User not authenticated, showing auth modal');
-            // Store current page for redirect after auth
-            sessionStorage.setItem('redirectAfterAuth', window.location.href);
-            await authUI.showModal('signin');
-            return;
-        }
-        
-        // Check if this is a change vs new pick
-        const currentPick = await getCurrentRacePickWithContext();
-        const isChanging = !!currentPick;
-        
-        console.log('Current pick:', currentPick);
-        console.log('Is changing:', isChanging);
-        
-        selectedDriverId = null;
-        driverSelectionScreen.style.display = 'flex';
-        
-        // Show current pick info if changing
-        PickChangeUtils.showCurrentPickInModal(currentPick);
-        PickChangeUtils.updateConfirmButton(isChanging);
-        
-        await renderDriverGrid();
-    });
+    // Attach the event listener using the reusable function
+    attachMakePickButtonListener();
 
     // Close modal
     closeSelectionBtn.addEventListener('click', () => {
@@ -1274,28 +1295,35 @@ function removeUnauthenticatedMessage() {
             <button class="cta-button" id="make-pick-btn">MAKE YOUR PICK</button>
         `;
         
-        // Re-initialize the button event listener
-        const makePickBtn = document.getElementById('make-pick-btn');
-        if (makePickBtn) {
-            // Remove any existing listeners first
-            makePickBtn.replaceWith(makePickBtn.cloneNode(true));
-            // Re-add the listener (it will be attached by the existing initialization code)
-        }
+        // Re-attach the event listeners to the new button
+        attachMakePickButtonListener();
+        attachNavPickButtonListener();
     }
 }
 
 // Add click handler for navigation Pick button
-document.addEventListener('DOMContentLoaded', () => {
+function attachNavPickButtonListener() {
     const navPickBtn = document.getElementById('nav-pick-btn');
     const makePickBtn = document.getElementById('make-pick-btn');
     
     if (navPickBtn && makePickBtn) {
-        navPickBtn.addEventListener('click', (e) => {
+        // Remove existing listeners
+        const newNavPickBtn = navPickBtn.cloneNode(true);
+        navPickBtn.parentNode.replaceChild(newNavPickBtn, navPickBtn);
+        
+        newNavPickBtn.addEventListener('click', (e) => {
             e.preventDefault();
             // Trigger the same action as Make Your Pick button
             makePickBtn.click();
         });
+        
+        console.log('Navigation Pick button event listener attached');
     }
+}
+
+// Initialize navigation button listeners
+document.addEventListener('DOMContentLoaded', () => {
+    attachNavPickButtonListener();
 });
 
 // Make functions available globally

@@ -27,4 +27,7 @@ export const auth = defineAuth({
   triggers: {
     // This will be configured to require email verification
   }
+  
+  // Note: OAuth callback URLs are configured automatically by Amplify Gen2
+  // The CORS issue will be resolved by updating the backend deployment
 });

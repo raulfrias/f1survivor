@@ -4,29 +4,27 @@ import { signIn, signUp, signOut, confirmSignUp, resendSignUpCode,
          resetPassword, confirmResetPassword, fetchAuthSession,
          getCurrentUser } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/data';
-// Use sandbox configuration for development and testing
-let amplifyconfig;
-try {
-  amplifyconfig = await import('./amplify_outputs.json');
-  console.log('Using sandbox Amplify configuration');
-  Amplify.configure(amplifyconfig.default || amplifyconfig);
-} catch (error) {
-  try {
-    amplifyconfig = await import('./amplify_outputs_production.json');
-    console.log('Using production Amplify configuration (fallback)');
-    Amplify.configure(amplifyconfig.default || amplifyconfig);
-  } catch (prodError) {
-    console.warn('No Amplify configuration found');
-    throw new Error('Amplify configuration required');
-  }
-}
 
 class AuthManager {
   constructor() {
-    this.client = generateClient();
+    this.client = null;
     this.currentUser = null;
     this.authStateListeners = [];
-    this.initializeAuthState();
+    this.initializeAmplify();
+  }
+  
+  // Initialize Amplify configuration
+  async initializeAmplify() {
+    try {
+      const amplifyconfig = await import('./amplify_outputs.json');
+      console.log('Using Amplify configuration');
+      Amplify.configure(amplifyconfig.default || amplifyconfig);
+      this.client = generateClient();
+      this.initializeAuthState();
+    } catch (error) {
+      console.error('Failed to load Amplify configuration:', error);
+      throw new Error('Amplify configuration required');
+    }
   }
   
   // Initialize and monitor auth state
@@ -38,6 +36,13 @@ class AuthManager {
     } catch {
       this.currentUser = null;
       this.notifyAuthStateChange(false);
+    }
+  }
+
+  // Ensure Amplify is initialized before operations
+  async ensureInitialized() {
+    if (!this.client) {
+      await this.initializeAmplify();
     }
   }
   
@@ -221,6 +226,8 @@ class AuthManager {
   // Create or update user profile in DynamoDB
   async createOrUpdateUserProfile(cognitoUser) {
     try {
+      await this.ensureInitialized();
+      
       const userId = cognitoUser.userId || cognitoUser.username;
       console.log('Creating/updating user profile for:', userId);
       
@@ -270,6 +277,8 @@ class AuthManager {
   // Migrate picks from localStorage to authenticated user
   async migrateLocalStoragePicks(userId) {
     try {
+      await this.ensureInitialized();
+      
       const localPicks = JSON.parse(localStorage.getItem('f1survivor_user_picks') || '{}');
       
       if (localPicks.picks && localPicks.picks.length > 0) {

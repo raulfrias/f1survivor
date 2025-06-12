@@ -133,14 +133,14 @@ This document outlines the development phases and tasks for the F1 Survivor game
 - [ ] **Session timeout and token refresh handling**
 - [ ] **Multi-factor authentication support** (Future enhancement)
 
-### Frontend-Backend Integration 🔄 (In Progress - June 11, 2025)
+### Frontend-Backend Integration ✅ (Completed June 12, 2025)
 - [x] Connect pick saving to AWS GraphQL instead of localStorage
 - [x] Replace 'local-user' with authenticated AWS user ID
 - [x] Update league operations to use DynamoDB via GraphQL
 - [x] Implement real-time pick validation using backend
 - [x] Test complete authentication + data flow integration
 - [x] **Comprehensive Testing Suite:** 7-test integration suite covering all functionality
-- [x] **Pick Changing System:** Update existing picks instead of creating duplicates
+- [x] **Pick Changing System:** Update existing picks instead of creating duplicates with proper upsert logic
 - [x] **Previous Race Blocking:** Prevent selecting drivers from previous races
 - [x] **Data Consistency:** Ensure AWS and application layer data alignment
 - [x] **Error Handling:** Robust validation and error management
@@ -148,8 +148,10 @@ This document outlines the development phases and tasks for the F1 Survivor game
 - [x] **Architecture Clarification:** Proper separation of user data (AWS) vs application state (localStorage cache)
 - [x] **Function Integration:** Fixed amplifyDataService function calls and async/await patterns
 - [x] **Solo Mode AWS Backend:** Complete elimination of localStorage for user picks, full AWS integration
-- [ ] **Testing & Debugging:** Resolve remaining pick flow issues and complete integration testing
-- [ ] **Pick Flow Validation:** End-to-end testing of pick selection, save, and load operations
+- [x] **Authentication State Race Condition:** Fixed DOM initialization timing issues for proper auth state management
+- [x] **Duplicate Pick Resolution:** Implemented automatic cleanup of duplicate picks with getCurrentRacePick auto-cleanup
+- [x] **Console Log Cleanup:** Removed noisy test suite startup logs for cleaner development experience
+- [x] **Testing & Validation:** All 7 integration tests passing - pick saving, loading, changing, and validation working correctly
 
 ### League Operations Backend Integration 🔄 (Next Priority)
 - [ ] Remove solo mode dependency and localStorage league operations

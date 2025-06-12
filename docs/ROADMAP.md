@@ -159,7 +159,27 @@ This document outlines the development phases and tasks for the F1 Survivor game
   - **Production Button Functionality:** All buttons now work correctly in deployed environment
   - **End-to-End Production Testing:** Complete authentication and pick flow validated in live environment
 
-### League Operations Backend Integration 🔄 (Next Priority)
+### Enhanced Authentication & User Experience ⭐ (New - Immediate Priority)
+- [ ] Google OAuth integration via Cognito Social Identity Providers
+- [ ] Research and implement additional social providers (Facebook, Apple) if incremental effort
+- [ ] Streamlined sign-up flow with social account linking
+- [ ] Automatic name extraction from social profiles during registration
+- [ ] Manual name input fallback for email/password users
+- [ ] Enhanced user profile completion flow
+- [ ] Social login UI integration in existing auth modal
+- [ ] Display name vs username handling in UI
+
+### Multi-League Core Architecture ⭐ (New - Foundation Feature)
+- [ ] Data model redesign for multi-league participation (unlimited leagues per user)
+- [ ] User can join and participate in multiple leagues simultaneously
+- [ ] League dropdown selector in dashboard UI
+- [ ] Cross-league user profile and statistics
+- [ ] League-specific pick tracking and standings
+- [ ] League invitation management across multiple leagues
+- [ ] **Shareable league links** for easy friend & family invitations
+- [ ] Performance optimization for multi-league data loading
+
+### League Operations Backend Integration 🔄 (Enhanced Scope)
 - [ ] Remove solo mode dependency and localStorage league operations
 - [ ] Connect league creation/joining to AWS GraphQL backend
 - [ ] Update league member management to use DynamoDB
@@ -167,7 +187,16 @@ This document outlines the development phases and tasks for the F1 Survivor game
 - [ ] Test multi-user league functionality with AWS backend
 - [ ] Validate league standings and member data persistence
 - [ ] Remove league-storage-manager.js localStorage dependencies
-- [ ] Complete league dashboard AWS integration
+- [ ] Complete league dashboard AWS integration with multi-league support
+
+### Advanced League Customization ⭐ (New - Admin Features)
+- [ ] Multiple lives system (1-5 lives, configurable per league, default: 1 life)
+- [ ] League admin controls for lives settings
+- [ ] Lives tracking and display in league standings
+- [ ] Elimination logic updates for multi-life scenarios
+- [ ] Lives-based survival calculations and statistics
+- [ ] UI indicators for remaining lives per user
+- [ ] League rules customization interface
 
 ### Real-time League Updates (AppSync Subscriptions)
 - [ ] Implement real-time pick submissions within leagues
@@ -204,7 +233,9 @@ This document outlines the development phases and tasks for the F1 Survivor game
 - [ ] Advanced league settings (custom rules, scoring)
 - [ ] League admin controls and moderation tools
 - [ ] League statistics and analytics
-- [ ] Public/private league discovery
+- [ ] **Public league discovery and browsing system** (Future Enhancement)
+- [ ] League categories and tags for organization
+- [ ] Featured leagues and community highlights
 
 ### Results Processing Engine
 - [ ] Automated race result processing
@@ -284,14 +315,18 @@ const leagueData = {
 };
 ```
 
-### AWS Amplify Gen2 Schema (Phase 2+)
+### AWS Amplify Gen2 Schema (Phase 2+ - Enhanced Multi-League)
 ```typescript
-// GraphQL Schema Definition
+// GraphQL Schema Definition (Updated for Multi-League Support)
 const schema = a.schema({
   UserProfile: a.model({
     userId: a.id().required(),
+    displayName: a.string().required(),    // From Google Auth or manual input
     username: a.string().required(),
     email: a.string().required(),
+    googleId: a.string(),                  // Optional Google account link
+    activeLeagues: a.string().array(),     // Array of league IDs (unlimited)
+    defaultLeague: a.string(),             // Primary league for quick access
     totalSurvivedRaces: a.integer().default(0),
     isEliminated: a.boolean().default(false),
     preferredTeam: a.string(),
@@ -303,12 +338,24 @@ const schema = a.schema({
 
   League: a.model({
     name: a.string().required(),
-    inviteCode: a.string().required(),
+    inviteCode: a.string().required(),     // 8-character code
+    shareableUrl: a.string().required(),   // f1survivor.com/join/league-id
     ownerId: a.id().required(),
     maxMembers: a.integer().default(50),
     season: a.string().required(),
+    settings: a.json().required(),         // League customization settings
     members: a.hasMany('LeagueMember', 'leagueId'),
     picks: a.hasMany('DriverPick', 'leagueId')
+  }),
+
+  LeagueMember: a.model({
+    userId: a.id().required(),
+    leagueId: a.id().required(),
+    remainingLives: a.integer().default(1), // Configurable per league
+    livesUsed: a.integer().default(0),
+    isEliminated: a.boolean().default(false),
+    eliminationHistory: a.json(),           // Array of elimination events
+    joinedAt: a.datetime().required()
   }),
 
   DriverPick: a.model({
@@ -325,6 +372,15 @@ const schema = a.schema({
     allow.authenticated().to(['read'])
   ])
 });
+
+// League Settings Schema
+interface LeagueSettings {
+  maxLives: number;          // 1-5 lives per user (default: 1)
+  livesEnabled: boolean;     // Enable/disable multiple lives
+  autoPickEnabled: boolean;  // P15 auto-pick system
+  isPublic: boolean;         // Future: public league discovery
+  customRules?: string;      // Future: additional customizations
+}
 ```
 
 ### Development Workflow (Updated)
@@ -339,13 +395,31 @@ git push origin master   # Auto-deploys via Amplify
 
 ## Development Strategy
 
-### Week 1: League Operations (Current Priority)
-- Implement multi-user league functionality
-- Test league creation, joining, and member management
-- League-specific pick viewing and standings
+### Week 1-2: Enhanced Authentication & User Experience (Immediate Priority)
+- Google OAuth integration via Cognito Social Identity Providers
+- Research additional social providers (Facebook, Apple) for incremental implementation
+- Automatic name extraction from social profiles
+- Enhanced user onboarding and profile completion flow
+
+### Week 3-4: Multi-League Core Architecture (Foundation Feature)
+- Data model redesign for unlimited league participation per user
+- League dropdown selector and multi-league UI
+- Shareable league links for viral growth
+- Cross-league user profile and statistics
+
+### Week 5-6: League Operations AWS Migration (Enhanced Scope)
+- Migrate league operations to AWS backend with multi-league support
+- Test multi-user league functionality with new architecture
+- League-specific pick tracking and standings
 - Multi-user scenario testing
 
-### Week 2: Enhanced Features & Real-time
+### Week 7-8: Advanced League Customization (Admin Features)
+- Multiple lives system (1-5 lives, configurable per league, default: 1 life)
+- League admin controls and customization interface
+- Lives tracking and elimination logic updates
+- UI indicators for remaining lives per user
+
+### Week 9+: Enhanced Features & Real-time
 - Real-time league updates via GraphQL subscriptions
 - Server-side auto-pick Lambda implementation
 - Advanced pick validation and business logic
@@ -367,14 +441,17 @@ git push origin master   # Auto-deploys via Amplify
 
 - **Phase 1:** ✅ Completed (May 2025 - June 11, 2025)
 - **Phase 1.5:** ✅ Completed (June 2025) - Mobile Responsiveness & Production Fixes
-- **Phase 2:** Q2-Q3 2025 (4-5 weeks, streamlined implementation)
+- **Phase 2:** Q2-Q3 2025 (8-10 weeks, enhanced scope with major new features)
   - ✅ AWS Amplify Gen2 Project Setup (Completed June 2025)
   - ✅ Core Data Schema Definition (9-model GraphQL schema deployed)
   - ✅ Authentication Integration (Cognito fully functional)
   - ✅ Critical OpenF1 API integration fixes (Auto-pick foundation ready)
   - ✅ Production deployment fixes (Vite multi-page configuration)
-  - ✅ Frontend-Backend Integration (Completed June 11, 2025)
-  - 🔄 Next: League Operations (multi-user functionality)
+  - ✅ Frontend-Backend Integration (Completed June 12, 2025)
+  - 🔄 Next: Enhanced Authentication & User Experience (Google Auth, social login)
+  - 🔄 Multi-League Core Architecture (unlimited leagues per user, shareable links)
+  - 🔄 League Operations AWS Migration (enhanced with multi-league support)
+  - 🔄 Advanced League Customization (multiple lives system, admin controls)
   - Direct transition to AWS backend (no migration needed)
 - **Phase 3:** Q3-Q4 2025 (8-10 weeks)
 - **Phase 4:** Q4 2025-Q1 2026 (12-16 weeks)

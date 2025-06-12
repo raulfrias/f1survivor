@@ -746,7 +746,7 @@ const initializeDriverSelection = async () => {
     window.mockDrivers = mockDrivers;
     window.userPicks = userPicks;
     
-    // Load user picks from localStorage if available
+    // Load user picks from AWS backend if user is authenticated
     if (localStorageAvailable) {
         try {
             const savedPicks = await loadPicksWithContext();
@@ -761,10 +761,10 @@ const initializeDriverSelection = async () => {
                 
                 // Button text will be updated after authentication completes
                 
-                console.log('Loaded user picks from localStorage:', savedPicks);
+                console.log('Loaded user picks from AWS backend:', savedPicks);
             }
         } catch (error) {
-            console.error('Failed to load picks from localStorage:', error);
+            console.error('Failed to load picks from AWS backend:', error);
         }
     }
 
@@ -1305,8 +1305,8 @@ window.showAuthModal = async (tab = 'signin') => {
 
 window.handleSignOut = handleSignOut;
 
-// Initialize app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize app when DOM is ready - with fallback for already-loaded DOM
+function startAppInitialization() {
     console.log('DOM fully loaded, starting app initialization');
     initializeApp().catch(error => {
         console.error('App initialization failed:', error);
@@ -1316,7 +1316,17 @@ document.addEventListener('DOMContentLoaded', () => {
         errorContainer.textContent = 'Failed to initialize app. Please refresh the page.';
         document.body.prepend(errorContainer);
     });
-});
+}
+
+// Check if DOM is already loaded, or wait for it to load
+if (document.readyState === 'loading') {
+    // DOM hasn't loaded yet
+    document.addEventListener('DOMContentLoaded', startAppInitialization);
+} else {
+    // DOM is already loaded
+    console.log('DOM already loaded, initializing immediately');
+    startAppInitialization();
+}
 
 // Debug/Testing Tools
 function clearAllPicksData() {

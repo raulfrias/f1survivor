@@ -30,38 +30,69 @@ export class AmplifyDataService {
     return result.data || [];
   }
 
+  // Save user pick with upsert logic (update if exists, create if not) - AUTH REQUIRED
   async saveUserPick(pickData) {
     const user = await authManager.getCurrentUser();
     if (!user) throw new Error('Authentication required');
 
-    // Generate unique pickId
-    const pickId = `pick_${user.userId || user.username}_${pickData.raceId}_${Date.now()}`;
+    const userId = user.userId || user.username;
 
-    // Prepare pick data - conditionally include leagueId for GSI compatibility
-    const pickPayload = {
-      pickId: pickId,
-      userId: user.userId || user.username,
-      seasonId: this.currentSeason,
-      raceId: pickData.raceId,
-      driverId: pickData.driverId.toString(),
-      driverName: pickData.driverName,
-      teamName: pickData.teamName,
-      raceName: pickData.raceName || 'Unknown Race',
-      submittedAt: new Date().toISOString(),
-      pickDeadline: pickData.pickDeadline || new Date().toISOString(),
-      isAutoPick: pickData.isAutoPick || false
-    };
+    // Check if a pick already exists for this race
+    const existingPick = await this.getCurrentRacePick(pickData.leagueId);
+    
+    if (existingPick) {
+      // Update existing pick instead of creating duplicate
+      console.log(`Updating existing pick for race ${pickData.raceId}: ${existingPick.driverName} → ${pickData.driverName}`);
+      
+      const updateData = {
+        driverId: pickData.driverId.toString(),
+        driverName: pickData.driverName,
+        teamName: pickData.teamName,
+        raceName: pickData.raceName || 'Unknown Race',
+        submittedAt: new Date().toISOString(),
+        isAutoPick: pickData.isAutoPick || false
+      };
 
-    // Only include leagueId if it's provided (GSI requires non-null values)
-    if (pickData.leagueId) {
-      pickPayload.leagueId = pickData.leagueId;
+      // Use the existing pick's ID for the update
+      return await this.client.models.DriverPick.update({
+        id: existingPick.id,
+        ...updateData
+      }, {
+        authMode: 'userPool'
+      });
+    } else {
+      // Create new pick - no existing pick found
+      console.log(`Creating new pick for race ${pickData.raceId}: ${pickData.driverName}`);
+      
+      // Generate unique pickId
+      const pickId = `pick_${userId}_${pickData.raceId}_${Date.now()}`;
+
+      // Prepare pick data - conditionally include leagueId for GSI compatibility
+      const pickPayload = {
+        pickId: pickId,
+        userId: userId,
+        seasonId: this.currentSeason,
+        raceId: pickData.raceId,
+        driverId: pickData.driverId.toString(),
+        driverName: pickData.driverName,
+        teamName: pickData.teamName,
+        raceName: pickData.raceName || 'Unknown Race',
+        submittedAt: new Date().toISOString(),
+        pickDeadline: pickData.pickDeadline || new Date().toISOString(),
+        isAutoPick: pickData.isAutoPick || false
+      };
+
+      // Only include leagueId if it's provided (GSI requires non-null values)
+      if (pickData.leagueId) {
+        pickPayload.leagueId = pickData.leagueId;
+      }
+
+      // Create pick directly in DynamoDB
+      // Note: 'owner' field is automatically added by Amplify auth system
+      return await this.client.models.DriverPick.create(pickPayload, {
+        authMode: 'userPool'
+      });
     }
-
-    // Create pick directly in DynamoDB
-    // Note: 'owner' field is automatically added by Amplify auth system
-    return await this.client.models.DriverPick.create(pickPayload, {
-      authMode: 'userPool'
-    });
   }
 
   // Check if driver is already picked - AUTH REQUIRED
@@ -94,10 +125,11 @@ export class AmplifyDataService {
     
     if (racePicks.length === 0) return null;
     
-    // If multiple picks for same race, return the most recent one
+    // If multiple picks for same race, clean them up automatically
     if (racePicks.length > 1) {
-      console.warn(`Found ${racePicks.length} picks for race ${raceData.raceId}, returning most recent`);
-      racePicks.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      console.warn(`Found ${racePicks.length} picks for race ${raceData.raceId}, cleaning up duplicates...`);
+      const cleanupResult = await this.cleanupDuplicatePicksForRace(raceData.raceId);
+      return cleanupResult.mostRecentPick;
     }
     
     return racePicks[0];
@@ -328,6 +360,79 @@ export class AmplifyDataService {
     }, {
       authMode: 'userPool'
     });
+  }
+
+  // Clean up duplicate picks for a race (keep only the most recent one)
+  async cleanupDuplicatePicksForRace(raceId) {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    const picks = await this.getUserPicks();
+    const racePicks = picks.filter(pick => pick.raceId === raceId);
+    
+    if (racePicks.length <= 1) {
+      console.log(`No duplicate picks found for race ${raceId}`);
+      return { duplicatesRemoved: 0 };
+    }
+
+    // Sort by submission time (most recent first)
+    racePicks.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    
+    // Keep the most recent pick, delete the rest
+    const picksToDelete = racePicks.slice(1); // Skip the first (most recent) pick
+    
+    console.log(`Found ${racePicks.length} picks for race ${raceId}, keeping most recent, deleting ${picksToDelete.length} duplicates`);
+    
+    const deletionPromises = picksToDelete.map(pick => 
+      this.client.models.DriverPick.delete({
+        id: pick.id
+      }, {
+        authMode: 'userPool'
+      })
+    );
+
+    await Promise.all(deletionPromises);
+    
+    console.log(`Successfully cleaned up ${picksToDelete.length} duplicate picks for race ${raceId}`);
+    return { duplicatesRemoved: picksToDelete.length, mostRecentPick: racePicks[0] };
+  }
+
+  // Clean up all duplicate picks for the authenticated user (utility function)
+  async cleanupAllDuplicatePicks() {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    console.log('🧹 Starting cleanup of all duplicate picks...');
+    
+    const picks = await this.getUserPicks();
+    const raceGroups = {};
+    
+    // Group picks by race ID
+    picks.forEach(pick => {
+      if (!raceGroups[pick.raceId]) {
+        raceGroups[pick.raceId] = [];
+      }
+      raceGroups[pick.raceId].push(pick);
+    });
+
+    let totalDuplicatesRemoved = 0;
+    const cleanupResults = [];
+
+    // Clean up each race that has duplicates
+    for (const [raceId, racePicks] of Object.entries(raceGroups)) {
+      if (racePicks.length > 1) {
+        const result = await this.cleanupDuplicatePicksForRace(raceId);
+        cleanupResults.push({ raceId, ...result });
+        totalDuplicatesRemoved += result.duplicatesRemoved;
+      }
+    }
+
+    console.log(`✅ Cleanup complete! Removed ${totalDuplicatesRemoved} duplicate picks across ${cleanupResults.length} races`);
+    return {
+      totalDuplicatesRemoved,
+      racesWithDuplicates: cleanupResults.length,
+      details: cleanupResults
+    };
   }
 }
 

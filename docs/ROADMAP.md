@@ -133,7 +133,7 @@ This document outlines the development phases and tasks for the F1 Survivor game
 - [ ] **Session timeout and token refresh handling**
 - [ ] **Multi-factor authentication support** (Future enhancement)
 
-### Frontend-Backend Integration ✅ (Completed June 11, 2025)
+### Frontend-Backend Integration 🔄 (In Progress - June 11, 2025)
 - [x] Connect pick saving to AWS GraphQL instead of localStorage
 - [x] Replace 'local-user' with authenticated AWS user ID
 - [x] Update league operations to use DynamoDB via GraphQL
@@ -148,6 +148,18 @@ This document outlines the development phases and tasks for the F1 Survivor game
 - [x] **Architecture Clarification:** Proper separation of user data (AWS) vs application state (localStorage cache)
 - [x] **Function Integration:** Fixed amplifyDataService function calls and async/await patterns
 - [x] **Solo Mode AWS Backend:** Complete elimination of localStorage for user picks, full AWS integration
+- [ ] **Testing & Debugging:** Resolve remaining pick flow issues and complete integration testing
+- [ ] **Pick Flow Validation:** End-to-end testing of pick selection, save, and load operations
+
+### League Operations Backend Integration 🔄 (Next Priority)
+- [ ] Remove solo mode dependency and localStorage league operations
+- [ ] Connect league creation/joining to AWS GraphQL backend
+- [ ] Update league member management to use DynamoDB
+- [ ] Implement league-specific pick operations via AWS
+- [ ] Test multi-user league functionality with AWS backend
+- [ ] Validate league standings and member data persistence
+- [ ] Remove league-storage-manager.js localStorage dependencies
+- [ ] Complete league dashboard AWS integration
 
 ### Real-time League Updates (AppSync Subscriptions)
 - [ ] Implement real-time pick submissions within leagues

@@ -207,7 +207,7 @@ f1survivor/
   - Full password reset/forgot password functionality
   - User profile management and session handling
 
-✅ **Frontend-Backend Integration:** ✅ (Completed June 11, 2025)
+🔄 **Frontend-Backend Integration:** 🔄 (In Progress - June 11, 2025)
   - Complete replacement of localStorage with AWS DynamoDB operations
   - Authentication-required pick saving and loading via GraphQL
   - Pick changing functionality with duplicate cleanup
@@ -220,8 +220,12 @@ f1survivor/
   - Fixed amplifyDataService function integration and async patterns
   - Solo mode fully migrated to AWS backend (no localStorage for user picks)
 
+🔄 **Current Focus:**
+  - 🔄 **Frontend-Backend Integration Testing:** Resolve remaining pick flow issues
+  - 🔄 **League Operations Backend Integration:** Remove localStorage, connect to AWS
+  - 🔄 **Multi-user League Functionality:** Complete AWS backend integration
+
 🔄 **Next Priority:**
-  - 🔄 League Operations (multi-user league functionality)
   - 🔄 Real-time league updates via GraphQL subscriptions
   - 🔄 Production deployment and environment configuration
 

@@ -403,19 +403,32 @@ class AuthManager {
     }
   }
 
-  // NEW: Handle OAuth callback
+  // ENHANCED: Handle OAuth callback with better error handling
   async handleOAuthCallback() {
     try {
+      // Ensure Amplify is initialized
+      await this.ensureInitialized();
+      
+      // Get current user from Amplify
       const user = await getCurrentUser();
       console.log('OAuth callback successful:', user);
       
+      // Update our internal state
+      this.currentUser = user;
+      
       // Create/update user profile with Google data
       await this.createOrUpdateUserProfile(user);
+      
+      // Notify listeners of auth state change
       this.notifyAuthStateChange(true);
       
       return { success: true, user };
     } catch (error) {
       console.error('OAuth callback error:', error);
+      
+      // Don't set currentUser to null here as OAuth might still be processing
+      // Let the retry mechanism handle it
+      
       return this.handleAuthError(error);
     }
   }

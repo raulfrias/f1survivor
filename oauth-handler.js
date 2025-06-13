@@ -7,15 +7,32 @@ export class OAuthHandler {
   }
 
   async initializeHandler() {
+    console.log('OAuthHandler: Initializing...');
+    
     // Check if current page is OAuth callback
     if (this.isOAuthCallback()) {
+      console.log('OAuthHandler: OAuth callback detected, processing...');
       await this.handleCallback();
+    } else {
+      console.log('OAuthHandler: No OAuth callback detected, ready for normal flow');
     }
   }
 
   isOAuthCallback() {
-    const url = window.location.href;
-    return url.includes('code=') || url.includes('access_token=') || url.includes('state=');
+    const url = new URL(window.location.href);
+    const searchParams = url.searchParams;
+    
+    // More specific OAuth callback detection
+    const hasAuthCode = searchParams.has('code');
+    const hasAccessToken = url.hash.includes('access_token=');
+    const hasState = searchParams.has('state');
+    
+    // Cognito OAuth typically includes both code and state parameters
+    const isCognitoCallback = hasAuthCode && hasState;
+    
+    console.log('OAuth detection:', { hasAuthCode, hasAccessToken, hasState, isCognitoCallback });
+    
+    return isCognitoCallback || hasAccessToken;
   }
 
   async handleCallback() {
@@ -25,8 +42,8 @@ export class OAuthHandler {
       // Show loading state
       this.showCallbackLoading();
       
-      // Process the callback
-      const result = await authManager.handleOAuthCallback();
+      // Wait for Amplify to process OAuth callback with retry logic
+      const result = await this.waitForOAuthCompletion();
       
       if (result.success) {
         console.log('OAuth authentication successful');
@@ -46,6 +63,63 @@ export class OAuthHandler {
       console.error('OAuth callback processing error:', error);
       this.showCallbackError('Authentication failed. Please try again.');
     }
+  }
+
+  // NEW: Wait for OAuth completion with retry logic
+  async waitForOAuthCompletion(maxRetries = 10, delay = 500) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`OAuth completion attempt ${attempt}/${maxRetries}`);
+        
+        // Add a small delay to let Amplify process the callback
+        if (attempt > 1) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
+        // Try to get the current user
+        const result = await authManager.handleOAuthCallback();
+        
+        if (result.success) {
+          console.log('OAuth callback completed successfully');
+          return result;
+        }
+        
+        // If not successful but no error, continue retrying
+        console.log('OAuth not ready yet, retrying...');
+        
+      } catch (error) {
+        console.log(`OAuth attempt ${attempt} failed:`, error.message);
+        
+        // If this is the last attempt, return the error
+        if (attempt === maxRetries) {
+          return {
+            success: false,
+            error: 'OAuth authentication timed out. Please try again.'
+          };
+        }
+        
+        // For auth errors that suggest the session isn't ready yet, continue retrying
+        if (error.message && (
+          error.message.includes('Auth UserPool not configured') ||
+          error.message.includes('No current user') ||
+          error.message.includes('User not authenticated')
+        )) {
+          console.log('Auth not ready, will retry...');
+          continue;
+        }
+        
+        // For other errors, return immediately
+        return {
+          success: false,
+          error: error.message || 'OAuth authentication failed'
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      error: 'OAuth authentication timed out after multiple attempts'
+    };
   }
 
   showCallbackLoading() {

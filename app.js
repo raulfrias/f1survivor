@@ -1006,15 +1006,6 @@ async function initializeApp() {
         // Initialize authentication state management
         await initializeAuthState();
         
-        // Final button text refresh to ensure it's always correct
-        setTimeout(async () => {
-            const isAuthenticated = await authManager.isAuthenticated();
-            if (isAuthenticated) {
-                await updatePickButtonTextAfterAuth();
-                console.log('Final button text refresh completed');
-            }
-        }, 500); // Small delay to ensure all initialization is complete
-        
     } catch (error) {
         console.error('App initialization failed:', error);
         // Show error to user
@@ -1033,6 +1024,14 @@ async function initializeAuthState() {
         // Set up auth state listener
         authManager.onAuthStateChange(async (isAuthenticated) => {
             await updateUIForAuthState(isAuthenticated);
+            
+            // Additional button text refresh after auth state change (with delay for data loading)
+            if (isAuthenticated) {
+                setTimeout(async () => {
+                    await updatePickButtonTextAfterAuth();
+                    console.log('Post-auth button text refresh completed');
+                }, 1000); // Allow time for pick data to load
+            }
         });
         
         // Check initial auth state

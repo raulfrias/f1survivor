@@ -119,8 +119,8 @@
   padding: 0.75rem 1rem;
   border: 2px solid #374151;
   border-radius: 6px;
-  background: #ffffff;
-  color: #111827;
+  background: #ffffff !important;
+  color: #111827 !important;
   font-size: 1rem;
   transition: all 0.3s ease;
   box-sizing: border-box;
@@ -134,6 +134,25 @@
 
 .form-group input::placeholder {
   color: #9ca3af;
+}
+
+/* Specific styling for different input types to ensure consistency */
+.form-group input[type="text"],
+.form-group input[type="email"], 
+.form-group input[type="password"] {
+  background: #ffffff !important;
+  color: #111827 !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Override browser autofill styles */
+.form-group input:-webkit-autofill,
+.form-group input:-webkit-autofill:hover,
+.form-group input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #111827 !important;
+  background-color: #ffffff !important;
 }
 
 /* Password Requirements */

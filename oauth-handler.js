@@ -253,17 +253,74 @@ export class OAuthHandler {
     window.history.replaceState({}, document.title, url.pathname);
   }
 
-  handlePostAuthFlow(user) {
+  async handlePostAuthFlow(user) {
     this.hideCallbackLoading();
     
+    // Show personalized success message
+    try {
+      const userInfo = await authManager.getUserDisplayInfo();
+      const displayName = userInfo?.displayName || userInfo?.email?.split('@')[0] || 'User';
+      this.showSuccessMessage(`Welcome ${displayName}! Redirecting to dashboard...`);
+    } catch (error) {
+      this.showSuccessMessage('Authentication successful! Redirecting...');
+    }
+    
     // Redirect to appropriate page based on stored state
-    const redirectPath = sessionStorage.getItem('redirectAfterAuth') || '/';
+    const redirectPath = sessionStorage.getItem('redirectAfterAuth') || 'dashboard.html';
     sessionStorage.removeItem('redirectAfterAuth');
     
-    // Small delay to ensure everything is processed
+    // Small delay to show success message and ensure everything is processed
     setTimeout(() => {
       window.location.href = redirectPath;
-    }, 1000);
+    }, 1500);
+  }
+
+  showSuccessMessage(message) {
+    const successDiv = document.createElement('div');
+    successDiv.className = 'oauth-success-overlay';
+    successDiv.innerHTML = `
+      <div class="oauth-success-content">
+        <div class="success-icon">✓</div>
+        <h3>Sign In Successful</h3>
+        <p>${message}</p>
+      </div>
+    `;
+    
+    // Add CSS styles for the success overlay
+    successDiv.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+      color: white;
+      font-family: Arial, sans-serif;
+    `;
+    
+    // Style the success content
+    const content = successDiv.querySelector('.oauth-success-content');
+    content.style.cssText = `
+      text-align: center;
+      padding: 2rem;
+      background: #1f2937;
+      border-radius: 8px;
+      border: 2px solid #10b981;
+    `;
+    
+    // Style the success icon
+    const icon = successDiv.querySelector('.success-icon');
+    icon.style.cssText = `
+      font-size: 3rem;
+      color: #10b981;
+      margin-bottom: 1rem;
+    `;
+    
+    document.body.appendChild(successDiv);
   }
 }
 

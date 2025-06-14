@@ -100,9 +100,18 @@ class AuthManager {
   }
   
   // Sign up new user
-  async signUp(email, password) {
+  async signUp(email, password, userData = {}) {
     try {
-      console.log('Attempting to sign up:', email);
+      console.log('Attempting to sign up:', email, 'with user data:', userData);
+      
+      // Store userData temporarily for profile creation after verification
+      if (userData.firstName && userData.lastName) {
+        sessionStorage.setItem('pendingUserData', JSON.stringify({
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: email
+        }));
+      }
       
       const result = await signUp({
         username: email,
@@ -229,24 +238,73 @@ class AuthManager {
       await this.ensureInitialized();
       
       const userId = cognitoUser.userId || cognitoUser.username;
-      const attributes = cognitoUser.attributes || {};
-      console.log('Creating/updating user profile for:', userId, 'with attributes:', attributes);
+      let attributes = cognitoUser.attributes || {};
+      
+      console.log('=== PROFILE CREATION DEBUG ===');
+      console.log('User ID:', userId);
+      console.log('Full Cognito User Object:', JSON.stringify(cognitoUser, null, 2));
+      console.log('Initial attributes:', JSON.stringify(attributes, null, 2));
+      console.log('SignInDetails:', JSON.stringify(cognitoUser.signInDetails, null, 2));
+      
+      // For OAuth users, attributes might not be directly available
+      // Try to fetch user attributes explicitly
+      if (!attributes || Object.keys(attributes).length === 0) {
+        try {
+          console.log('Attempting to fetch user attributes explicitly...');
+          const { fetchUserAttributes } = await import('@aws-amplify/auth');
+          const fetchedAttributes = await fetchUserAttributes();
+          attributes = fetchedAttributes || {};
+          console.log('Fetched user attributes:', JSON.stringify(attributes, null, 2));
+        } catch (fetchError) {
+          console.log('Could not fetch user attributes:', fetchError);
+        }
+      }
       
       // Check if profile exists
-      const existingProfile = await this.client.models.UserProfile.get({ userId });
+      console.log('Checking if profile exists for userId:', userId);
+      // Use list() with filter instead of get() since userId is not the primary key
+      const existingProfileList = await this.client.models.UserProfile.list({
+        filter: { userId: { eq: userId } }
+      });
+      console.log('Profile existence check result:', existingProfileList);
+      console.log('Profile data:', existingProfileList.data);
+      console.log('Profile errors:', existingProfileList.errors);
       
+      const existingProfile = {
+        data: existingProfileList.data && existingProfileList.data.length > 0 ? existingProfileList.data[0] : null
+      };
+
       if (!existingProfile.data) {
         // Create new profile with enhanced Google OAuth data
         const email = attributes.email || cognitoUser.signInDetails?.loginId || userId;
         const username = this.generateUsername(email);
+
+        console.log('Creating NEW profile with data:');
         
-        await this.client.models.UserProfile.create({
+        // Check for stored user data from regular sign-up
+        let storedUserData = null;
+        try {
+          const pendingData = sessionStorage.getItem('pendingUserData');
+          if (pendingData) {
+            storedUserData = JSON.parse(pendingData);
+            console.log('Found stored user data from sign-up:', storedUserData);
+            // Clear it after use
+            sessionStorage.removeItem('pendingUserData');
+          }
+        } catch (e) {
+          console.log('No stored user data found');
+        }
+        
+        const profileData = {
           userId,
           username,
           email,
-          displayName: attributes.name || attributes.given_name || username,
-          firstName: attributes.given_name || null,
-          lastName: attributes.family_name || null,
+          // Use stored data for regular users, or Google attributes for OAuth users
+          displayName: storedUserData?.firstName && storedUserData?.lastName 
+            ? `${storedUserData.firstName} ${storedUserData.lastName}`
+            : attributes.name || attributes.given_name || username,
+          firstName: storedUserData?.firstName || attributes.given_name || null,
+          lastName: storedUserData?.lastName || attributes.family_name || null,
           profilePicture: attributes.picture || null,
           googleId: attributes.sub || null, // Google user ID
           currentSeason: "2025",
@@ -254,10 +312,26 @@ class AuthManager {
           isEliminated: false,
           notificationsEnabled: true,
           joinedAt: new Date().toISOString()
-        });
-        
+        };
+        console.log('Profile data to create:', JSON.stringify(profileData, null, 2));
+
+        try {
+          const createResult = await this.client.models.UserProfile.create(profileData);
+          console.log('Profile creation result:', createResult);
+          console.log('Profile creation success:', createResult.data);
+          
+          // Verify the profile was created by trying to retrieve it
+          console.log('Verifying profile creation by retrieving it...');
+          const verificationResult = await this.client.models.UserProfile.get({ userId });
+          console.log('Profile verification result:', verificationResult);
+          
+        } catch (createError) {
+          console.error('Profile creation failed:', createError);
+          throw createError;
+        }
+
         console.log('Created new user profile with enhanced data');
-        
+
         // Migrate localStorage picks if any
         await this.migrateLocalStoragePicks(userId);
       } else {
@@ -266,26 +340,40 @@ class AuthManager {
           userId,
           lastActiveAt: new Date().toISOString()
         };
-        
-        // Only update Google data if it's available and not already set
-        if (attributes.name && !existingProfile.data.displayName) {
+
+        console.log('Existing profile found:', existingProfile.data);
+        console.log('Google attributes to update:', attributes);
+
+        // Always update with Google data when available (Google data is more reliable)
+        if (attributes.name) {
           updateData.displayName = attributes.name;
+          console.log('Updating displayName to:', attributes.name);
         }
-        if (attributes.given_name && !existingProfile.data.firstName) {
+        if (attributes.given_name) {
           updateData.firstName = attributes.given_name;
+          console.log('Updating firstName to:', attributes.given_name);
         }
-        if (attributes.family_name && !existingProfile.data.lastName) {
+        if (attributes.family_name) {
           updateData.lastName = attributes.family_name;
+          console.log('Updating lastName to:', attributes.family_name);
         }
-        if (attributes.picture && !existingProfile.data.profilePicture) {
+        if (attributes.email) {
+          updateData.email = attributes.email;
+          console.log('Updating email to:', attributes.email);
+        }
+        if (attributes.picture) {
           updateData.profilePicture = attributes.picture;
+          console.log('Updating profilePicture to:', attributes.picture);
         }
-        if (attributes.sub && !existingProfile.data.googleId) {
+        if (attributes.sub) {
           updateData.googleId = attributes.sub;
+          console.log('Updating googleId to:', attributes.sub);
         }
-        
-        await this.client.models.UserProfile.update(updateData);
-        console.log('Updated existing user profile with enhanced data');
+
+        console.log('Final update data:', updateData);
+        const updateResult = await this.client.models.UserProfile.update(updateData);
+        console.log('Profile update result:', updateResult);
+        console.log('Updated existing user profile with enhanced Google data');
       }
     } catch (error) {
       console.error('Error managing user profile:', error);
@@ -383,6 +471,71 @@ class AuthManager {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  // Get user display information (combines Cognito user with profile data)
+  async getUserDisplayInfo() {
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) return null;
+
+      await this.ensureInitialized();
+      
+      // Try to get user profile for enhanced display information
+      const userId = user.userId || user.username;
+      console.log('=== USER DISPLAY INFO DEBUG ===');
+      console.log('Getting profile for userId:', userId);
+      
+      // Try multiple times in case of database timing issues
+      let userProfile = null;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        console.log(`Profile retrieval attempt ${attempt}/3`);
+        // Use list() with filter instead of get() since userId is not the primary key
+        const profileList = await this.client.models.UserProfile.list({
+          filter: { userId: { eq: userId } }
+        });
+        console.log(`Attempt ${attempt} result:`, profileList);
+        
+        if (profileList.data && profileList.data.length > 0) {
+          userProfile = { data: profileList.data[0] };
+          console.log('Profile found on attempt', attempt);
+          break;
+        }
+        
+        if (attempt < 3) {
+          console.log('Profile not found, waiting 1 second before retry...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      console.log('Final retrieved profile data:', userProfile?.data);
+
+      if (userProfile?.data) {
+        // Use profile data for better display
+        const displayInfo = {
+          ...user,
+          displayName: userProfile.data.displayName || user.username,
+          email: userProfile.data.email || user.signInDetails?.loginId,
+          firstName: userProfile.data.firstName,
+          lastName: userProfile.data.lastName,
+          profilePicture: userProfile.data.profilePicture
+        };
+        console.log('Final display info:', displayInfo);
+        return displayInfo;
+      }
+
+      // Fallback to user object only
+      const fallbackInfo = {
+        ...user,
+        displayName: user.signInDetails?.loginId || user.username,
+        email: user.signInDetails?.loginId
+      };
+      console.log('Using fallback display info:', fallbackInfo);
+      return fallbackInfo;
+    } catch (error) {
+      console.error('Error getting user display info:', error);
+      return null;
     }
   }
 

@@ -64,6 +64,8 @@
             <button class="test-button" onclick="showAuthModal('signin')">Test Sign In Modal</button>
             <button class="test-button" onclick="showAuthModal('signup')">Test Sign Up Modal</button>
             <button class="test-button" onclick="testGoogleAuth()">Test Google OAuth Flow</button>
+            <button class="test-button" onclick="testUserDisplayInfo()">Test User Display Info</button>
+            <button class="test-button" onclick="debugProfileCreation()">Debug Profile Creation</button>
             <div id="auth-status" class="status info">Click buttons above to test authentication features</div>
         </div>
         
@@ -109,9 +111,19 @@
     </div>
 
     <!-- Include auth scripts -->
-    <script type="module" src="./auth-manager.js"></script>
-    <script type="module" src="./auth-ui.js"></script>
-    <script type="module" src="./oauth-handler.js"></script>
+    <script type="module">
+        // Import and make available for testing
+        import { authManager } from './auth-manager.js';
+        import { authUI } from './auth-ui.js';
+        import { oAuthHandler } from './oauth-handler.js';
+        
+        // Make available globally for testing
+        window.authManager = authManager;
+        window.authUI = authUI;
+        window.oAuthHandler = oAuthHandler;
+        
+        console.log('Test modules loaded:', { authManager, authUI, oAuthHandler });
+    </script>
 
     <script>
         // Test functions
@@ -121,15 +133,112 @@
             status.className = 'status info';
             
             // Check if Google OAuth methods are available
-            setTimeout(() => {
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            function checkMethods() {
+                attempts++;
                 if (window.authManager && typeof window.authManager.signInWithGoogle === 'function') {
-                    status.textContent = '✅ Google OAuth methods available';
+                    status.textContent = '✅ Google OAuth methods available and ready';
                     status.className = 'status success';
+                } else if (attempts < maxAttempts) {
+                    setTimeout(checkMethods, 200);
                 } else {
-                    status.textContent = '❌ Google OAuth methods not found';
+                    status.textContent = '❌ Google OAuth methods not found after 2s';
                     status.className = 'status error';
+                    console.error('authManager status:', { 
+                        exists: !!window.authManager, 
+                        methods: window.authManager ? Object.keys(window.authManager) : 'N/A'
+                    });
                 }
-            }, 500);
+            }
+            
+            checkMethods();
+        }
+
+        async function testUserDisplayInfo() {
+            const status = document.getElementById('auth-status');
+            status.textContent = 'Testing user display information...';
+            status.className = 'status info';
+            
+            try {
+                if (!window.authManager) {
+                    status.textContent = '❌ AuthManager not available';
+                    status.className = 'status error';
+                    return;
+                }
+                
+                const isAuthenticated = await window.authManager.isAuthenticated();
+                if (!isAuthenticated) {
+                    status.textContent = '⚠️ Please sign in first to test user display info';
+                    status.className = 'status error';
+                    return;
+                }
+                
+                const userInfo = await window.authManager.getUserDisplayInfo();
+                const basicUser = await window.authManager.getCurrentUser();
+                
+                console.log('Basic user info:', basicUser);
+                console.log('Enhanced user info:', userInfo);
+                
+                status.innerHTML = `
+                    ✅ User Display Info:<br/>
+                    <strong>Display Name:</strong> ${userInfo?.displayName || 'N/A'}<br/>
+                    <strong>Email:</strong> ${userInfo?.email || 'N/A'}<br/>
+                    <strong>Username:</strong> ${userInfo?.username || 'N/A'}<br/>
+                    <strong>First Name:</strong> ${userInfo?.firstName || 'N/A'}<br/>
+                    <strong>Last Name:</strong> ${userInfo?.lastName || 'N/A'}
+                `;
+                status.className = 'status success';
+                
+            } catch (error) {
+                console.error('Error testing user display info:', error);
+                status.textContent = `❌ Error: ${error.message}`;
+                status.className = 'status error';
+            }
+        }
+
+        async function debugProfileCreation() {
+            const status = document.getElementById('auth-status');
+            status.textContent = 'Debugging profile creation...';
+            status.className = 'status info';
+            
+            try {
+                if (!window.authManager) {
+                    status.textContent = '❌ AuthManager not available';
+                    status.className = 'status error';
+                    return;
+                }
+                
+                const isAuthenticated = await window.authManager.isAuthenticated();
+                if (!isAuthenticated) {
+                    status.textContent = '⚠️ Please sign in first to debug profile creation';
+                    status.className = 'status error';
+                    return;
+                }
+                
+                const currentUser = await window.authManager.getCurrentUser();
+                console.log('=== MANUAL PROFILE DEBUG ===');
+                console.log('Current user for debugging:', currentUser);
+                
+                // Manually trigger profile creation/update
+                await window.authManager.createOrUpdateUserProfile(currentUser);
+                
+                // Check the result
+                const userInfo = await window.authManager.getUserDisplayInfo();
+                
+                status.innerHTML = `
+                    ✅ Profile Creation Debug Complete<br/>
+                    Check console for detailed logs<br/>
+                    <strong>Updated Display Name:</strong> ${userInfo?.displayName || 'N/A'}
+                `;
+                status.className = 'status success';
+                
+            } catch (error) {
+                console.error('Error debugging profile creation:', error);
+                status.textContent = `❌ Error: ${error.message}`;
+                status.className = 'status error';
+            }
         }
 
         function testMobileFeatures() {

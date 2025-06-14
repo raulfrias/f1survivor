@@ -107,6 +107,14 @@ class AuthUI {
             <p class="auth-subtitle">Create an account to start playing</p>
             
             <div class="form-group">
+              <input type="text" id="signup-first-name" placeholder="First Name" required>
+            </div>
+            
+            <div class="form-group">
+              <input type="text" id="signup-last-name" placeholder="Last Name" required>
+            </div>
+            
+            <div class="form-group">
               <input type="email" id="signup-email" placeholder="Email" required>
             </div>
             
@@ -454,9 +462,17 @@ class AuthUI {
   async handleSignUp(e) {
     e.preventDefault();
     
+    const firstName = this.modal.querySelector('#signup-first-name').value.trim();
+    const lastName = this.modal.querySelector('#signup-last-name').value.trim();
     const email = this.modal.querySelector('#signup-email').value;
     const password = this.modal.querySelector('#signup-password').value;
     const confirmPassword = this.modal.querySelector('#signup-confirm').value;
+
+    // Validate required fields
+    if (!firstName || !lastName) {
+      this.showError('signup', 'Please enter your first and last name');
+      return;
+    }
 
     // Validate passwords match
     if (password !== confirmPassword) {
@@ -474,13 +490,14 @@ class AuthUI {
     this.clearErrors();
 
     try {
-      const result = await authManager.signUp(email, password);
+      const result = await authManager.signUp(email, password, { firstName, lastName });
       
       if (result.success) {
         console.log('Sign up successful, result:', result);
         console.log('needsVerification:', result.needsVerification);
         console.log('nextStep:', result.nextStep);
         this.pendingEmail = email;
+        this.pendingUserData = { firstName, lastName, email }; // Store for profile creation after verification
         
         // Always show verification step for now (for debugging)
         if (result.needsVerification !== false) {

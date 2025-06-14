@@ -11,6 +11,16 @@ const schema = a.schema({
     username: a.string().required(),
     email: a.string().required(),
     
+    // Owner field (required for owner-based authorization)
+    owner: a.string(),
+    
+    // Personal information (for Google OAuth)
+    displayName: a.string(),
+    firstName: a.string(),
+    lastName: a.string(),
+    profilePicture: a.string(), // URL to profile picture
+    googleId: a.string(), // Google user ID for OAuth users
+    
     // Game statistics
     currentSeason: a.string().required().default("2025"),
     totalSurvivedRaces: a.integer().default(0),
@@ -31,8 +41,8 @@ const schema = a.schema({
     leagueMemberships: a.hasMany('LeagueMember', 'userId'),
     ownedLeagues: a.hasMany('League', 'ownerId')
   }).authorization((allow) => [
-    allow.owner(),
-    allow.authenticated().to(['read'])
+    allow.owner().identityClaim("sub"),
+    allow.authenticated().to(["read"])
   ]),
 
   // ========================================

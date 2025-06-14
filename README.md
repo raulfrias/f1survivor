@@ -209,7 +209,18 @@ f1survivor/
   - Full password reset/forgot password functionality
   - User profile management and session handling
 
-🔄 **Frontend-Backend Integration:** 🔄 (In Progress - June 11, 2025)
+✅ **Enhanced Authentication & User Experience:** ✅ (Completed June 13, 2025)
+  - **Google OAuth Integration:** Complete "Continue with Google" and "Sign up with Google" functionality
+  - **Enhanced Name Capture:** Sign-up form now captures first and last names for proper user display
+  - **Real Name Display:** Users show as "Raul Frias" instead of "google_105701204197643832702" 
+  - **Mobile-First Responsive Design:** Touch-friendly authentication with 44px targets, 16px fonts
+  - **Professional UX:** CSS spinner animations, enhanced loading states, improved error handling
+  - **Cross-Browser Synchronization:** "Make Your Pick" button properly updates across browsers/sessions
+  - **OAuth Callback Handling:** Robust callback processing with retry logic for timing issues
+  - **Database Schema Enhancements:** Added displayName, firstName, lastName, googleId fields
+  - **Authorization Fixes:** Resolved owner field and identity claim issues for OAuth users
+
+🔄 **Frontend-Backend Integration:** ✅ (Completed June 12, 2025)
   - Complete replacement of localStorage with AWS DynamoDB operations
   - Authentication-required pick saving and loading via GraphQL
   - Pick changing functionality with duplicate cleanup
@@ -223,13 +234,12 @@ f1survivor/
   - Solo mode fully migrated to AWS backend (no localStorage for user picks)
 
 🔄 **Current Focus:**
-  - 🔄 **Frontend-Backend Integration Testing:** Resolve remaining pick flow issues
-  - 🔄 **League Operations Backend Integration:** Remove localStorage, connect to AWS
-  - 🔄 **Multi-user League Functionality:** Complete AWS backend integration
+  - 🔄 **Multi-League Core Architecture:** Unlimited leagues per user, shareable links, cross-league profiles
+  - 🔄 **Advanced League Customization:** Multiple lives system (1-5 lives per league), admin controls
 
 🔄 **Next Priority:**
-  - 🔄 Real-time league updates via GraphQL subscriptions
-  - 🔄 Production deployment and environment configuration
+  - 🔄 **League Operations AWS Migration:** Remove localStorage dependency, complete backend integration
+  - 🔄 **Real-time Updates:** GraphQL subscriptions for live league interactions
 
 ## Development Roadmap
 

@@ -1004,7 +1004,16 @@ async function initializeApp() {
         initializeLeagueIntegration();
         
         // Initialize authentication state management
-        initializeAuthState();
+        await initializeAuthState();
+        
+        // Final button text refresh to ensure it's always correct
+        setTimeout(async () => {
+            const isAuthenticated = await authManager.isAuthenticated();
+            if (isAuthenticated) {
+                await updatePickButtonTextAfterAuth();
+                console.log('Final button text refresh completed');
+            }
+        }, 500); // Small delay to ensure all initialization is complete
         
     } catch (error) {
         console.error('App initialization failed:', error);
@@ -1022,13 +1031,13 @@ async function initializeAuthState() {
         console.log('Initializing authentication state management');
         
         // Set up auth state listener
-        authManager.onAuthStateChange((isAuthenticated) => {
-            updateUIForAuthState(isAuthenticated);
+        authManager.onAuthStateChange(async (isAuthenticated) => {
+            await updateUIForAuthState(isAuthenticated);
         });
         
         // Check initial auth state
         const isAuthenticated = await authManager.isAuthenticated();
-        updateUIForAuthState(isAuthenticated);
+        await updateUIForAuthState(isAuthenticated);
         
         console.log('Authentication state management initialized');
     } catch (error) {
@@ -1038,20 +1047,18 @@ async function initializeAuthState() {
 
 // Update UI based on authentication state
 async function updateUIForAuthState(isAuthenticated) {
-    console.log('Updating UI for auth state:', isAuthenticated);
-    
     const signInLinks = document.querySelectorAll('.sign-in');
-    const navLinks = document.querySelectorAll('.nav-link'); // Pick and Dashboard buttons
+    const navLinks = document.querySelectorAll('.nav-link:not(.sign-in)');
     const makePickBtn = document.getElementById('make-pick-btn');
     
     if (isAuthenticated) {
         try {
-            const user = await authManager.getCurrentUser();
-            const userEmail = user?.signInDetails?.loginId || user?.username || 'User';
+            const userInfo = await authManager.getUserDisplayInfo();
+            const displayText = userInfo?.displayName || userInfo?.email?.split('@')[0] || userInfo?.username || 'User';
             
             // Update sign in links to show user menu
             signInLinks.forEach(link => {
-                link.textContent = userEmail.split('@')[0]; // Show username part of email
+                link.textContent = displayText; // Show user's actual name or email
                 link.onclick = (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1068,7 +1075,7 @@ async function updateUIForAuthState(isAuthenticated) {
             // Restore Make Your Pick button for authenticated users
             if (makePickBtn) {
                 // Check if there's an existing pick and update button accordingly
-                updatePickButtonTextAfterAuth();
+                await updatePickButtonTextAfterAuth();
                 // Don't modify onclick - let addEventListener handle all clicks
                 makePickBtn.style.display = 'block';
             }
@@ -1076,7 +1083,7 @@ async function updateUIForAuthState(isAuthenticated) {
         // Remove unauthenticated message if it exists
         removeUnauthenticatedMessage();
         
-        console.log('UI updated for authenticated user:', userEmail);
+        console.log('UI updated for authenticated user:', displayText);
         } catch (error) {
             console.error('Error getting user info:', error);
             // Fallback
@@ -1097,7 +1104,7 @@ async function updateUIForAuthState(isAuthenticated) {
             
             if (makePickBtn) {
                 // Check if there's an existing pick and update button accordingly
-                updatePickButtonTextAfterAuth();
+                await updatePickButtonTextAfterAuth();
                 // Don't modify onclick - let addEventListener handle all clicks
                 makePickBtn.style.display = 'block';
             }
@@ -1235,7 +1242,7 @@ async function handleSignOut() {
             userMenus.forEach(menu => menu.remove());
             
             // Update UI for unauthenticated state
-            updateUIForAuthState(false);
+            await updateUIForAuthState(false);
             
             // Redirect to home page if on dashboard
             if (window.location.pathname.includes('dashboard')) {

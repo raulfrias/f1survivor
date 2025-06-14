@@ -37,12 +37,12 @@ async function updateUIForAuthState(isAuthenticated) {
   
   if (isAuthenticated) {
     try {
-      const user = await authManager.getCurrentUser();
-      const userEmail = user?.signInDetails?.loginId || user?.username || 'User';
+      const userInfo = await authManager.getUserDisplayInfo();
+      const displayText = userInfo?.displayName || userInfo?.email?.split('@')[0] || userInfo?.username || 'User';
       
       // Update sign in links to show user menu
       signInLinks.forEach(link => {
-        link.textContent = userEmail.split('@')[0]; // Show username part of email
+        link.textContent = displayText; // Show user's actual name or email
         link.onclick = (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -56,7 +56,7 @@ async function updateUIForAuthState(isAuthenticated) {
         link.style.display = 'block';
       });
       
-      console.log('UI updated for authenticated user:', userEmail);
+      console.log('UI updated for authenticated user:', displayText);
     } catch (error) {
       console.error('Error getting user info:', error);
       // Fallback

@@ -159,17 +159,22 @@ This document outlines the development phases and tasks for the F1 Survivor game
 - [x] **Production Button Functionality:** All buttons now work correctly in deployed environment
 - [x] **End-to-End Production Testing:** Complete authentication and pick flow validated in live environment
 
-### Enhanced Authentication & User Experience ⭐ (New - Immediate Priority - FOCUSED SCOPE)
-**CORE FEATURES (1-2 weeks):**
-- [ ] Google OAuth integration via Cognito Social Identity Providers (backend ready)
-- [ ] Mobile authentication optimization (current system broken on mobile)
-- [ ] Enhanced loading states & error handling (low effort, high impact)
-- [ ] Social login UI integration in existing auth modal
-- [ ] Touch-friendly authentication on mobile devices
+### Enhanced Authentication & User Experience ✅ (Completed June 13, 2025)
+**CORE FEATURES COMPLETED:**
+- [x] Google OAuth integration via Cognito Social Identity Providers (backend ready)
+- [x] Enhanced name capture in sign-up flow (first name + last name fields) 
+- [x] Real name display instead of Google OAuth usernames ("Raul Frias" vs "google_105701204197643832702")
+- [x] Mobile authentication optimization (touch-friendly 44px targets, 16px fonts)
+- [x] Enhanced loading states & error handling (professional CSS spinners)
+- [x] Social login UI integration in existing auth modal ("Continue with Google", "Sign up with Google")
+- [x] Cross-browser button synchronization ("Make Your Pick" updates properly across sessions)
+- [x] OAuth callback handling with retry logic for race condition fixes
+- [x] Database schema enhancements (displayName, firstName, lastName, googleId, owner fields)
+- [x] Authorization and identity claim fixes for OAuth users
+- [x] Profile creation with stored user data for email/password vs. Google OAuth users
 
 **DEFERRED TO FUTURE PHASES:**
 - [ ] Profile completion flows and profile pictures (Phase 3)
-- [ ] Display name vs username handling (Phase 3)
 - [ ] Additional social providers (Facebook, Apple) (Phase 4)
 - [ ] Advanced session management and account linking (Phase 4)
 

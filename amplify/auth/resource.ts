@@ -25,6 +25,7 @@ export const auth = defineAuth({
       callbackUrls: [
         'http://localhost:5173',  // Local development
         'http://localhost:3000',  // Alternative local port
+        'https://test.f1survivor.com',
         'https://feature-enhanced-auth-ux.d2v5o7pvlu40h.amplifyapp.com',
         'https://f1survivor.com',
         'https://www.f1survivor.com'
@@ -32,6 +33,7 @@ export const auth = defineAuth({
       logoutUrls: [
         'http://localhost:5173',
         'http://localhost:3000', 
+        'https://test.f1survivor.com',
         'https://feature-enhanced-auth-ux.d2v5o7pvlu40h.amplifyapp.com',
         'https://f1survivor.com',
         'https://www.f1survivor.com'

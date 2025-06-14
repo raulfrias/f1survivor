@@ -1029,7 +1029,7 @@ async function initializeAuthState() {
             if (isAuthenticated) {
                 setTimeout(async () => {
                     await updatePickButtonTextAfterAuth();
-                    console.log('Post-auth button text refresh completed');
+                    // console.log('Post-auth button text refresh completed');
                 }, 1000); // Allow time for pick data to load
             }
         });

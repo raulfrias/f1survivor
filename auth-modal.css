@@ -117,7 +117,7 @@
 .form-group input {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 2px solid #374151;
+  border: 2px solid #374151 !important;
   border-radius: 6px;
   background: #ffffff !important;
   color: #111827 !important;
@@ -128,7 +128,7 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #dc2626;
+  border-color: #dc2626 !important;
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
@@ -142,6 +142,7 @@
 .form-group input[type="password"] {
   background: #ffffff !important;
   color: #111827 !important;
+  border: 2px solid #374151 !important;
   -webkit-appearance: none;
   appearance: none;
 }
@@ -153,6 +154,7 @@
   -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
   -webkit-text-fill-color: #111827 !important;
   background-color: #ffffff !important;
+  border: 2px solid #374151 !important;
 }
 
 /* Password Requirements */

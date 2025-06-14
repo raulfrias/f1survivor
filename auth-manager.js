@@ -240,35 +240,35 @@ class AuthManager {
       const userId = cognitoUser.userId || cognitoUser.username;
       let attributes = cognitoUser.attributes || {};
       
-      console.log('=== PROFILE CREATION DEBUG ===');
-      console.log('User ID:', userId);
-      console.log('Full Cognito User Object:', JSON.stringify(cognitoUser, null, 2));
-      console.log('Initial attributes:', JSON.stringify(attributes, null, 2));
-      console.log('SignInDetails:', JSON.stringify(cognitoUser.signInDetails, null, 2));
+      // console.log('=== PROFILE CREATION DEBUG ===');
+      // console.log('User ID:', userId);
+      // console.log('Full Cognito User Object:', JSON.stringify(cognitoUser, null, 2));
+      // console.log('Initial attributes:', JSON.stringify(attributes, null, 2));
+      // console.log('SignInDetails:', JSON.stringify(cognitoUser.signInDetails, null, 2));
       
       // For OAuth users, attributes might not be directly available
       // Try to fetch user attributes explicitly
       if (!attributes || Object.keys(attributes).length === 0) {
         try {
-          console.log('Attempting to fetch user attributes explicitly...');
+          // console.log('Attempting to fetch user attributes explicitly...');
           const { fetchUserAttributes } = await import('@aws-amplify/auth');
           const fetchedAttributes = await fetchUserAttributes();
           attributes = fetchedAttributes || {};
-          console.log('Fetched user attributes:', JSON.stringify(attributes, null, 2));
+          // console.log('Fetched user attributes:', JSON.stringify(attributes, null, 2));
         } catch (fetchError) {
           console.log('Could not fetch user attributes:', fetchError);
         }
       }
       
       // Check if profile exists
-      console.log('Checking if profile exists for userId:', userId);
+      // console.log('Checking if profile exists for userId:', userId);
       // Use list() with filter instead of get() since userId is not the primary key
       const existingProfileList = await this.client.models.UserProfile.list({
         filter: { userId: { eq: userId } }
       });
-      console.log('Profile existence check result:', existingProfileList);
-      console.log('Profile data:', existingProfileList.data);
-      console.log('Profile errors:', existingProfileList.errors);
+      // console.log('Profile existence check result:', existingProfileList);
+      // console.log('Profile data:', existingProfileList.data);
+      // console.log('Profile errors:', existingProfileList.errors);
       
       const existingProfile = {
         data: existingProfileList.data && existingProfileList.data.length > 0 ? existingProfileList.data[0] : null
@@ -279,7 +279,7 @@ class AuthManager {
         const email = attributes.email || cognitoUser.signInDetails?.loginId || userId;
         const username = this.generateUsername(email);
 
-        console.log('Creating NEW profile with data:');
+        // console.log('Creating NEW profile with data:');
         
         // Check for stored user data from regular sign-up
         let storedUserData = null;
@@ -287,12 +287,12 @@ class AuthManager {
           const pendingData = sessionStorage.getItem('pendingUserData');
           if (pendingData) {
             storedUserData = JSON.parse(pendingData);
-            console.log('Found stored user data from sign-up:', storedUserData);
+            // console.log('Found stored user data from sign-up:', storedUserData);
             // Clear it after use
             sessionStorage.removeItem('pendingUserData');
           }
         } catch (e) {
-          console.log('No stored user data found');
+          // console.log('No stored user data found');
         }
         
         const profileData = {
@@ -313,17 +313,17 @@ class AuthManager {
           notificationsEnabled: true,
           joinedAt: new Date().toISOString()
         };
-        console.log('Profile data to create:', JSON.stringify(profileData, null, 2));
+        // console.log('Profile data to create:', JSON.stringify(profileData, null, 2));
 
         try {
           const createResult = await this.client.models.UserProfile.create(profileData);
-          console.log('Profile creation result:', createResult);
-          console.log('Profile creation success:', createResult.data);
+          // console.log('Profile creation result:', createResult);
+          // console.log('Profile creation success:', createResult.data);
           
           // Verify the profile was created by trying to retrieve it
-          console.log('Verifying profile creation by retrieving it...');
+          // console.log('Verifying profile creation by retrieving it...');
           const verificationResult = await this.client.models.UserProfile.get({ userId });
-          console.log('Profile verification result:', verificationResult);
+          // console.log('Profile verification result:', verificationResult);
           
         } catch (createError) {
           console.error('Profile creation failed:', createError);
@@ -484,32 +484,32 @@ class AuthManager {
       
       // Try to get user profile for enhanced display information
       const userId = user.userId || user.username;
-      console.log('=== USER DISPLAY INFO DEBUG ===');
-      console.log('Getting profile for userId:', userId);
+      // console.log('=== USER DISPLAY INFO DEBUG ===');
+      // console.log('Getting profile for userId:', userId);
       
       // Try multiple times in case of database timing issues
       let userProfile = null;
       for (let attempt = 1; attempt <= 3; attempt++) {
-        console.log(`Profile retrieval attempt ${attempt}/3`);
+        // console.log(`Profile retrieval attempt ${attempt}/3`);
         // Use list() with filter instead of get() since userId is not the primary key
         const profileList = await this.client.models.UserProfile.list({
           filter: { userId: { eq: userId } }
         });
-        console.log(`Attempt ${attempt} result:`, profileList);
+        // console.log(`Attempt ${attempt} result:`, profileList);
         
         if (profileList.data && profileList.data.length > 0) {
           userProfile = { data: profileList.data[0] };
-          console.log('Profile found on attempt', attempt);
+          // console.log('Profile found on attempt', attempt);
           break;
         }
         
         if (attempt < 3) {
-          console.log('Profile not found, waiting 1 second before retry...');
+          // console.log('Profile not found, waiting 1 second before retry...');
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
       
-      console.log('Final retrieved profile data:', userProfile?.data);
+      // console.log('Final retrieved profile data:', userProfile?.data);
 
       if (userProfile?.data) {
         // Use profile data for better display
@@ -521,7 +521,7 @@ class AuthManager {
           lastName: userProfile.data.lastName,
           profilePicture: userProfile.data.profilePicture
         };
-        console.log('Final display info:', displayInfo);
+        // console.log('Final display info:', displayInfo);
         return displayInfo;
       }
 
@@ -531,7 +531,7 @@ class AuthManager {
         displayName: user.signInDetails?.loginId || user.username,
         email: user.signInDetails?.loginId
       };
-      console.log('Using fallback display info:', fallbackInfo);
+      // console.log('Using fallback display info:', fallbackInfo);
       return fallbackInfo;
     } catch (error) {
       console.error('Error getting user display info:', error);

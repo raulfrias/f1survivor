@@ -7,7 +7,7 @@ export class OAuthHandler {
   }
 
   async initializeHandler() {
-    console.log('OAuthHandler: Initializing...');
+    // console.log('OAuthHandler: Initializing...');
     
     // Check if current page is OAuth callback
     if (this.isOAuthCallback()) {

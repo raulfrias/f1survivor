@@ -29,12 +29,10 @@ export const PickChangeUtils = {
         makePickBtn.textContent = 'MAKE YOUR PICK';
       } else if (canChange) {
         const driverName = currentPick.driverName || 'Unknown Driver';
-        const lastName = driverName.split(' ').pop();
-        makePickBtn.textContent = `PICKED: ${lastName.toUpperCase()} (CHANGE)`;
+        makePickBtn.textContent = `PICKED: ${driverName.toUpperCase()} (CHANGE)`;
       } else {
         const driverName = currentPick.driverName || 'Unknown Driver';
-        const lastName = driverName.split(' ').pop();
-        makePickBtn.textContent = `PICKED: ${lastName.toUpperCase()}`;
+        makePickBtn.textContent = `PICKED: ${driverName.toUpperCase()}`;
       }
     } catch (error) {
       console.error('Error updating make pick button text:', error);

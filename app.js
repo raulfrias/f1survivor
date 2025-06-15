@@ -743,10 +743,9 @@ const initializeDriverSelection = async () => {
                 makePickBtn.style.cursor = 'not-allowed';
                 
                 // Update button text to remove (CHANGE) if present
-                const currentPick = getCurrentRacePickWithContext();
-                if (currentPick) {
-                    const lastName = currentPick.driverName.split(' ').pop();
-                    makePickBtn.textContent = `PICKED: ${lastName.toUpperCase()}`;
+                const currentPick = await getCurrentRacePickWithContext();
+                if (currentPick && currentPick.driverName) {
+                    makePickBtn.textContent = `PICKED: ${currentPick.driverName.toUpperCase()}`;
                 }
             }
             
@@ -783,10 +782,9 @@ const initializeDriverSelection = async () => {
         makePickBtn.style.cursor = 'not-allowed';
         
         // Update button text to remove (CHANGE) if present
-        const currentPick = getCurrentRacePickWithContext();
-        if (currentPick) {
-            const lastName = currentPick.driverName.split(' ').pop();
-            makePickBtn.textContent = `PICKED: ${lastName.toUpperCase()}`;
+        const currentPick = await getCurrentRacePickWithContext();
+        if (currentPick && currentPick.driverName) {
+            makePickBtn.textContent = `PICKED: ${currentPick.driverName.toUpperCase()}`;
         }
         
         // Also update the countdown warning

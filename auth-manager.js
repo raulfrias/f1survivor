@@ -633,6 +633,12 @@ class AuthManager {
     }
   }
   
+  // Get current user synchronously (for use in synchronous contexts)
+  // Returns cached user data or null if not available
+  getCurrentUserSync() {
+    return this.currentUser;
+  }
+  
   // Subscribe to auth state changes
   onAuthStateChange(callback) {
     this.authStateListeners.push(callback);

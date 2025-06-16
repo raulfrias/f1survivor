@@ -434,6 +434,380 @@ export class AmplifyDataService {
       details: cleanupResults
     };
   }
+
+  // ============================================================================
+  // MULTI-LEAGUE OPTIMIZATION METHODS
+  // ============================================================================
+
+  /**
+   * Get leagues with cached data for better performance
+   * @returns {Promise<Array>} User leagues with cached member and pick data
+   */
+  async getUserLeaguesWithCache() {
+    const user = await authManager.getCurrentUser();
+    if (!user) return [];
+
+    try {
+      // Get basic league memberships
+      const leagues = await this.getUserLeagues();
+      
+      // Batch load additional data for all leagues
+      const leagueIds = leagues.map(l => l.leagueId);
+      const [memberData, pickData] = await Promise.all([
+        this.batchGetLeagueMembers(leagueIds),
+        this.batchGetLeaguePicks(leagueIds)
+      ]);
+
+      // Combine and enhance league data
+      return leagues.map(league => ({
+        ...league,
+        members: memberData[league.leagueId] || [],
+        memberCount: (memberData[league.leagueId] || []).length,
+        recentPicks: pickData[league.leagueId] || [],
+        lastActivity: this.calculateLeagueLastActivity(
+          memberData[league.leagueId] || [],
+          pickData[league.leagueId] || []
+        )
+      }));
+    } catch (error) {
+      console.error('Failed to load leagues with cache:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get pick history across ALL user leagues
+   * @param {string|null} userId - User ID (null for current user)
+   * @returns {Promise<Object>} Picks grouped by league
+   */
+  async getMultiLeaguePickHistory(userId = null) {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    const targetUserId = userId || user.userId || user.username;
+
+    try {
+      // Get all user leagues first
+      const leagues = await this.getUserLeagues();
+      const leagueIds = leagues.map(l => l.leagueId);
+
+      // Get picks for all leagues plus solo picks
+      const [leaguePicks, soloPicks] = await Promise.all([
+        this.batchGetUserPicksForLeagues(targetUserId, leagueIds),
+        this.getUserPicks(targetUserId, null) // Solo picks (no league)
+      ]);
+
+      return {
+        leaguePicks,
+        soloPicks: this.transformPicksForUI(soloPicks),
+        totalPicks: Object.values(leaguePicks).reduce((sum, picks) => sum + picks.length, 0) + soloPicks.length,
+        leagueCount: leagueIds.length
+      };
+    } catch (error) {
+      console.error('Failed to get multi-league pick history:', error);
+      return {
+        leaguePicks: {},
+        soloPicks: [],
+        totalPicks: 0,
+        leagueCount: 0
+      };
+    }
+  }
+
+  /**
+   * Calculate cross-league statistics for a user
+   * @param {string|null} userId - User ID (null for current user)
+   * @returns {Promise<Object>} Cross-league statistics
+   */
+  async getCrossLeagueStatistics(userId = null) {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    const targetUserId = userId || user.userId || user.username;
+
+    try {
+      const pickHistory = await this.getMultiLeaguePickHistory(targetUserId);
+      const leagues = await this.getUserLeagues();
+
+      // Calculate statistics
+      const stats = {
+        totalLeagues: leagues.length,
+        totalPicks: pickHistory.totalPicks,
+        leagueStats: {},
+        overallStats: {
+          averagePicksPerLeague: 0,
+          mostActiveLeague: null,
+          oldestMembership: null,
+          newestMembership: null,
+          ownedLeagues: 0
+        }
+      };
+
+      // Calculate per-league statistics
+      for (const league of leagues) {
+        const leaguePicks = pickHistory.leaguePicks[league.leagueId] || [];
+        const membership = league.membershipData;
+
+        stats.leagueStats[league.leagueId] = {
+          leagueName: league.name,
+          pickCount: leaguePicks.length,
+          isOwner: membership?.isOwner || false,
+          joinedAt: membership?.joinedAt,
+          survivedRaces: membership?.survivedRaces || 0,
+          totalPicks: membership?.totalPicks || 0,
+          autoPickCount: membership?.autoPickCount || 0,
+          memberCount: league.memberCount || 0
+        };
+
+        // Track owned leagues
+        if (membership?.isOwner) {
+          stats.overallStats.ownedLeagues++;
+        }
+
+        // Track oldest/newest memberships
+        if (membership?.joinedAt) {
+          const joinDate = new Date(membership.joinedAt);
+          if (!stats.overallStats.oldestMembership || joinDate < new Date(stats.overallStats.oldestMembership.joinedAt)) {
+            stats.overallStats.oldestMembership = {
+              leagueId: league.leagueId,
+              leagueName: league.name,
+              joinedAt: membership.joinedAt
+            };
+          }
+          if (!stats.overallStats.newestMembership || joinDate > new Date(stats.overallStats.newestMembership.joinedAt)) {
+            stats.overallStats.newestMembership = {
+              leagueId: league.leagueId,
+              leagueName: league.name,
+              joinedAt: membership.joinedAt
+            };
+          }
+        }
+      }
+
+      // Calculate average picks per league
+      if (leagues.length > 0) {
+        const totalLeaguePicks = Object.values(pickHistory.leaguePicks).reduce((sum, picks) => sum + picks.length, 0);
+        stats.overallStats.averagePicksPerLeague = Math.round(totalLeaguePicks / leagues.length);
+      }
+
+      // Find most active league
+      const leaguePickCounts = Object.entries(stats.leagueStats).map(([leagueId, data]) => ({
+        leagueId,
+        ...data
+      }));
+      if (leaguePickCounts.length > 0) {
+        stats.overallStats.mostActiveLeague = leaguePickCounts.sort((a, b) => b.pickCount - a.pickCount)[0];
+      }
+
+      return stats;
+    } catch (error) {
+      console.error('Failed to calculate cross-league statistics:', error);
+      return {
+        totalLeagues: 0,
+        totalPicks: 0,
+        leagueStats: {},
+        overallStats: {
+          averagePicksPerLeague: 0,
+          mostActiveLeague: null,
+          oldestMembership: null,
+          newestMembership: null,
+          ownedLeagues: 0
+        }
+      };
+    }
+  }
+
+  /**
+   * Check if driver is picked in ANY user league
+   * @param {number} driverId - Driver ID to check
+   * @returns {Promise<boolean>} True if driver picked in any league
+   */
+  async isDriverAlreadyPickedInAnyLeague(driverId) {
+    const user = await authManager.getCurrentUser();
+    if (!user) return false;
+
+    try {
+      const leagues = await this.getUserLeagues();
+      
+      for (const league of leagues) {
+        const isPicked = await this.isDriverAlreadyPicked(driverId, league.leagueId);
+        if (isPicked) {
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to check driver across leagues:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Batch get league members for multiple leagues
+   * @param {Array<string>} leagueIds - Array of league IDs
+   * @returns {Promise<Object>} Members data keyed by league ID
+   */
+  async batchGetLeagueMembers(leagueIds) {
+    const memberPromises = leagueIds.map(async (leagueId) => {
+      try {
+        const members = await this.getLeagueMembers(leagueId);
+        return { leagueId, members };
+      } catch (error) {
+        console.warn(`Failed to get members for league ${leagueId}:`, error);
+        return { leagueId, members: [] };
+      }
+    });
+
+    const results = await Promise.all(memberPromises);
+    const memberData = {};
+    
+    results.forEach(({ leagueId, members }) => {
+      memberData[leagueId] = members;
+    });
+
+    return memberData;
+  }
+
+  /**
+   * Batch get league picks for multiple leagues
+   * @param {Array<string>} leagueIds - Array of league IDs
+   * @returns {Promise<Object>} Picks data keyed by league ID
+   */
+  async batchGetLeaguePicks(leagueIds) {
+    const pickPromises = leagueIds.map(async (leagueId) => {
+      try {
+        const picks = await this.getUserPicks(null, leagueId);
+        return { leagueId, picks: this.transformPicksForUI(picks) };
+      } catch (error) {
+        console.warn(`Failed to get picks for league ${leagueId}:`, error);
+        return { leagueId, picks: [] };
+      }
+    });
+
+    const results = await Promise.all(pickPromises);
+    const pickData = {};
+    
+    results.forEach(({ leagueId, picks }) => {
+      pickData[leagueId] = picks;
+    });
+
+    return pickData;
+  }
+
+  /**
+   * Batch get user picks for multiple leagues
+   * @param {string} userId - User ID
+   * @param {Array<string>} leagueIds - Array of league IDs
+   * @returns {Promise<Object>} User picks keyed by league ID
+   */
+  async batchGetUserPicksForLeagues(userId, leagueIds) {
+    const pickPromises = leagueIds.map(async (leagueId) => {
+      try {
+        const picks = await this.getUserPicks(userId, leagueId);
+        return { leagueId, picks: this.transformPicksForUI(picks) };
+      } catch (error) {
+        console.warn(`Failed to get user picks for league ${leagueId}:`, error);
+        return { leagueId, picks: [] };
+      }
+    });
+
+    const results = await Promise.all(pickPromises);
+    const pickData = {};
+    
+    results.forEach(({ leagueId, picks }) => {
+      pickData[leagueId] = picks;
+    });
+
+    return pickData;
+  }
+
+  /**
+   * Batch load league data efficiently
+   * @param {Array<string>} leagueIds - Array of league IDs
+   * @returns {Promise<Array>} Array of league data
+   */
+  async batchGetLeagues(leagueIds) {
+    const leaguePromises = leagueIds.map(async (leagueId) => {
+      try {
+        return await this.getLeague(leagueId);
+      } catch (error) {
+        console.warn(`Failed to get league ${leagueId}:`, error);
+        return null;
+      }
+    });
+
+    const results = await Promise.all(leaguePromises);
+    return results.filter(league => league !== null);
+  }
+
+  /**
+   * Calculate last activity for a league
+   * @param {Array} members - League members
+   * @param {Array} picks - Recent picks
+   * @returns {string|null} Last activity timestamp
+   */
+  calculateLeagueLastActivity(members, picks) {
+    const memberTimes = members.map(m => m.joinedAt || m.lastActiveAt).filter(Boolean);
+    const pickTimes = picks.map(p => p.timestamp || p.submittedAt).filter(Boolean);
+    
+    const allTimes = [...memberTimes, ...pickTimes];
+    if (allTimes.length === 0) return null;
+    
+    return allTimes.sort().reverse()[0]; // Most recent timestamp
+  }
+
+  /**
+   * Optimize batch operations for multi-league data loading
+   * @returns {Promise<Object>} Complete multi-league data package
+   */
+  async batchGetUserLeagueData() {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    try {
+      // Step 1: Get basic league memberships
+      const leagues = await this.getUserLeagues();
+      const leagueIds = leagues.map(l => l.leagueId);
+
+      if (leagueIds.length === 0) {
+        return {
+          leagues: [],
+          memberData: {},
+          pickData: {},
+          crossLeagueStats: await this.getCrossLeagueStatistics()
+        };
+      }
+
+      // Step 2: Parallel fetch all additional data
+      const [memberData, pickData, crossLeagueStats] = await Promise.all([
+        this.batchGetLeagueMembers(leagueIds),
+        this.batchGetLeaguePicks(leagueIds),
+        this.getCrossLeagueStatistics()
+      ]);
+
+      // Step 3: Combine league data with additional information
+      const enhancedLeagues = leagues.map(league => ({
+        ...league,
+        members: memberData[league.leagueId] || [],
+        memberCount: (memberData[league.leagueId] || []).length,
+        recentPicks: pickData[league.leagueId] || [],
+        lastActivity: this.calculateLeagueLastActivity(
+          memberData[league.leagueId] || [],
+          pickData[league.leagueId] || []
+        )
+      }));
+
+      return {
+        leagues: enhancedLeagues,
+        memberData,
+        pickData,
+        crossLeagueStats
+      };
+    } catch (error) {
+      console.error('Failed to batch get user league data:', error);
+      throw error;
+    }
+  }
 }
 
 export const amplifyDataService = new AmplifyDataService(); 

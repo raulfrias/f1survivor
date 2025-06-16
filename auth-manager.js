@@ -247,18 +247,18 @@ class AuthManager {
       // console.log('SignInDetails:', JSON.stringify(cognitoUser.signInDetails, null, 2));
       
       // For OAuth users, attributes might not be directly available
-      // Try to fetch user attributes explicitly
-      if (!attributes || Object.keys(attributes).length === 0) {
-        try {
-          // console.log('Attempting to fetch user attributes explicitly...');
-          const { fetchUserAttributes } = await import('@aws-amplify/auth');
-          const fetchedAttributes = await fetchUserAttributes();
-          attributes = fetchedAttributes || {};
-          // console.log('Fetched user attributes:', JSON.stringify(attributes, null, 2));
-        } catch (fetchError) {
-          console.log('Could not fetch user attributes:', fetchError);
+              // Try to fetch user attributes explicitly
+        if (!attributes || Object.keys(attributes).length === 0) {
+          try {
+            // console.log('Attempting to fetch user attributes explicitly...');
+            const { fetchUserAttributes } = await import('@aws-amplify/auth');
+            const fetchedAttributes = await fetchUserAttributes();
+            attributes = fetchedAttributes || {};
+            // console.log('Fetched user attributes:', JSON.stringify(attributes, null, 2));
+          } catch (fetchError) {
+            console.log('Could not fetch user attributes:', fetchError);
+          }
         }
-      }
       
       // Check if profile exists
       // console.log('Checking if profile exists for userId:', userId);
@@ -337,43 +337,57 @@ class AuthManager {
       } else {
         // Update existing profile with any new Google data and last active
         const updateData = {
+          id: existingProfile.data.id, // CRITICAL: Use the primary key for update
           userId,
           lastActiveAt: new Date().toISOString()
         };
 
-        console.log('Existing profile found:', existingProfile.data);
-        console.log('Google attributes to update:', attributes);
+        // console.log('Existing profile found:', existingProfile.data);
+        // console.log('Google attributes to update:', attributes);
 
         // Always update with Google data when available (Google data is more reliable)
         if (attributes.name) {
           updateData.displayName = attributes.name;
-          console.log('Updating displayName to:', attributes.name);
+          // console.log('Updating displayName to:', attributes.name);
         }
         if (attributes.given_name) {
           updateData.firstName = attributes.given_name;
-          console.log('Updating firstName to:', attributes.given_name);
+          // console.log('Updating firstName to:', attributes.given_name);
         }
         if (attributes.family_name) {
           updateData.lastName = attributes.family_name;
-          console.log('Updating lastName to:', attributes.family_name);
+          // console.log('Updating lastName to:', attributes.family_name);
         }
         if (attributes.email) {
           updateData.email = attributes.email;
-          console.log('Updating email to:', attributes.email);
+          // console.log('Updating email to:', attributes.email);
         }
         if (attributes.picture) {
           updateData.profilePicture = attributes.picture;
-          console.log('Updating profilePicture to:', attributes.picture);
+          // console.log('Updating profilePicture to:', attributes.picture);
         }
         if (attributes.sub) {
           updateData.googleId = attributes.sub;
-          console.log('Updating googleId to:', attributes.sub);
+          // console.log('Updating googleId to:', attributes.sub);
         }
 
-        console.log('Final update data:', updateData);
+        // console.log('Final update data:', updateData);
         const updateResult = await this.client.models.UserProfile.update(updateData);
         console.log('Profile update result:', updateResult);
-        console.log('Updated existing user profile with enhanced Google data');
+        
+        // Log any errors from the update
+        if (updateResult.errors && updateResult.errors.length > 0) {
+          console.error('Profile update errors:', updateResult.errors);
+          updateResult.errors.forEach((error, index) => {
+            console.error(`Error ${index + 1}:`, error);
+          });
+        }
+        
+        if (updateResult.data) {
+          console.log('Updated existing user profile with enhanced Google data');
+        } else {
+          console.error('Profile update failed - no data returned');
+        }
       }
     } catch (error) {
       console.error('Error managing user profile:', error);

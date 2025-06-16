@@ -158,7 +158,7 @@ This document outlines the development phases and tasks for the F1 Survivor game
 - [x] **Production Button Functionality:** All buttons now work correctly in deployed environment
 - [x] **End-to-End Production Testing:** Complete authentication and pick flow validated in live environment
 
-### Enhanced Authentication & User Experience ✅ (PRODUCTION READY - June 14, 2025)
+### Enhanced Authentication & User Experience ✅ (PRODUCTION READY - June 16, 2025)
 **CORE FEATURES COMPLETED:**
 - [x] Google OAuth integration via Cognito Social Identity Providers (backend ready)
 - [x] Enhanced name capture in sign-up flow (first name + last name fields) 
@@ -172,6 +172,7 @@ This document outlines the development phases and tasks for the F1 Survivor game
 - [x] Authorization and identity claim fixes for OAuth users
 - [x] Profile creation with stored user data for email/password vs. Google OAuth users
 - [x] Form field styling consistency (white backgrounds, proper borders across all input types)
+- [x] **Google OAuth Profile Update Fix:** Resolved database update issue where Amplify GraphQL updates require primary key - fixed user profile updates to properly save Google account data (displayName, email, firstName, lastName) instead of showing user IDs
 - [x] Production deployment and cloud environment testing completed
 - [x] Console logging cleanup for production readiness
 

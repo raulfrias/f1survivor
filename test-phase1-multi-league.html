@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 1: Multi-League Architecture Tests</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #d32f2f;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .test-controls {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .btn {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background: #b71c1c;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .test-output {
+            background: #1e1e1e;
+            color: #f0f0f0;
+            padding: 20px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 600px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+        .status.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border-left: 4px solid #2e7d32;
+        }
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+        .phase-info {
+            background: #f3e5f5;
+            border: 1px solid #9c27b0;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .requirements {
+            background: #fff3e0;
+            border: 1px solid #ff9800;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .requirements h3 {
+            margin-top: 0;
+            color: #f57c00;
+        }
+        .requirements ul {
+            margin: 10px 0;
+        }
+        .requirements li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏎️ F1 Survivor: Phase 1 Multi-League Architecture Tests</h1>
+        
+        <div class="phase-info">
+            <h3>📋 Phase 1: Multi-League Data Architecture</h3>
+            <p>This test suite validates the core multi-league functionality including:</p>
+            <ul>
+                <li><strong>MultiLeagueContext:</strong> League management, caching, and context switching</li>
+                <li><strong>Enhanced AmplifyDataService:</strong> Multi-league optimization methods</li>
+                <li><strong>Integration Layer:</strong> Refactored league-integration.js with multi-league support</li>
+            </ul>
+        </div>
+
+        <div class="requirements">
+            <h3>⚡ Performance Requirements</h3>
+            <ul>
+                <li><strong>Multi-League Data Loading:</strong> &lt; 2 seconds for loading all user leagues</li>
+                <li><strong>League Switching:</strong> &lt; 500ms for switching between leagues</li>
+                <li><strong>Cross-League Queries:</strong> &lt; 1 second for cross-league statistics</li>
+                <li><strong>Concurrent Operations:</strong> Support 10+ simultaneous leagues per user</li>
+            </ul>
+        </div>
+
+        <div class="test-controls">
+            <button id="runTestsBtn" class="btn">🧪 Run Phase 1 Tests</button>
+            <button id="clearOutputBtn" class="btn">🗑️ Clear Output</button>
+            <button id="viewImplementationBtn" class="btn">📋 View Implementation Plan</button>
+        </div>
+
+        <div id="testStatus" class="status info" style="display: none;">
+            Ready to run Phase 1 multi-league architecture tests...
+        </div>
+
+        <div id="testOutput" class="test-output" style="display: none;">
+            Test output will appear here...
+        </div>
+    </div>
+
+    <script type="module">
+        import { runPhase1Tests } from './test-phase1-multi-league-architecture.js';
+
+        const runTestsBtn = document.getElementById('runTestsBtn');
+        const clearOutputBtn = document.getElementById('clearOutputBtn');
+        const viewImplementationBtn = document.getElementById('viewImplementationBtn');
+        const testStatus = document.getElementById('testStatus');
+        const testOutput = document.getElementById('testOutput');
+
+        // Override console.log to capture test output
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        const originalConsoleAssert = console.assert;
+
+        let testOutputContent = '';
+
+        function captureConsoleOutput() {
+            console.log = (...args) => {
+                const message = args.join(' ');
+                testOutputContent += message + '\n';
+                testOutput.textContent = testOutputContent;
+                testOutput.scrollTop = testOutput.scrollHeight;
+                originalConsoleLog(...args);
+            };
+
+            console.error = (...args) => {
+                const message = '❌ ERROR: ' + args.join(' ');
+                testOutputContent += message + '\n';
+                testOutput.textContent = testOutputContent;
+                testOutput.scrollTop = testOutput.scrollHeight;
+                originalConsoleError(...args);
+            };
+
+            console.warn = (...args) => {
+                const message = '⚠️ WARNING: ' + args.join(' ');
+                testOutputContent += message + '\n';
+                testOutput.textContent = testOutputContent;
+                testOutput.scrollTop = testOutput.scrollHeight;
+                originalConsoleWarn(...args);
+            };
+
+            console.assert = (condition, ...args) => {
+                if (!condition) {
+                    const message = '💥 ASSERTION FAILED: ' + args.join(' ');
+                    testOutputContent += message + '\n';
+                    testOutput.textContent = testOutputContent;
+                    testOutput.scrollTop = testOutput.scrollHeight;
+                }
+                originalConsoleAssert(condition, ...args);
+            };
+        }
+
+        function restoreConsoleOutput() {
+            console.log = originalConsoleLog;
+            console.error = originalConsoleError;
+            console.warn = originalConsoleWarn;
+            console.assert = originalConsoleAssert;
+        }
+
+        runTestsBtn.addEventListener('click', async () => {
+            runTestsBtn.disabled = true;
+            runTestsBtn.textContent = '🔄 Running Tests...';
+            
+            testStatus.style.display = 'block';
+            testStatus.className = 'status info';
+            testStatus.textContent = '🔄 Running Phase 1 multi-league architecture tests...';
+            
+            testOutput.style.display = 'block';
+            testOutputContent = '';
+            testOutput.textContent = 'Initializing test suite...\n';
+
+            captureConsoleOutput();
+
+            try {
+                const result = await runPhase1Tests();
+                
+                // Update status based on results
+                if (result.success) {
+                    testStatus.className = 'status success';
+                    testStatus.textContent = `✅ All tests passed! Phase 1 architecture is ready for Phase 2. (${result.results.passed}/${result.results.total} tests passed)`;
+                } else {
+                    testStatus.className = 'status error';
+                    testStatus.textContent = `❌ Some tests failed. Phase 1 needs fixes before proceeding. (${result.results.passed}/${result.results.total} tests passed)`;
+                }
+            } catch (error) {
+                testStatus.className = 'status error';
+                testStatus.textContent = `💥 Test execution failed: ${error.message}`;
+                console.error('Test execution error:', error);
+            } finally {
+                restoreConsoleOutput();
+                runTestsBtn.disabled = false;
+                runTestsBtn.textContent = '🧪 Run Phase 1 Tests';
+            }
+        });
+
+        clearOutputBtn.addEventListener('click', () => {
+            testOutputContent = '';
+            testOutput.textContent = '';
+            testOutput.style.display = 'none';
+            testStatus.style.display = 'none';
+        });
+
+        viewImplementationBtn.addEventListener('click', () => {
+            window.open('./docs/implementation-plans/multi-league-core-architecture-implementation-plan.md', '_blank');
+        });
+
+        // Show initial status
+        testStatus.style.display = 'block';
+    </script>
+</body>
+</html> 

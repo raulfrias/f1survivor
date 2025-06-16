@@ -435,377 +435,319 @@ export class AmplifyDataService {
     };
   }
 
-  // ============================================================================
-  // MULTI-LEAGUE OPTIMIZATION METHODS
-  // ============================================================================
+  // PHASE 1: Multi-League Data Architecture - Enhanced Methods
 
-  /**
-   * Get leagues with cached data for better performance
-   * @returns {Promise<Array>} User leagues with cached member and pick data
-   */
+  // Get user leagues with optimized caching
   async getUserLeaguesWithCache() {
     const user = await authManager.getCurrentUser();
     if (!user) return [];
 
-    try {
-      // Get basic league memberships
-      const leagues = await this.getUserLeagues();
-      
-      // Batch load additional data for all leagues
-      const leagueIds = leagues.map(l => l.leagueId);
-      const [memberData, pickData] = await Promise.all([
-        this.batchGetLeagueMembers(leagueIds),
-        this.batchGetLeaguePicks(leagueIds)
-      ]);
+    // Check if we have cached data that's less than 5 minutes old
+    const cacheKey = 'userLeagues';
+    const cached = this._getFromCache(cacheKey);
+    if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
+      console.log('Using cached user leagues');
+      // Return the actual data array, not the cached object wrapper
+      return Array.isArray(cached.data) ? cached.data : [];
+    }
 
-      // Combine and enhance league data
-      return leagues.map(league => ({
-        ...league,
-        members: memberData[league.leagueId] || [],
-        memberCount: (memberData[league.leagueId] || []).length,
-        recentPicks: pickData[league.leagueId] || [],
-        lastActivity: this.calculateLeagueLastActivity(
-          memberData[league.leagueId] || [],
-          pickData[league.leagueId] || []
-        )
-      }));
+    const userId = user.userId || user.username;
+
+    try {
+      // Batch operation: Get memberships and league details in parallel
+      const memberResult = await this.client.models.LeagueMember.list({
+        filter: {
+          userId: { eq: userId },
+          status: { eq: 'ACTIVE' }
+        },
+        authMode: 'userPool'
+      });
+
+      if (!memberResult.data || memberResult.data.length === 0) {
+        this._setCache(cacheKey, []);
+        return [];
+      }
+
+      // Get all league details in parallel
+      const leaguePromises = memberResult.data.map(membership => 
+        this.getLeague(membership.leagueId).then(league => ({
+          ...league,
+          membershipData: membership
+        }))
+      );
+
+      const leagues = await Promise.all(leaguePromises);
+      const validLeagues = leagues.filter(league => league !== null);
+
+      // Cache the result
+      this._setCache(cacheKey, validLeagues);
+      
+      console.log(`Loaded ${validLeagues.length} leagues with cache optimization`);
+      return validLeagues;
     } catch (error) {
-      console.error('Failed to load leagues with cache:', error);
+      console.error('Failed to load user leagues with cache:', error);
       return [];
     }
   }
 
-  /**
-   * Get pick history across ALL user leagues
-   * @param {string|null} userId - User ID (null for current user)
-   * @returns {Promise<Object>} Picks grouped by league
-   */
+  // Get pick history across ALL user leagues
   async getMultiLeaguePickHistory(userId = null) {
     const user = await authManager.getCurrentUser();
-    if (!user) throw new Error('Authentication required');
+    if (!user) return { byLeague: {}, total: 0 };
 
     const targetUserId = userId || user.userId || user.username;
 
     try {
       // Get all user leagues first
-      const leagues = await this.getUserLeagues();
-      const leagueIds = leagues.map(l => l.leagueId);
+      const leagues = await this.getUserLeaguesWithCache();
+      
+      // Ensure leagues is an array
+      if (!Array.isArray(leagues)) {
+        console.warn('getUserLeaguesWithCache did not return an array:', leagues);
+        return { byLeague: {}, total: 0, soloMode: true, leagueCount: 0 };
+      }
+      
+      if (leagues.length === 0) {
+        return { byLeague: {}, total: 0, soloMode: true, leagueCount: 0 };
+      }
 
-      // Get picks for all leagues plus solo picks
-      const [leaguePicks, soloPicks] = await Promise.all([
-        this.batchGetUserPicksForLeagues(targetUserId, leagueIds),
-        this.getUserPicks(targetUserId, null) // Solo picks (no league)
+      // Get picks for each league in parallel
+      const pickPromises = leagues.map(league => 
+        this.getUserPicks(targetUserId, league.leagueId).then(picks => ({
+          leagueId: league.leagueId,
+          leagueName: league.name,
+          picks: picks
+        }))
+      );
+
+      // Also get solo picks (picks without leagueId)
+      const soloPicksPromise = this.getUserPicks(targetUserId, null);
+
+      const [leaguePickResults, soloPicks] = await Promise.all([
+        Promise.all(pickPromises),
+        soloPicksPromise
       ]);
 
+      // Organize results
+      const byLeague = {};
+      let totalPicks = 0;
+
+      // Process league picks
+      for (const result of leaguePickResults) {
+        byLeague[result.leagueId] = {
+          leagueName: result.leagueName,
+          picks: result.picks,
+          count: result.picks.length
+        };
+        totalPicks += result.picks.length;
+      }
+
+      // Add solo picks if any
+      if (soloPicks.length > 0) {
+        byLeague['solo'] = {
+          leagueName: 'Solo Mode',
+          picks: soloPicks,
+          count: soloPicks.length
+        };
+        totalPicks += soloPicks.length;
+      }
+
+      console.log(`Retrieved ${totalPicks} picks across ${Object.keys(byLeague).length} contexts`);
+
       return {
-        leaguePicks,
-        soloPicks: this.transformPicksForUI(soloPicks),
-        totalPicks: Object.values(leaguePicks).reduce((sum, picks) => sum + picks.length, 0) + soloPicks.length,
-        leagueCount: leagueIds.length
+        byLeague,
+        total: totalPicks,
+        leagueCount: leagues.length,
+        hasMultipleContexts: Object.keys(byLeague).length > 1
       };
     } catch (error) {
       console.error('Failed to get multi-league pick history:', error);
-      return {
-        leaguePicks: {},
-        soloPicks: [],
-        totalPicks: 0,
-        leagueCount: 0
-      };
+      return { byLeague: {}, total: 0, leagueCount: 0, error: error.message };
     }
   }
 
-  /**
-   * Calculate cross-league statistics for a user
-   * @param {string|null} userId - User ID (null for current user)
-   * @returns {Promise<Object>} Cross-league statistics
-   */
+  // Calculate cross-league statistics for user performance
   async getCrossLeagueStatistics(userId = null) {
     const user = await authManager.getCurrentUser();
-    if (!user) throw new Error('Authentication required');
+    if (!user) return null;
 
     const targetUserId = userId || user.userId || user.username;
 
     try {
       const pickHistory = await this.getMultiLeaguePickHistory(targetUserId);
-      const leagues = await this.getUserLeagues();
+      const leagues = await this.getUserLeaguesWithCache();
 
-      // Calculate statistics
       const stats = {
         totalLeagues: leagues.length,
-        totalPicks: pickHistory.totalPicks,
-        leagueStats: {},
-        overallStats: {
-          averagePicksPerLeague: 0,
-          mostActiveLeague: null,
-          oldestMembership: null,
-          newestMembership: null,
-          ownedLeagues: 0
-        }
+        totalPicks: pickHistory.total,
+        leagueBreakdown: {},
+        overallSurvivalRate: 0,
+        bestLeaguePerformance: null,
+        recentActivity: [],
+        driverUsage: new Map()
       };
 
       // Calculate per-league statistics
-      for (const league of leagues) {
-        const leaguePicks = pickHistory.leaguePicks[league.leagueId] || [];
-        const membership = league.membershipData;
-
-        stats.leagueStats[league.leagueId] = {
-          leagueName: league.name,
-          pickCount: leaguePicks.length,
-          isOwner: membership?.isOwner || false,
-          joinedAt: membership?.joinedAt,
-          survivedRaces: membership?.survivedRaces || 0,
-          totalPicks: membership?.totalPicks || 0,
-          autoPickCount: membership?.autoPickCount || 0,
-          memberCount: league.memberCount || 0
+      for (const [leagueId, leagueData] of Object.entries(pickHistory.byLeague)) {
+        const picks = leagueData.picks;
+        const raceCount = new Set(picks.map(p => p.raceId)).size;
+        
+        stats.leagueBreakdown[leagueId] = {
+          leagueName: leagueData.leagueName,
+          totalPicks: picks.length,
+          raceCount: raceCount,
+          autoPickCount: picks.filter(p => p.isAutoPick).length,
+          recentPicks: picks
+            .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
+            .slice(0, 3)
         };
 
-        // Track owned leagues
-        if (membership?.isOwner) {
-          stats.overallStats.ownedLeagues++;
-        }
-
-        // Track oldest/newest memberships
-        if (membership?.joinedAt) {
-          const joinDate = new Date(membership.joinedAt);
-          if (!stats.overallStats.oldestMembership || joinDate < new Date(stats.overallStats.oldestMembership.joinedAt)) {
-            stats.overallStats.oldestMembership = {
-              leagueId: league.leagueId,
-              leagueName: league.name,
-              joinedAt: membership.joinedAt
-            };
-          }
-          if (!stats.overallStats.newestMembership || joinDate > new Date(stats.overallStats.newestMembership.joinedAt)) {
-            stats.overallStats.newestMembership = {
-              leagueId: league.leagueId,
-              leagueName: league.name,
-              joinedAt: membership.joinedAt
-            };
-          }
+        // Track driver usage across leagues
+        for (const pick of picks) {
+          const count = stats.driverUsage.get(pick.driverName) || 0;
+          stats.driverUsage.set(pick.driverName, count + 1);
         }
       }
 
-      // Calculate average picks per league
-      if (leagues.length > 0) {
-        const totalLeaguePicks = Object.values(pickHistory.leaguePicks).reduce((sum, picks) => sum + picks.length, 0);
-        stats.overallStats.averagePicksPerLeague = Math.round(totalLeaguePicks / leagues.length);
+      // Convert driver usage map to sorted array
+      stats.mostUsedDrivers = Array.from(stats.driverUsage.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([driver, count]) => ({ driver, count }));
+
+      // Find best league performance (most races completed)
+      const leaguePerformances = Object.values(stats.leagueBreakdown);
+      if (leaguePerformances.length > 0) {
+        stats.bestLeaguePerformance = leaguePerformances.reduce((best, current) => 
+          current.raceCount > best.raceCount ? current : best
+        );
       }
 
-      // Find most active league
-      const leaguePickCounts = Object.entries(stats.leagueStats).map(([leagueId, data]) => ({
-        leagueId,
-        ...data
-      }));
-      if (leaguePickCounts.length > 0) {
-        stats.overallStats.mostActiveLeague = leaguePickCounts.sort((a, b) => b.pickCount - a.pickCount)[0];
+      // Calculate overall survival rate (simplified)
+      if (stats.totalPicks > 0) {
+        stats.overallSurvivalRate = Math.round(
+          (stats.totalPicks / Math.max(leagues.length * 10, 1)) * 100
+        ); // Rough estimate assuming ~10 races per season
       }
 
+      console.log(`Calculated cross-league statistics for ${stats.totalLeagues} leagues, ${stats.totalPicks} total picks`);
       return stats;
     } catch (error) {
       console.error('Failed to calculate cross-league statistics:', error);
-      return {
-        totalLeagues: 0,
-        totalPicks: 0,
-        leagueStats: {},
-        overallStats: {
-          averagePicksPerLeague: 0,
-          mostActiveLeague: null,
-          oldestMembership: null,
-          newestMembership: null,
-          ownedLeagues: 0
-        }
-      };
+      return null;
     }
   }
 
-  /**
-   * Check if driver is picked in ANY user league
-   * @param {number} driverId - Driver ID to check
-   * @returns {Promise<boolean>} True if driver picked in any league
-   */
+  // Enhanced driver already picked check for multi-league context
   async isDriverAlreadyPickedInAnyLeague(driverId) {
     const user = await authManager.getCurrentUser();
     if (!user) return false;
 
     try {
-      const leagues = await this.getUserLeagues();
+      const leagues = await this.getUserLeaguesWithCache();
       
+      // Ensure leagues is an array
+      if (!Array.isArray(leagues)) {
+        console.warn('getUserLeaguesWithCache did not return an array:', leagues);
+        // Still check solo picks
+        const pickedInSolo = await this.isDriverAlreadyPicked(driverId);
+        if (pickedInSolo) {
+          console.log(`Driver ${driverId} already picked in solo mode`);
+          return { picked: true, leagueId: null, leagueName: 'Solo Mode' };
+        }
+        return { picked: false };
+      }
+      
+      // Check driver usage across all user leagues
       for (const league of leagues) {
-        const isPicked = await this.isDriverAlreadyPicked(driverId, league.leagueId);
-        if (isPicked) {
-          return true;
+        const picked = await this.isDriverAlreadyPicked(driverId, league.leagueId);
+        if (picked) {
+          console.log(`Driver ${driverId} already picked in league: ${league.name}`);
+          return { picked: true, leagueId: league.leagueId, leagueName: league.name };
         }
       }
-      return false;
+
+      // Also check solo picks
+      const pickedInSolo = await this.isDriverAlreadyPicked(driverId);
+      if (pickedInSolo) {
+        console.log(`Driver ${driverId} already picked in solo mode`);
+        return { picked: true, leagueId: null, leagueName: 'Solo Mode' };
+      }
+
+      return { picked: false };
     } catch (error) {
       console.error('Failed to check driver across leagues:', error);
       return false;
     }
   }
 
-  /**
-   * Batch get league members for multiple leagues
-   * @param {Array<string>} leagueIds - Array of league IDs
-   * @returns {Promise<Object>} Members data keyed by league ID
-   */
-  async batchGetLeagueMembers(leagueIds) {
-    const memberPromises = leagueIds.map(async (leagueId) => {
-      try {
-        const members = await this.getLeagueMembers(leagueId);
-        return { leagueId, members };
-      } catch (error) {
-        console.warn(`Failed to get members for league ${leagueId}:`, error);
-        return { leagueId, members: [] };
-      }
-    });
-
-    const results = await Promise.all(memberPromises);
-    const memberData = {};
-    
-    results.forEach(({ leagueId, members }) => {
-      memberData[leagueId] = members;
-    });
-
-    return memberData;
-  }
-
-  /**
-   * Batch get league picks for multiple leagues
-   * @param {Array<string>} leagueIds - Array of league IDs
-   * @returns {Promise<Object>} Picks data keyed by league ID
-   */
-  async batchGetLeaguePicks(leagueIds) {
-    const pickPromises = leagueIds.map(async (leagueId) => {
-      try {
-        const picks = await this.getUserPicks(null, leagueId);
-        return { leagueId, picks: this.transformPicksForUI(picks) };
-      } catch (error) {
-        console.warn(`Failed to get picks for league ${leagueId}:`, error);
-        return { leagueId, picks: [] };
-      }
-    });
-
-    const results = await Promise.all(pickPromises);
-    const pickData = {};
-    
-    results.forEach(({ leagueId, picks }) => {
-      pickData[leagueId] = picks;
-    });
-
-    return pickData;
-  }
-
-  /**
-   * Batch get user picks for multiple leagues
-   * @param {string} userId - User ID
-   * @param {Array<string>} leagueIds - Array of league IDs
-   * @returns {Promise<Object>} User picks keyed by league ID
-   */
-  async batchGetUserPicksForLeagues(userId, leagueIds) {
-    const pickPromises = leagueIds.map(async (leagueId) => {
-      try {
-        const picks = await this.getUserPicks(userId, leagueId);
-        return { leagueId, picks: this.transformPicksForUI(picks) };
-      } catch (error) {
-        console.warn(`Failed to get user picks for league ${leagueId}:`, error);
-        return { leagueId, picks: [] };
-      }
-    });
-
-    const results = await Promise.all(pickPromises);
-    const pickData = {};
-    
-    results.forEach(({ leagueId, picks }) => {
-      pickData[leagueId] = picks;
-    });
-
-    return pickData;
-  }
-
-  /**
-   * Batch load league data efficiently
-   * @param {Array<string>} leagueIds - Array of league IDs
-   * @returns {Promise<Array>} Array of league data
-   */
+  // Batch operations for better performance
   async batchGetLeagues(leagueIds) {
-    const leaguePromises = leagueIds.map(async (leagueId) => {
-      try {
-        return await this.getLeague(leagueId);
-      } catch (error) {
-        console.warn(`Failed to get league ${leagueId}:`, error);
-        return null;
-      }
+    const promises = leagueIds.map(id => this.getLeague(id));
+    return Promise.all(promises);
+  }
+
+  async batchGetLeagueMembers(leagueIds) {
+    const promises = leagueIds.map(id => this.getLeagueMembers(id));
+    const results = await Promise.all(promises);
+    
+    // Return as map for easy lookup
+    const memberMap = {};
+    leagueIds.forEach((id, index) => {
+      memberMap[id] = results[index];
     });
-
-    const results = await Promise.all(leaguePromises);
-    return results.filter(league => league !== null);
+    return memberMap;
   }
 
-  /**
-   * Calculate last activity for a league
-   * @param {Array} members - League members
-   * @param {Array} picks - Recent picks
-   * @returns {string|null} Last activity timestamp
-   */
-  calculateLeagueLastActivity(members, picks) {
-    const memberTimes = members.map(m => m.joinedAt || m.lastActiveAt).filter(Boolean);
-    const pickTimes = picks.map(p => p.timestamp || p.submittedAt).filter(Boolean);
-    
-    const allTimes = [...memberTimes, ...pickTimes];
-    if (allTimes.length === 0) return null;
-    
-    return allTimes.sort().reverse()[0]; // Most recent timestamp
-  }
-
-  /**
-   * Optimize batch operations for multi-league data loading
-   * @returns {Promise<Object>} Complete multi-league data package
-   */
-  async batchGetUserLeagueData() {
+  async batchGetRecentPicks(leagueIds, limit = 5) {
     const user = await authManager.getCurrentUser();
-    if (!user) throw new Error('Authentication required');
+    if (!user) return {};
 
-    try {
-      // Step 1: Get basic league memberships
-      const leagues = await this.getUserLeagues();
-      const leagueIds = leagues.map(l => l.leagueId);
+    const userId = user.userId || user.username;
+    const promises = leagueIds.map(leagueId => 
+      this.getUserPicks(userId, leagueId).then(picks => ({
+        leagueId,
+        picks: picks
+          .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
+          .slice(0, limit)
+      }))
+    );
 
-      if (leagueIds.length === 0) {
-        return {
-          leagues: [],
-          memberData: {},
-          pickData: {},
-          crossLeagueStats: await this.getCrossLeagueStatistics()
-        };
+    const results = await Promise.all(promises);
+    
+    // Return as map for easy lookup
+    const pickMap = {};
+    results.forEach(result => {
+      pickMap[result.leagueId] = result.picks;
+    });
+    return pickMap;
+  }
+
+  // Cache management utilities
+  _getFromCache(key) {
+    const cached = localStorage.getItem(`amplify_cache_${key}`);
+    return cached ? JSON.parse(cached) : null;
+  }
+
+  _setCache(key, data) {
+    const cacheData = {
+      data,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(`amplify_cache_${key}`, JSON.stringify(cacheData));
+  }
+
+  _clearCache(key = null) {
+    if (key) {
+      localStorage.removeItem(`amplify_cache_${key}`);
+    } else {
+      // Clear all amplify caches
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const storageKey = localStorage.key(i);
+        if (storageKey && storageKey.startsWith('amplify_cache_')) {
+          localStorage.removeItem(storageKey);
+        }
       }
-
-      // Step 2: Parallel fetch all additional data
-      const [memberData, pickData, crossLeagueStats] = await Promise.all([
-        this.batchGetLeagueMembers(leagueIds),
-        this.batchGetLeaguePicks(leagueIds),
-        this.getCrossLeagueStatistics()
-      ]);
-
-      // Step 3: Combine league data with additional information
-      const enhancedLeagues = leagues.map(league => ({
-        ...league,
-        members: memberData[league.leagueId] || [],
-        memberCount: (memberData[league.leagueId] || []).length,
-        recentPicks: pickData[league.leagueId] || [],
-        lastActivity: this.calculateLeagueLastActivity(
-          memberData[league.leagueId] || [],
-          pickData[league.leagueId] || []
-        )
-      }));
-
-      return {
-        leagues: enhancedLeagues,
-        memberData,
-        pickData,
-        crossLeagueStats
-      };
-    } catch (error) {
-      console.error('Failed to batch get user league data:', error);
-      throw error;
     }
   }
 }

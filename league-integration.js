@@ -1,193 +1,105 @@
 import { leagueStorageManager } from './league-storage-manager.js';
 import { amplifyDataService } from './amplify-data-service.js';
 import { authManager } from './auth-manager.js';
-import { 
-  multiLeagueContext, 
-  initializeMultiLeagueSystem,
-  getMultiLeagueContext,
-  getActiveLeagueContext,
-  getAllLeaguesContext,
-  setActiveLeague
-} from './multi-league-context.js';
+import { multiLeagueContext } from './multi-league-context.js';
 
 /**
- * League Integration Module
- * Enhanced to support multi-league functionality while maintaining
- * backward compatibility with existing single-league code
+ * PHASE 1: Multi-League Integration Layer
+ * Refactored to support multi-league functionality
+ * Replaces single-league context with multi-league support
  */
 
-// ============================================================================
-// BACKWARD COMPATIBILITY FUNCTIONS (Enhanced for Multi-League)
-// ============================================================================
-
-// Check if we're in league mode
-export function isInLeagueMode() {
-  const activeContext = getActiveLeagueContext();
-  return !!activeContext?.isLeagueMode;
-}
-
-// Get current league context (enhanced for multi-league)
-export function getLeagueContext() {
-  const activeContext = getActiveLeagueContext();
-  
-  if (!activeContext) {
-    return { isLeagueMode: false, leagueId: null, league: null };
+// Initialize multi-league system
+export async function initializeMultiLeagueSystem() {
+  const user = await authManager.getCurrentUser();
+  if (!user) {
+    console.log('No authenticated user, initializing empty multi-league context');
+    return multiLeagueContext;
   }
-  
-  return {
-    isLeagueMode: true,
-    leagueId: activeContext.leagueId,
-    league: activeContext.league
-  };
-}
 
-// Set active league ID (now uses multi-league context)
-export function setActiveLeagueId(leagueId) {
-  return setActiveLeague(leagueId);
-}
-
-// ============================================================================
-// ENHANCED MULTI-LEAGUE FUNCTIONS
-// ============================================================================
-
-/**
- * Initialize the multi-league integration system
- * @returns {Promise<void>}
- */
-export async function initializeMultiLeagueIntegration() {
   try {
-    await initializeMultiLeagueSystem();
-    displayLeagueIndicator(); // Update UI indicators
-    setupLeagueChangeListeners();
-    
-    const context = getMultiLeagueContext();
-    console.log(`Multi-league integration initialized: ${context.leagueCount} leagues, active: ${context.activeLeague || 'solo mode'}`);
+    await multiLeagueContext.loadUserLeagues();
+    console.log('Multi-league system initialized successfully');
+    return multiLeagueContext;
   } catch (error) {
-    console.error('Failed to initialize multi-league integration:', error);
-    throw error;
+    console.error('Failed to initialize multi-league system:', error);
+    return multiLeagueContext;
   }
 }
 
-/**
- * Setup event listeners for league changes
- */
-function setupLeagueChangeListeners() {
-  multiLeagueContext.addEventListener((eventType, eventData) => {
-    switch (eventType) {
-      case 'league-change':
-        handleLeagueChange(eventData);
-        break;
-      case 'league-list-change':
-        handleLeagueListChange(eventData);
-        break;
-    }
-  });
+// Get multi-league context (replaces getLeagueContext)
+export function getMultiLeagueContext() {
+  return multiLeagueContext.getMultiLeagueContext();
 }
 
-/**
- * Handle league change events
- * @param {Object} eventData - League change event data
- */
-function handleLeagueChange(eventData) {
-  const { newLeagueId, previousLeagueId, context } = eventData;
-  
-  // Update UI indicators
-  displayLeagueIndicator();
-  
-  // Refresh pick interface for new league
-  refreshPickInterface(newLeagueId);
-  
-  // Dispatch custom event for other components
-  window.dispatchEvent(new CustomEvent('league-changed', {
-    detail: { newLeagueId, previousLeagueId, context }
-  }));
-  
-  console.log(`League changed: ${previousLeagueId || 'solo'} -> ${newLeagueId || 'solo'}`);
+// Get active league context (backward compatibility)
+export function getActiveLeagueContext() {
+  return multiLeagueContext.getActiveLeagueContext();
 }
 
-/**
- * Handle league list change events
- * @param {Object} eventData - League list change event data
- */
-function handleLeagueListChange(eventData) {
-  const { context, leagueCount } = eventData;
-  
-  // Update league selector if it exists
-  updateLeagueSelector();
-  
-  // Dispatch custom event for other components
-  window.dispatchEvent(new CustomEvent('league-list-changed', {
-    detail: { context, leagueCount }
-  }));
-  
-  console.log(`League list updated: ${leagueCount} leagues`);
+// Get all leagues context (for dashboard/UI)
+export function getAllLeaguesContext() {
+  return multiLeagueContext.getAllLeaguesContext();
 }
 
-/**
- * Refresh pick interface for league change
- * @param {string|null} leagueId - New active league ID
- */
-function refreshPickInterface(leagueId) {
-  // Clear any cached pick data
-  const pickDisplay = document.querySelector('.current-pick');
-  if (pickDisplay) {
-    pickDisplay.textContent = 'Loading...';
+// Legacy compatibility function (deprecated - use getActiveLeagueContext)
+export function getLeagueContext() {
+  console.warn('getLeagueContext() is deprecated, use getActiveLeagueContext() instead');
+  return getActiveLeagueContext();
+}
+
+// Check if we're in league mode (any league)
+export function isInLeagueMode() {
+  const context = getMultiLeagueContext();
+  return context.hasLeagues;
+}
+
+// Check if we're in multi-league mode (more than one league)
+export function isInMultiLeagueMode() {
+  const context = getMultiLeagueContext();
+  return context.isMultiLeague;
+}
+
+// Set active league ID
+export function setActiveLeagueId(leagueId) {
+  const success = multiLeagueContext.setActiveLeague(leagueId);
+  if (success) {
+    // Update UI indicators
+    displayLeagueIndicator();
+    return true;
   }
-  
-  // Trigger pick data refresh in main app
-  if (window.refreshCurrentPick) {
-    window.refreshCurrentPick();
-  }
+  return false;
 }
 
-/**
- * Update league selector component if it exists
- */
-function updateLeagueSelector() {
-  const selectorElement = document.querySelector('.league-selector');
-  if (selectorElement && window.leagueSelector) {
-    window.leagueSelector.updateLeagueList();
-  }
-}
-
-// ============================================================================
-// ENHANCED PICK OPERATIONS (Multi-League Aware)
-// ============================================================================
-
-// Save pick with automatic league context - AWS BACKEND ONLY
-export async function savePickWithContext(driverId, driverInfo) {
-  // Ensure user is authenticated
+// Save pick with automatic league context detection
+export async function savePickWithContext(driverId, driverInfo, targetLeagueId = null) {
   const user = await authManager.getCurrentUser();
   if (!user) {
     throw new Error('Authentication required to save picks');
   }
 
-  const context = getLeagueContext();
+  const context = getMultiLeagueContext();
   
-  if (context.isLeagueMode) {
-    console.log(`Saving pick to league: ${context.league.name || context.league.leagueName}`);
-    
-    // Use AWS backend for league picks
-    const raceData = JSON.parse(localStorage.getItem('nextRaceData'));
-    if (!raceData || !raceData.raceId) {
-      throw new Error('No valid race data found. Cannot save pick.');
+  // Determine target league
+  let leagueId = targetLeagueId;
+  if (!leagueId) {
+    if (context.hasLeagues) {
+      leagueId = context.activeLeague;
+      if (!leagueId) {
+        throw new Error('No active league selected. Please select a league or specify targetLeagueId.');
+      }
     }
-    
-    const pickData = {
-      raceId: raceData.raceId,
-      driverId: parseInt(driverId),
-      driverName: driverInfo?.driverName || null,
-      teamName: driverInfo?.teamName || null,
-      raceName: raceData.raceName || 'Unknown Race',
-      isAutoPick: driverInfo?.isAutoPick || false,
-      leagueId: context.leagueId // Include league ID
-    };
-    
-    return amplifyDataService.saveUserPick(pickData);
+    // If no leagues, leagueId remains null for solo mode
+  }
+
+  console.log(`Saving pick to ${leagueId ? `league: ${leagueId}` : 'solo mode'}`);
+
+  if (leagueId) {
+    // League mode - use existing league storage manager for now
+    // TODO: Phase 2 will replace this with unified AWS backend
+    return leagueStorageManager.saveLeaguePick(leagueId, driverId, driverInfo);
   } else {
-    console.log('Saving pick in solo mode via AWS backend');
-    
-    // Get race data from cache (this is application state, not user data)
+    // Solo mode via AWS backend
     const raceData = JSON.parse(localStorage.getItem('nextRaceData'));
     if (!raceData || !raceData.raceId) {
       throw new Error('No valid race data found. Cannot save pick.');
@@ -200,186 +112,109 @@ export async function savePickWithContext(driverId, driverInfo) {
       teamName: driverInfo?.teamName || null,
       raceName: raceData.raceName || 'Unknown Race',
       isAutoPick: driverInfo?.isAutoPick || false
-      // No leagueId for solo mode
     };
     
-    return amplifyDataService.saveUserPick(pickData);
+    const result = await amplifyDataService.saveUserPick(pickData);
+    
+    // Clear pick cache for this league
+    multiLeagueContext.clearCache('picks', leagueId);
+    
+    return result;
   }
 }
 
-// Load picks with automatic league context - AWS BACKEND ONLY
-export async function loadPicksWithContext() {
-  // Ensure user is authenticated
+// Load picks with automatic league context detection
+export async function loadPicksWithContext(targetLeagueId = null) {
   const user = await authManager.getCurrentUser();
   if (!user) {
     console.log('No authenticated user, returning empty picks');
     return [];
   }
 
-  const context = getLeagueContext();
+  const context = getMultiLeagueContext();
   
-  if (context.isLeagueMode) {
-    console.log(`Loading picks from league: ${context.league.name || context.league.leagueName}`);
-    const picks = await amplifyDataService.getUserPicks(null, context.leagueId);
+  // Determine target league
+  let leagueId = targetLeagueId;
+  if (!leagueId && context.hasLeagues) {
+    leagueId = context.activeLeague;
+  }
+
+  console.log(`Loading picks from ${leagueId ? `league: ${leagueId}` : 'solo mode'}`);
+
+  if (leagueId) {
+    // League mode - use cached method
+    const picks = await multiLeagueContext.getLeaguePicks(leagueId);
     return amplifyDataService.transformPicksForUI(picks);
   } else {
-    console.log('Loading picks in solo mode via AWS backend');
+    // Solo mode via AWS backend
     const picks = await amplifyDataService.getUserPicks();
     return amplifyDataService.transformPicksForUI(picks);
   }
 }
 
-// Check if driver is already picked with automatic league context - AWS BACKEND ONLY
-export async function isDriverAlreadyPickedWithContext(driverId) {
-  // Ensure user is authenticated
+// Check if driver is already picked with league context
+export async function isDriverAlreadyPickedWithContext(driverId, targetLeagueId = null) {
   const user = await authManager.getCurrentUser();
-  if (!user) {
-    return false;
+  if (!user) return false;
+
+  const context = getMultiLeagueContext();
+  
+  // Determine target league
+  let leagueId = targetLeagueId;
+  if (!leagueId && context.hasLeagues) {
+    leagueId = context.activeLeague;
   }
 
-  const context = getLeagueContext();
-  
-  if (context.isLeagueMode) {
-    return amplifyDataService.isDriverAlreadyPicked(driverId, context.leagueId);
+  if (leagueId) {
+    // Check specific league
+    return amplifyDataService.isDriverAlreadyPicked(driverId, leagueId);
   } else {
+    // Check solo mode
     return amplifyDataService.isDriverAlreadyPicked(driverId);
   }
 }
 
-// Get current race pick with automatic league context - AWS BACKEND ONLY
-export async function getCurrentRacePickWithContext() {
-  // Ensure user is authenticated
+// Check if driver is picked in ANY league (cross-league validation)
+export async function isDriverAlreadyPickedInAnyLeague(driverId) {
+  return amplifyDataService.isDriverAlreadyPickedInAnyLeague(driverId);
+}
+
+// Get current race pick with league context
+export async function getCurrentRacePickWithContext(targetLeagueId = null) {
   const user = await authManager.getCurrentUser();
-  if (!user) {
-    return null;
+  if (!user) return null;
+
+  const context = getMultiLeagueContext();
+  
+  // Determine target league
+  let leagueId = targetLeagueId;
+  if (!leagueId && context.hasLeagues) {
+    leagueId = context.activeLeague;
   }
 
-  const context = getLeagueContext();
-  
-  if (context.isLeagueMode) {
-    return amplifyDataService.getCurrentRacePick(context.leagueId);
+  if (leagueId) {
+    // League mode - use existing league storage manager for now
+    return leagueStorageManager.getCurrentRacePickForLeague(leagueId);
   } else {
+    // Solo mode via AWS backend
     return amplifyDataService.getCurrentRacePick();
   }
 }
 
-// ============================================================================
-// MULTI-LEAGUE SPECIFIC OPERATIONS
-// ============================================================================
-
-/**
- * Save pick to a specific league
- * @param {string} leagueId - Target league ID
- * @param {number} driverId - Driver ID
- * @param {Object} driverInfo - Driver information
- * @returns {Promise} Save result
- */
-export async function savePickToLeague(leagueId, driverId, driverInfo) {
-  const user = await authManager.getCurrentUser();
-  if (!user) {
-    throw new Error('Authentication required to save picks');
-  }
-
-  const raceData = JSON.parse(localStorage.getItem('nextRaceData'));
-  if (!raceData || !raceData.raceId) {
-    throw new Error('No valid race data found. Cannot save pick.');
-  }
-  
-  const pickData = {
-    raceId: raceData.raceId,
-    driverId: parseInt(driverId),
-    driverName: driverInfo?.driverName || null,
-    teamName: driverInfo?.teamName || null,
-    raceName: raceData.raceName || 'Unknown Race',
-    isAutoPick: driverInfo?.isAutoPick || false,
-    leagueId: leagueId
-  };
-  
-  return amplifyDataService.saveUserPick(pickData);
-}
-
-/**
- * Get picks for all user leagues
- * @returns {Promise<Object>} Picks grouped by league
- */
-export async function getAllLeaguePicks() {
-  const user = await authManager.getCurrentUser();
-  if (!user) {
-    return { leaguePicks: {}, soloPicks: [] };
-  }
-
-  return amplifyDataService.getMultiLeaguePickHistory();
-}
-
-/**
- * Get cross-league statistics for current user
- * @returns {Promise<Object>} Cross-league statistics
- */
-export async function getCrossLeagueStatistics() {
-  const user = await authManager.getCurrentUser();
-  if (!user) {
-    return { totalLeagues: 0, totalPicks: 0 };
-  }
-
-  return amplifyDataService.getCrossLeagueStatistics();
-}
-
-/**
- * Switch to a different league
- * @param {string|null} leagueId - League ID to switch to (null for solo mode)
- * @returns {boolean} Success status
- */
-export async function switchToLeague(leagueId) {
-  const success = setActiveLeague(leagueId);
-  
-  if (success) {
-    // Refresh UI components
-    displayLeagueIndicator();
-    refreshPickInterface(leagueId);
-  }
-  
-  return success;
-}
-
-/**
- * Join a new league and optionally make it active
- * @param {string} inviteCode - League invite code
- * @param {boolean} makeActive - Whether to make this the active league
- * @returns {Promise<Object>} Join result
- */
-export async function joinLeagueAndActivate(inviteCode, makeActive = true) {
-  try {
-    const league = await amplifyDataService.joinLeague(inviteCode);
-    
-    // Add to multi-league context
-    await multiLeagueContext.addLeague(league);
-    
-    // Make active if requested
-    if (makeActive) {
-      setActiveLeague(league.leagueId);
-    }
-    
-    return { success: true, league };
-  } catch (error) {
-    console.error('Failed to join league:', error);
-    return { success: false, error };
-  }
-}
-
-// ============================================================================
-// UI INDICATORS AND DISPLAY
-// ============================================================================
-
 // Display league indicator in UI (enhanced for multi-league)
 export function displayLeagueIndicator() {
-  const context = getLeagueContext();
-  const multiContext = getMultiLeagueContext();
+  const context = getMultiLeagueContext();
   
   // Remove existing indicators
   const existingIndicators = document.querySelectorAll('.league-indicator');
   existingIndicators.forEach(indicator => indicator.remove());
   
-  if (context.isLeagueMode) {
+  if (context.hasLeagues) {
+    const activeLeagueData = context.activeLeagueData;
+    const indicatorText = context.isMultiLeague 
+      ? `${activeLeagueData?.name || 'Unknown League'} (${context.leagueCount} leagues)`
+      : activeLeagueData?.name || 'Unknown League';
+    
     // Add league indicator to driver selection modal
     const modalHeader = document.querySelector('#driver-selection-screen .modal-header');
     if (modalHeader) {
@@ -387,8 +222,7 @@ export function displayLeagueIndicator() {
       indicator.className = 'league-indicator';
       indicator.innerHTML = `
         <span class="indicator-label">League:</span>
-        <span class="indicator-value">${context.league.name || context.league.leagueName}</span>
-        ${multiContext.hasMultipleLeagues ? `<span class="indicator-count">(${multiContext.leagueCount} total)</span>` : ''}
+        <span class="indicator-value">${indicatorText}</span>
       `;
       modalHeader.appendChild(indicator);
     }
@@ -399,68 +233,113 @@ export function displayLeagueIndicator() {
       const mainIndicator = document.createElement('div');
       mainIndicator.className = 'league-indicator main-page';
       mainIndicator.innerHTML = `
-        <span>Playing in: <strong>${context.league.name || context.league.leagueName}</strong></span>
-        ${multiContext.hasMultipleLeagues ? `<span class="league-count">${multiContext.leagueCount} leagues</span>` : ''}
+        <span>Playing in: <strong>${indicatorText}</strong></span>
       `;
       mainHeader.appendChild(mainIndicator);
     }
-  } else if (multiContext.leagueCount > 0) {
-    // Show that user has leagues but is in solo mode
+  } else {
+    // Solo mode indicator
     const mainHeader = document.querySelector('.hero-section');
     if (mainHeader) {
-      const mainIndicator = document.createElement('div');
-      mainIndicator.className = 'league-indicator main-page solo-mode';
-      mainIndicator.innerHTML = `
-        <span>Solo Mode</span>
-        <span class="league-count">${multiContext.leagueCount} leagues available</span>
+      const soloIndicator = document.createElement('div');
+      soloIndicator.className = 'league-indicator main-page solo-mode';
+      soloIndicator.innerHTML = `
+        <span>Mode: <strong>Solo</strong></span>
       `;
-      mainHeader.appendChild(mainIndicator);
+      mainHeader.appendChild(soloIndicator);
     }
   }
 }
 
-/**
- * Get league display information for UI components
- * @returns {Object} League display information
- */
-export function getLeagueDisplayInfo() {
-  const context = getLeagueContext();
-  const multiContext = getMultiLeagueContext();
-  
-  return {
-    isLeagueMode: context.isLeagueMode,
-    activeLeague: context.league,
-    leagueCount: multiContext.leagueCount,
-    hasMultipleLeagues: multiContext.hasMultipleLeagues,
-    soloMode: multiContext.soloMode,
-    allLeagues: multiContext.leagues
-  };
-}
+// League management functions
 
-// ============================================================================
-// INITIALIZATION AND SETUP
-// ============================================================================
-
-// Initialize league integration (enhanced for multi-league)
-export function initializeLeagueIntegration() {
-  // Initialize multi-league system asynchronously
-  initializeMultiLeagueIntegration().catch(error => {
-    console.error('Multi-league initialization failed, falling back to basic mode:', error);
+// Join a new league and add to context
+export async function joinLeagueWithContext(inviteCode) {
+  try {
+    const league = await amplifyDataService.joinLeague(inviteCode);
     
-    // Fallback to basic display
+    // Add to multi-league context
+    multiLeagueContext.addLeague(league);
+    
+    // Update UI
     displayLeagueIndicator();
     
-    const context = getLeagueContext();
-    if (context.isLeagueMode) {
-      console.log(`Basic league mode active: ${context.league?.name || context.league?.leagueName}`);
+    console.log(`Successfully joined league: ${league.name}`);
+    return league;
+  } catch (error) {
+    console.error('Failed to join league:', error);
+    throw error;
+  }
+}
+
+// Leave a league and remove from context
+export async function leaveLeagueWithContext(leagueId) {
+  try {
+    // TODO: Implement leaveLeague method in amplifyDataService
+    // For now, just remove from context
+    multiLeagueContext.removeLeague(leagueId);
+    
+    // Update UI
+    displayLeagueIndicator();
+    
+    console.log(`Left league: ${leagueId}`);
+  } catch (error) {
+    console.error('Failed to leave league:', error);
+    throw error;
+  }
+}
+
+// Refresh all league data
+export async function refreshLeagueData() {
+  try {
+    await multiLeagueContext.refreshLeagues();
+    displayLeagueIndicator();
+    console.log('League data refreshed successfully');
+  } catch (error) {
+    console.error('Failed to refresh league data:', error);
+    throw error;
+  }
+}
+
+// Get cross-league statistics
+export async function getCrossLeagueStatistics() {
+  return amplifyDataService.getCrossLeagueStatistics();
+}
+
+// Get multi-league pick history
+export async function getMultiLeaguePickHistory() {
+  return amplifyDataService.getMultiLeaguePickHistory();
+}
+
+// Event handling for league changes
+export function addLeagueChangeListener(callback) {
+  multiLeagueContext.addLeagueChangeListener(callback);
+}
+
+export function removeLeagueChangeListener(callback) {
+  multiLeagueContext.removeLeagueChangeListener(callback);
+}
+
+// Initialize multi-league integration
+export async function initializeLeagueIntegration() {
+  try {
+    // Initialize multi-league system
+    await initializeMultiLeagueSystem();
+    
+    // Display appropriate indicator
+    displayLeagueIndicator();
+    
+    // Log current mode
+    const context = getMultiLeagueContext();
+    if (context.hasLeagues) {
+      console.log(`Multi-league mode active: ${context.leagueCount} leagues, active: ${context.activeLeagueData?.name || 'None'}`);
     } else {
       console.log('Solo mode active');
     }
-  });
+  } catch (error) {
+    console.error('Failed to initialize league integration:', error);
+  }
 }
-
-// Export the multi-league context for direct access
-export { multiLeagueContext };
 
 // Auto-initialize when DOM is ready
 if (document.readyState === 'loading') {

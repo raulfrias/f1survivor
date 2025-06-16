@@ -3,162 +3,95 @@ import { authManager } from './auth-manager.js';
 
 /**
  * Multi-League Context Manager
- * Manages multiple leagues for a user, replaces single-league limitations
- * with comprehensive multi-league support
+ * Manages multiple leagues, caching, and context switching for optimal performance
+ * Part of Phase 1: Multi-League Data Architecture
  */
 export class MultiLeagueContext {
   constructor() {
     this.userLeagues = new Map(); // leagueId -> league data
     this.activeLeagueId = null;
-    this.leagueCache = new Map(); // Performance optimization cache
-    this.lastCacheUpdate = new Map(); // Track cache timestamps
-    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes cache timeout
-    this.eventListeners = new Set(); // Event listeners for league changes
+    this.leagueCache = new Map(); // Performance optimization
+    this.memberCache = new Map(); // Cache for league members
+    this.pickCache = new Map(); // Cache for league picks
+    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+    this.lastLoadTime = 0;
+    this.loadingPromise = null; // Prevent concurrent loading
+    this.eventListeners = new Set(); // For league change notifications
   }
 
-  /**
-   * Initialize the multi-league system
-   * @returns {Promise<void>}
-   */
-  async initialize() {
+  // Load all user leagues from AWS
+  async loadUserLeagues(forceRefresh = false) {
+    // Prevent concurrent loading
+    if (this.loadingPromise && !forceRefresh) {
+      return this.loadingPromise;
+    }
+
+    // Check cache validity
+    if (!forceRefresh && this.isCacheValid()) {
+      console.log('Using cached league data');
+      return Array.from(this.userLeagues.values());
+    }
+
+    console.log('Loading user leagues from AWS...');
+    this.loadingPromise = this._performLeagueLoad();
+    
     try {
-      await this.loadUserLeagues();
-      this.setupActiveLeague();
-      console.log(`Multi-league system initialized with ${this.userLeagues.size} leagues`);
-    } catch (error) {
-      console.error('Failed to initialize multi-league system:', error);
-      throw error;
+      const result = await this.loadingPromise;
+      this.lastLoadTime = Date.now();
+      return result;
+    } finally {
+      this.loadingPromise = null;
     }
   }
 
-  /**
-   * Load all user leagues from AWS backend
-   * @returns {Promise<void>}
-   */
-  async loadUserLeagues() {
+  async _performLeagueLoad() {
     const user = await authManager.getCurrentUser();
     if (!user) {
-      console.log('No authenticated user, skipping league loading');
-      return;
+      console.log('No authenticated user, clearing league context');
+      this.clearContext();
+      return [];
     }
 
     try {
-      // Get leagues from AWS backend
       const leagues = await amplifyDataService.getUserLeagues();
       
-      // Clear existing leagues
+      // Clear existing data
       this.userLeagues.clear();
       
-      // Populate league map with enhanced data
+      // Populate leagues map
       for (const league of leagues) {
-        const enhancedLeague = await this.enhanceLeagueData(league);
-        this.userLeagues.set(league.leagueId, enhancedLeague);
-        
-        // Cache the league data
-        this.leagueCache.set(league.leagueId, enhancedLeague);
-        this.lastCacheUpdate.set(league.leagueId, Date.now());
+        this.userLeagues.set(league.leagueId, {
+          ...league,
+          lastAccessed: Date.now(),
+          memberCount: 0 // Will be loaded on demand
+        });
       }
 
       console.log(`Loaded ${leagues.length} leagues for user`);
+      
+      // Set default active league if none set
+      if (!this.activeLeagueId && leagues.length > 0) {
+        this.setActiveLeague(leagues[0].leagueId);
+      }
+
+      return leagues;
     } catch (error) {
       console.error('Failed to load user leagues:', error);
-      throw error;
+      this.clearContext();
+      return [];
     }
   }
 
-  /**
-   * Enhance league data with additional information
-   * @param {Object} league - Base league data
-   * @returns {Promise<Object>} Enhanced league data
-   */
-  async enhanceLeagueData(league) {
-    try {
-      // Get league members
-      const members = await amplifyDataService.getLeagueMembers(league.leagueId);
-      
-      // Get recent picks for league context
-      const recentPicks = await amplifyDataService.getUserPicks(null, league.leagueId);
-      
-      return {
-        ...league,
-        memberCount: members.length,
-        members: members,
-        recentPickCount: recentPicks.length,
-        lastActivity: this.calculateLastActivity(members, recentPicks),
-        isOwner: this.isLeagueOwner(league),
-        canManage: this.canManageLeague(league)
-      };
-    } catch (error) {
-      console.warn(`Failed to enhance league data for ${league.leagueId}:`, error);
-      return {
-        ...league,
-        memberCount: 0,
-        members: [],
-        recentPickCount: 0,
-        lastActivity: null,
-        isOwner: false,
-        canManage: false
-      };
-    }
+  // Check if cache is valid
+  isCacheValid() {
+    return (
+      this.userLeagues.size > 0 &&
+      this.lastLoadTime > 0 &&
+      (Date.now() - this.lastLoadTime) < this.cacheTimeout
+    );
   }
 
-  /**
-   * Calculate last activity timestamp for a league
-   * @param {Array} members - League members
-   * @param {Array} picks - Recent picks
-   * @returns {string|null} Last activity timestamp
-   */
-  calculateLastActivity(members, picks) {
-    const memberTimes = members.map(m => m.joinedAt || m.lastActiveAt).filter(Boolean);
-    const pickTimes = picks.map(p => p.submittedAt || p.timestamp).filter(Boolean);
-    
-    const allTimes = [...memberTimes, ...pickTimes];
-    if (allTimes.length === 0) return null;
-    
-    return allTimes.sort().reverse()[0]; // Most recent timestamp
-  }
-
-  /**
-   * Check if current user is owner of the league
-   * @param {Object} league - League data
-   * @returns {boolean}
-   */
-  isLeagueOwner(league) {
-    const user = authManager.getCurrentUserSync();
-    return user && (user.userId === league.ownerId || user.username === league.ownerId);
-  }
-
-  /**
-   * Check if current user can manage the league
-   * @param {Object} league - League data
-   * @returns {boolean}
-   */
-  canManageLeague(league) {
-    return this.isLeagueOwner(league); // Currently only owners can manage
-  }
-
-  /**
-   * Setup active league based on stored preferences or defaults
-   */
-  setupActiveLeague() {
-    // Try to restore active league from localStorage
-    const storedActiveLeague = localStorage.getItem('activeLeagueId');
-    
-    if (storedActiveLeague && this.userLeagues.has(storedActiveLeague)) {
-      this.activeLeagueId = storedActiveLeague;
-    } else if (this.userLeagues.size > 0) {
-      // Default to first league if no stored preference
-      this.activeLeagueId = Array.from(this.userLeagues.keys())[0];
-      this.persistActiveLeague();
-    } else {
-      this.activeLeagueId = null;
-    }
-  }
-
-  /**
-   * Get comprehensive multi-league context
-   * @returns {Object} Multi-league context information
-   */
+  // Get context for all leagues
   getMultiLeagueContext() {
     const userLeagueIds = Array.from(this.userLeagues.keys());
     const activeLeague = this.activeLeagueId ? this.userLeagues.get(this.activeLeagueId) : null;
@@ -169,19 +102,20 @@ export class MultiLeagueContext {
       activeLeagueData: activeLeague,
       leagueCount: this.userLeagues.size,
       soloMode: this.userLeagues.size === 0,
-      leagues: Array.from(this.userLeagues.values()),
-      hasMultipleLeagues: this.userLeagues.size > 1,
-      canCreateLeagues: true // Always allow league creation
+      isMultiLeague: this.userLeagues.size > 1,
+      hasLeagues: this.userLeagues.size > 0
     };
   }
 
-  /**
-   * Get context for currently active league
-   * @returns {Object|null} Active league context
-   */
+  // Get context for currently active league
   getActiveLeagueContext() {
-    if (!this.activeLeagueId || !this.userLeagues.has(this.activeLeagueId)) {
-      return null;
+    if (!this.activeLeagueId) {
+      return {
+        isLeagueMode: false,
+        leagueId: null,
+        league: null,
+        soloMode: true
+      };
     }
 
     const league = this.userLeagues.get(this.activeLeagueId);
@@ -189,271 +123,253 @@ export class MultiLeagueContext {
       isLeagueMode: true,
       leagueId: this.activeLeagueId,
       league: league,
-      canManage: league.canManage,
-      isOwner: league.isOwner
+      soloMode: false
     };
   }
 
-  /**
-   * Get context for all user leagues
-   * @returns {Array} Array of all league contexts
-   */
+  // Get all leagues context (for dashboard/UI)
   getAllLeaguesContext() {
-    return Array.from(this.userLeagues.entries()).map(([leagueId, league]) => ({
-      leagueId,
-      league,
-      isActive: leagueId === this.activeLeagueId,
-      canManage: league.canManage,
-      isOwner: league.isOwner
-    }));
+    const leagues = Array.from(this.userLeagues.values());
+    return {
+      leagues: leagues,
+      count: leagues.length,
+      activeLeagueId: this.activeLeagueId
+    };
   }
 
-  /**
-   * Switch active league
-   * @param {string} leagueId - League ID to switch to
-   * @returns {boolean} Success status
-   */
+  // Switch active league
   setActiveLeague(leagueId) {
     if (!leagueId) {
       this.activeLeagueId = null;
-      this.persistActiveLeague();
       this.notifyLeagueChange(null);
-      return true;
+      return;
     }
 
     if (this.userLeagues.has(leagueId)) {
       const previousLeagueId = this.activeLeagueId;
       this.activeLeagueId = leagueId;
-      this.persistActiveLeague();
+      
+      // Update last accessed time
+      const league = this.userLeagues.get(leagueId);
+      if (league) {
+        league.lastAccessed = Date.now();
+      }
+      
+      console.log(`Switched to league: ${leagueId}`);
       this.notifyLeagueChange(leagueId, previousLeagueId);
-      console.log(`Switched to league: ${this.userLeagues.get(leagueId).name}`);
       return true;
     } else {
-      console.error(`League ${leagueId} not found in user leagues`);
+      console.warn(`League ${leagueId} not found in user leagues`);
       return false;
     }
   }
 
-  /**
-   * Add a new league to user's collection
-   * @param {Object} league - League data
-   */
-  async addLeague(league) {
-    const enhancedLeague = await this.enhanceLeagueData(league);
-    this.userLeagues.set(league.leagueId, enhancedLeague);
+  // Add a new league to context (when user joins)
+  addLeague(league) {
+    this.userLeagues.set(league.leagueId, {
+      ...league,
+      lastAccessed: Date.now(),
+      memberCount: 0
+    });
     
-    // Cache the new league
-    this.leagueCache.set(league.leagueId, enhancedLeague);
-    this.lastCacheUpdate.set(league.leagueId, Date.now());
-    
-    // If this is the first league, make it active
+    // Set as active if it's the first league
     if (this.userLeagues.size === 1) {
       this.setActiveLeague(league.leagueId);
     }
     
-    this.notifyLeagueListChange();
+    console.log(`Added league to context: ${league.name}`);
   }
 
-  /**
-   * Remove a league from user's collection
-   * @param {string} leagueId - League ID to remove
-   */
+  // Remove a league from context (when user leaves)
   removeLeague(leagueId) {
     if (this.userLeagues.has(leagueId)) {
       this.userLeagues.delete(leagueId);
-      this.leagueCache.delete(leagueId);
-      this.lastCacheUpdate.delete(leagueId);
       
-      // If this was the active league, switch to another
+      // Clear caches for this league
+      this.memberCache.delete(leagueId);
+      this.pickCache.delete(leagueId);
+      
+      // If this was the active league, switch to another or go solo
       if (this.activeLeagueId === leagueId) {
         const remainingLeagues = Array.from(this.userLeagues.keys());
-        this.setActiveLeague(remainingLeagues.length > 0 ? remainingLeagues[0] : null);
-      }
-      
-      this.notifyLeagueListChange();
-    }
-  }
-
-  /**
-   * Refresh league data from backend
-   * @param {string} leagueId - Specific league to refresh, or null for all
-   */
-  async refreshLeagueData(leagueId = null) {
-    if (leagueId) {
-      // Refresh specific league
-      if (this.userLeagues.has(leagueId)) {
-        try {
-          const league = await amplifyDataService.getLeague(leagueId);
-          const enhancedLeague = await this.enhanceLeagueData(league);
-          this.userLeagues.set(leagueId, enhancedLeague);
-          this.leagueCache.set(leagueId, enhancedLeague);
-          this.lastCacheUpdate.set(leagueId, Date.now());
-        } catch (error) {
-          console.error(`Failed to refresh league ${leagueId}:`, error);
+        if (remainingLeagues.length > 0) {
+          this.setActiveLeague(remainingLeagues[0]);
+        } else {
+          this.setActiveLeague(null); // Solo mode
         }
       }
+      
+      console.log(`Removed league from context: ${leagueId}`);
+    }
+  }
+
+  // Get cached league members (with cache management)
+  async getLeagueMembers(leagueId, useCache = true) {
+    const cacheKey = `members_${leagueId}`;
+    
+    if (useCache && this.memberCache.has(cacheKey)) {
+      const cached = this.memberCache.get(cacheKey);
+      if (Date.now() - cached.timestamp < this.cacheTimeout) {
+        return cached.data;
+      }
+    }
+
+    try {
+      const members = await amplifyDataService.getLeagueMembers(leagueId);
+      
+      // Update cache
+      this.memberCache.set(cacheKey, {
+        data: members,
+        timestamp: Date.now()
+      });
+      
+      // Update member count in league data
+      const league = this.userLeagues.get(leagueId);
+      if (league) {
+        league.memberCount = members.length;
+      }
+      
+      return members;
+    } catch (error) {
+      console.error(`Failed to load members for league ${leagueId}:`, error);
+      return [];
+    }
+  }
+
+  // Get cached league picks (with cache management)
+  async getLeaguePicks(leagueId, userId = null, useCache = true) {
+    const cacheKey = `picks_${leagueId}_${userId || 'all'}`;
+    
+    if (useCache && this.pickCache.has(cacheKey)) {
+      const cached = this.pickCache.get(cacheKey);
+      if (Date.now() - cached.timestamp < this.cacheTimeout) {
+        return cached.data;
+      }
+    }
+
+    try {
+      const picks = await amplifyDataService.getUserPicks(userId, leagueId);
+      
+      // Update cache
+      this.pickCache.set(cacheKey, {
+        data: picks,
+        timestamp: Date.now()
+      });
+      
+      return picks;
+    } catch (error) {
+      console.error(`Failed to load picks for league ${leagueId}:`, error);
+      return [];
+    }
+  }
+
+  // Clear specific cache entries
+  clearCache(type = null, leagueId = null) {
+    if (type === 'members' && leagueId) {
+      this.memberCache.delete(`members_${leagueId}`);
+    } else if (type === 'picks' && leagueId) {
+      // Clear all pick caches for this league
+      for (const key of this.pickCache.keys()) {
+        if (key.startsWith(`picks_${leagueId}_`)) {
+          this.pickCache.delete(key);
+        }
+      }
+    } else if (type === 'all') {
+      this.memberCache.clear();
+      this.pickCache.clear();
+      this.leagueCache.clear();
     } else {
-      // Refresh all leagues
-      await this.loadUserLeagues();
+      // Clear expired caches
+      this.clearExpiredCaches();
+    }
+  }
+
+  // Clear expired cache entries
+  clearExpiredCaches() {
+    const now = Date.now();
+    
+    // Clear expired member caches
+    for (const [key, cached] of this.memberCache.entries()) {
+      if (now - cached.timestamp > this.cacheTimeout) {
+        this.memberCache.delete(key);
+      }
     }
     
-    this.notifyLeagueListChange();
-  }
-
-  /**
-   * Check if league data needs refresh based on cache timeout
-   * @param {string} leagueId - League ID to check
-   * @returns {boolean} True if refresh needed
-   */
-  needsRefresh(leagueId) {
-    const lastUpdate = this.lastCacheUpdate.get(leagueId);
-    return !lastUpdate || (Date.now() - lastUpdate) > this.cacheTimeout;
-  }
-
-  /**
-   * Get league data with automatic cache refresh
-   * @param {string} leagueId - League ID
-   * @param {boolean} forceRefresh - Force refresh regardless of cache
-   * @returns {Promise<Object|null>} League data
-   */
-  async getLeagueData(leagueId, forceRefresh = false) {
-    if (!this.userLeagues.has(leagueId)) {
-      return null;
-    }
-
-    if (forceRefresh || this.needsRefresh(leagueId)) {
-      await this.refreshLeagueData(leagueId);
-    }
-
-    return this.userLeagues.get(leagueId);
-  }
-
-  /**
-   * Persist active league to localStorage
-   */
-  persistActiveLeague() {
-    if (this.activeLeagueId) {
-      localStorage.setItem('activeLeagueId', this.activeLeagueId);
-    } else {
-      localStorage.removeItem('activeLeagueId');
+    // Clear expired pick caches
+    for (const [key, cached] of this.pickCache.entries()) {
+      if (now - cached.timestamp > this.cacheTimeout) {
+        this.pickCache.delete(key);
+      }
     }
   }
 
-  /**
-   * Add event listener for league changes
-   * @param {Function} listener - Event listener function
-   */
-  addEventListener(listener) {
-    this.eventListeners.add(listener);
+  // Clear all context data
+  clearContext() {
+    this.userLeagues.clear();
+    this.activeLeagueId = null;
+    this.clearCache('all');
+    this.lastLoadTime = 0;
+    console.log('League context cleared');
   }
 
-  /**
-   * Remove event listener
-   * @param {Function} listener - Event listener function
-   */
-  removeEventListener(listener) {
-    this.eventListeners.delete(listener);
+  // Refresh league data
+  async refreshLeagues() {
+    console.log('Refreshing league data...');
+    this.clearCache('all');
+    return this.loadUserLeagues(true);
   }
 
-  /**
-   * Notify listeners of league change
-   * @param {string|null} newLeagueId - New active league ID
-   * @param {string|null} previousLeagueId - Previous active league ID
-   */
+  // Event system for league changes
+  addLeagueChangeListener(callback) {
+    this.eventListeners.add(callback);
+  }
+
+  removeLeagueChangeListener(callback) {
+    this.eventListeners.delete(callback);
+  }
+
   notifyLeagueChange(newLeagueId, previousLeagueId = null) {
     const context = this.getActiveLeagueContext();
-    this.eventListeners.forEach(listener => {
+    
+    for (const callback of this.eventListeners) {
       try {
-        listener('league-change', {
+        callback({
+          type: 'league-change',
           newLeagueId,
           previousLeagueId,
           context,
-          multiLeagueContext: this.getMultiLeagueContext()
+          timestamp: Date.now()
         });
       } catch (error) {
         console.error('Error in league change listener:', error);
       }
-    });
+    }
   }
 
-  /**
-   * Notify listeners of league list changes
-   */
-  notifyLeagueListChange() {
-    const context = this.getMultiLeagueContext();
-    this.eventListeners.forEach(listener => {
-      try {
-        listener('league-list-change', {
-          context,
-          leagueCount: this.userLeagues.size
-        });
-      } catch (error) {
-        console.error('Error in league list change listener:', error);
-      }
-    });
+  // Get league by ID
+  getLeague(leagueId) {
+    return this.userLeagues.get(leagueId) || null;
   }
 
-  /**
-   * Get leagues by activity (most recently active first)
-   * @returns {Array} Sorted leagues
-   */
-  getLeaguesByActivity() {
-    return Array.from(this.userLeagues.values())
-      .sort((a, b) => {
-        const aTime = new Date(a.lastActivity || a.createdAt || 0);
-        const bTime = new Date(b.lastActivity || b.createdAt || 0);
-        return bTime - aTime; // Most recent first
-      });
+  // Check if user is in specific league
+  isInLeague(leagueId) {
+    return this.userLeagues.has(leagueId);
   }
 
-  /**
-   * Get leagues owned by current user
-   * @returns {Array} Owned leagues
-   */
-  getOwnedLeagues() {
-    return Array.from(this.userLeagues.values()).filter(league => league.isOwner);
-  }
-
-  /**
-   * Get league statistics for dashboard
-   * @returns {Object} League statistics
-   */
-  getLeagueStatistics() {
+  // Get league statistics
+  getLeagueStats() {
     const leagues = Array.from(this.userLeagues.values());
     
     return {
       totalLeagues: leagues.length,
-      ownedLeagues: leagues.filter(l => l.isOwner).length,
-      activeMemberships: leagues.filter(l => !l.isOwner).length,
-      totalMembers: leagues.reduce((sum, l) => sum + l.memberCount, 0),
-      averageMembersPerLeague: leagues.length > 0 ? Math.round(leagues.reduce((sum, l) => sum + l.memberCount, 0) / leagues.length) : 0,
-      newestLeague: leagues.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] || null,
-      mostActiveLeague: leagues.sort((a, b) => (b.recentPickCount || 0) - (a.recentPickCount || 0))[0] || null
+      activeLeague: this.activeLeagueId,
+      recentlyAccessed: leagues
+        .sort((a, b) => b.lastAccessed - a.lastAccessed)
+        .slice(0, 3)
+        .map(l => ({ leagueId: l.leagueId, name: l.name }))
     };
   }
 }
 
-// Global instance
-export const multiLeagueContext = new MultiLeagueContext();
-
-// Export convenience functions for compatibility
-export async function initializeMultiLeagueSystem() {
-  await multiLeagueContext.initialize();
-  return multiLeagueContext;
-}
-
-export function getMultiLeagueContext() {
-  return multiLeagueContext.getMultiLeagueContext();
-}
-
-export function getActiveLeagueContext() {
-  return multiLeagueContext.getActiveLeagueContext();
-}
-
-export function getAllLeaguesContext() {
-  return multiLeagueContext.getAllLeaguesContext();
-}
-
-export function setActiveLeague(leagueId) {
-  return multiLeagueContext.setActiveLeague(leagueId);
-} 
+// Create singleton instance
+export const multiLeagueContext = new MultiLeagueContext(); 

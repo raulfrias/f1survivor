@@ -163,12 +163,17 @@ export class AmplifyDataService {
 
   // League operations - AUTH REQUIRED
   async createLeague(leagueData) {
+    try {
     const user = await authManager.getCurrentUser();
     if (!user) throw new Error('Authentication required');
 
     const userId = user.userId || user.username;
+      
+      // Generate unique league ID
+      const leagueId = `league_${userId}_${Date.now()}`;
     
     const league = await this.client.models.League.create({
+        leagueId: leagueId,
       name: leagueData.name,
       inviteCode: leagueData.inviteCode,
       ownerId: userId,
@@ -197,7 +202,21 @@ export class AmplifyDataService {
       authMode: 'userPool'
     });
 
-    return league.data;
+      // Return formatted data for UI compatibility
+      return {
+        success: true,
+        leagueId: league.data.leagueId,
+        leagueName: league.data.name,
+        inviteCode: league.data.inviteCode,
+        ...league.data
+      };
+    } catch (error) {
+      console.error('Create league error:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to create league'
+      };
+    }
   }
 
   async joinLeague(inviteCode) {

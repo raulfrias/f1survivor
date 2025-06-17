@@ -55,30 +55,42 @@ export class MultiLeagueContext {
     try {
       const leagues = await amplifyDataService.getUserLeagues();
       
-      // Clear existing data
-      this.userLeagues.clear();
+      // Store current state before clearing
+      const currentLeagues = new Map(this.userLeagues);
+      const currentCount = this.userLeagues.size;
       
-      // Populate leagues map
-      for (const league of leagues) {
-        this.userLeagues.set(league.leagueId, {
-          ...league,
-          lastAccessed: Date.now(),
-          memberCount: 0 // Will be loaded on demand
-        });
-      }
-
-      console.log(`Loaded ${leagues.length} leagues for user`);
+      console.log(`Loaded ${leagues.length} leagues for user (previously had ${currentCount})`);
       
-      // Set default active league if none set
-      if (!this.activeLeagueId && leagues.length > 0) {
-        this.setActiveLeague(leagues[0].leagueId);
+      // Only clear and repopulate if we got a reasonable result
+      if (leagues.length > 0 || currentCount === 0) {
+        // Clear existing data
+        this.userLeagues.clear();
+        
+        // Populate leagues map
+        for (const league of leagues) {
+          this.userLeagues.set(league.leagueId, {
+            ...league,
+            lastAccessed: Date.now(),
+            memberCount: 0 // Will be loaded on demand
+          });
+        }
+        
+        // Set default active league if none set
+        if (!this.activeLeagueId && leagues.length > 0) {
+          this.setActiveLeague(leagues[0].leagueId);
+        }
+      } else {
+        // AWS returned 0 leagues but we had leagues before - likely consistency issue
+        console.warn('AWS returned 0 leagues but we had leagues before. Keeping current context due to likely eventual consistency delay.');
+        return Array.from(currentLeagues.values());
       }
 
       return leagues;
     } catch (error) {
       console.error('Failed to load user leagues:', error);
-      this.clearContext();
-      return [];
+      // Don't clear context on AWS errors - preserve local state
+      console.warn('Preserving local league context due to AWS error');
+      return Array.from(this.userLeagues.values());
     }
   }
 

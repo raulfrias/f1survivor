@@ -128,4 +128,242 @@
   .league-selector select {
     background: rgba(10, 10, 10, 0.9);
   }
+}
+
+/* Multi-League Selector Styles */
+.league-selector.multi-league {
+  display: block;
+  position: relative;
+}
+
+.league-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.active-league-btn {
+  width: 100%;
+  background: var(--card-bg-color);
+  border: 1px solid rgba(225, 6, 0, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-color);
+}
+
+.active-league-btn:hover {
+  border-color: var(--primary-red);
+  background: rgba(225, 6, 0, 0.05);
+}
+
+.league-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.league-icon {
+  font-size: 1.2rem;
+}
+
+.league-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.league-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-color);
+}
+
+.league-members {
+  font-size: 0.85rem;
+  color: var(--text-color);
+  opacity: 0.7;
+}
+
+.dropdown-arrow {
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
+  color: var(--primary-red);
+}
+
+.dropdown-arrow.up {
+  transform: rotate(180deg);
+}
+
+.league-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card-bg-color);
+  border: 1px solid rgba(225, 6, 0, 0.2);
+  border-radius: 8px;
+  margin-top: 0.5rem;
+  max-height: 0;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.league-dropdown-menu.open {
+  max-height: 400px;
+  padding: 0.5rem 0;
+}
+
+.league-option {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.league-option:hover {
+  background: rgba(225, 6, 0, 0.1);
+}
+
+.league-option.active {
+  background: rgba(225, 6, 0, 0.2);
+}
+
+.league-option .league-info {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.active-indicator {
+  color: var(--primary-red);
+  font-weight: bold;
+}
+
+.league-actions {
+  border-top: 1px solid rgba(225, 6, 0, 0.2);
+  padding: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.league-actions button {
+  flex: 1;
+  padding: 0.5rem;
+  background: transparent;
+  border: 1px solid rgba(225, 6, 0, 0.3);
+  border-radius: 4px;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.league-actions button:hover {
+  background: var(--primary-red);
+  border-color: var(--primary-red);
+}
+
+.action-icon {
+  font-size: 1rem;
+}
+
+/* Quick Action Buttons */
+.league-quick-actions {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  gap: 0.25rem;
+  z-index: 10;
+}
+
+.quick-action-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid rgba(225, 6, 0, 0.3);
+  background: var(--card-bg-color);
+  color: var(--primary-red);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.quick-action-btn:hover {
+  background: var(--primary-red);
+  color: var(--text-color);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(225, 6, 0, 0.4);
+}
+
+.quick-action-btn .action-icon {
+  font-size: 0.9rem;
+}
+
+/* No leagues state */
+.league-selector.no-leagues {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.solo-mode-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.league-selector.no-leagues .league-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  border: none;
+  padding: 0;
+}
+
+.league-selector.no-leagues .league-actions button {
+  padding: 0.75rem 1.5rem;
+  background: var(--primary-red);
+  border: none;
+  border-radius: 6px;
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+.league-selector.no-leagues .league-actions button:hover {
+  background: #ff1f00;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(225, 6, 0, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .league-quick-actions {
+    position: static;
+    margin-top: 0.5rem;
+    justify-content: center;
+  }
+  
+  .quick-action-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
 } 

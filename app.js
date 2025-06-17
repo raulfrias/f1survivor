@@ -1,5 +1,5 @@
 // AWS Backend Integration - NO LOCALSTORAGE
-import { savePickWithContext, loadPicksWithContext, isDriverAlreadyPickedWithContext, getCurrentRacePickWithContext, initializeLeagueIntegration } from './league-integration.js';
+import { savePickWithContext, loadPicksWithContext, isDriverAlreadyPickedWithContext, getCurrentRacePickWithContext, initializeLeagueIntegration, initializeMultiLeagueSystem } from './league-integration.js';
 import { leagueDashboard } from './league-dashboard.js';
 import RaceCountdown from './race-countdown.js';
 import { PickDeadlineManager } from './pick-deadline-manager.js';
@@ -8,8 +8,15 @@ import { PickChangeUtils } from './pick-change-utils.js';
 // Import authentication
 import { authManager } from './auth-manager.js';
 import { authUI } from './auth-ui.js';
+// Import multi-league components
+import { createLeagueSelector } from './league-selector.js';
+import { createMultiLeagueDashboard } from './multi-league-dashboard.js';
 
 console.log('app.js loaded - start');
+
+// Global multi-league component instances
+let leagueSelector = null;
+let multiLeagueDashboard = null;
 
 // Check localStorage availability
 let localStorageAvailable = true;
@@ -1001,6 +1008,9 @@ async function initializeApp() {
         // Initialize league system
         initializeLeagueIntegration();
         
+        // NEW: Initialize multi-league system
+        await initializeMultiLeagueUI();
+        
         // Initialize authentication state management
         await initializeAuthState();
         
@@ -1011,6 +1021,62 @@ async function initializeApp() {
         errorContainer.className = 'error-message active';
         errorContainer.textContent = 'Failed to initialize app. Please refresh the page.';
         document.body.prepend(errorContainer);
+    }
+}
+
+// NEW: Initialize Multi-League UI Components
+async function initializeMultiLeagueUI() {
+    try {
+        // Initialize multi-league system backend
+        const multiLeagueContext = await initializeMultiLeagueSystem();
+        
+        // Make context globally accessible BEFORE initializing UI components
+        window.multiLeagueContext = multiLeagueContext;
+        
+        // Initialize league selector in navigation
+        leagueSelector = createLeagueSelector('league-nav-selector');
+        await leagueSelector.initialize();
+        
+        // Make league selector globally accessible for other components
+        window.leagueSelector = leagueSelector;
+        
+        // Update pick flow for league selection
+        await initializeMultiLeaguePickFlow();
+    } catch (error) {
+        console.error('Failed to initialize multi-league UI:', error);
+        // Graceful fallback - continue without multi-league features
+        console.log('Continuing without multi-league features');
+    }
+}
+
+// NEW: Initialize multi-league pick flow
+async function initializeMultiLeaguePickFlow() {
+    try {
+        // Listen for league switch events
+        document.addEventListener('leagueSwitch', (event) => {
+            const { leagueId } = event.detail;
+            console.log(`League switched to: ${leagueId}`);
+            
+            // Update pick interface for new league context
+            updatePickInterfaceForLeague(leagueId);
+        });
+    } catch (error) {
+        console.error('Failed to initialize multi-league pick flow:', error);
+    }
+}
+
+// NEW: Update pick interface when league changes
+async function updatePickInterfaceForLeague(leagueId) {
+    try {
+        // Refresh driver grid to show league-specific already-picked states
+        await renderDriverGrid();
+        
+        // Update pick button text if needed
+        await updatePickButtonTextAfterAuth();
+        
+        console.log(`Pick interface updated for league: ${leagueId}`);
+    } catch (error) {
+        console.error('Failed to update pick interface for league:', error);
     }
 }
 

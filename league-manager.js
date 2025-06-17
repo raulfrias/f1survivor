@@ -298,21 +298,32 @@ export class LeagueManager {
     }
   }
 
-  // Preview league by invite code
-  previewLeague(inviteCode) {
-    const league = this.storageManager.findLeagueByInviteCode(inviteCode.trim());
-    if (!league) {
+  // Preview league by invite code - AWS BACKEND
+  async previewLeague(inviteCode) {
+    try {
+      if (!inviteCode || inviteCode.trim().length === 0) {
+        return null;
+      }
+
+      // Use AWS backend to find league by invite code
+      const league = await amplifyDataService.getLeagueByInviteCode(inviteCode.trim());
+      
+      if (!league) {
+        return null;
+      }
+
+      // Return limited info for preview
+      return {
+        leagueName: league.name,
+        memberCount: league.memberCount || 0,
+        maxMembers: league.maxMembers || 20,
+        season: league.season || '2025',
+        createdAt: league.createdAt
+      };
+    } catch (error) {
+      console.error('Error previewing league:', error);
       return null;
     }
-
-    // Return limited info for preview
-    return {
-      leagueName: league.leagueName,
-      memberCount: league.members.length,
-      maxMembers: league.settings.maxMembers,
-      season: league.season,
-      createdAt: league.createdAt
-    };
   }
 }
 

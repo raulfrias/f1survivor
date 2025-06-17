@@ -77,7 +77,14 @@ const schema = a.schema({
     owner: a.belongsTo('UserProfile', 'ownerId'),
     members: a.hasMany('LeagueMember', 'leagueId'),
     picks: a.hasMany('DriverPick', 'leagueId')
-  }).authorization((allow) => [
+  })
+  .secondaryIndexes((index) => [
+    index('ownerId').name('byOwner'),
+    index('inviteCode').name('byInviteCode'),
+    // Add a composite index for owner + name to help enforce uniqueness
+    index('ownerId').sortKeys(['name']).name('byOwnerAndName')
+  ])
+  .authorization((allow) => [
     allow.ownerDefinedIn('ownerId'),
     allow.authenticated().to(['read']),
     allow.group('administrators')

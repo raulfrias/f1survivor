@@ -1,4 +1,5 @@
 import { leagueManager } from './league-manager.js';
+import { refreshLeagueData } from './league-integration.js';
 
 export class LeagueModalManager {
   constructor() {
@@ -232,6 +233,13 @@ export class LeagueModalManager {
       const leagueName = document.getElementById('league-name').value;
       const maxMembers = parseInt(document.getElementById('max-members').value);
       const autoPickEnabled = document.getElementById('auto-pick-enabled').checked;
+      
+      // Get form submit button and show loading state
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating League...';
+      submitBtn.style.opacity = '0.7';
 
       try {
         const league = await this.leagueManager.createLeague(leagueName, {
@@ -239,23 +247,65 @@ export class LeagueModalManager {
           autoPickEnabled
         });
 
-        // Show success message with invite code
-        this.showSuccessModal('League Created!', 
-          `Your league "${league.leagueName}" has been created successfully.<br>
-          <strong>Invite Code: ${league.inviteCode}</strong><br>
-          Share this code with friends to invite them to your league.`
-        );
+        // Show enhanced success message with invite code and sharing options
+        this.showLeagueCreatedSuccessModal(league.leagueName, league.inviteCode);
+
+        // Add league directly to context first (immediate UI update)
+        if (window.multiLeagueContext) {
+          window.multiLeagueContext.addLeague({
+            leagueId: league.leagueId,
+            name: league.leagueName,
+            inviteCode: league.inviteCode,
+            memberCount: 1,
+            isOwner: true,
+            status: 'ACTIVE'
+          });
+        }
 
         // Set as active league
         this.leagueManager.setActiveLeague(league.leagueId);
 
-        // Refresh the page or update UI
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
+        // Immediately refresh the league selector with new context
+        if (window.leagueSelector && typeof window.leagueSelector.refreshAndRender === 'function') {
+          await window.leagueSelector.refreshAndRender();
+        }
+
+        // Also refresh from AWS in background to sync any server-side data
+        // But don't let it clear our local context if it fails
+        setTimeout(async () => {
+          try {
+            const currentLeagueCount = window.multiLeagueContext ? window.multiLeagueContext.userLeagues.size : 0;
+            
+            // Only refresh if we expect leagues to be available
+            if (currentLeagueCount > 0) {
+              await refreshLeagueData();
+              
+              // Only refresh UI if AWS returned valid data
+              const newLeagueCount = window.multiLeagueContext ? window.multiLeagueContext.userLeagues.size : 0;
+              if (newLeagueCount >= currentLeagueCount) {
+                // Refresh the league selector with AWS updates
+                if (window.leagueSelector && typeof window.leagueSelector.refreshAndRender === 'function') {
+                  await window.leagueSelector.refreshAndRender();
+                }
+              } else {
+                console.warn('AWS returned fewer leagues than expected, keeping local context');
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to refresh league data from AWS:', error);
+          }
+        }, 3000); // Give DynamoDB more time to propagate
+
+        // Modal will stay open for user to copy/share invite code
+        // User can close it manually when ready
 
       } catch (error) {
         this.showError(error.message);
+        
+        // Reset button on error
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        submitBtn.style.opacity = '1';
       }
     });
   }
@@ -280,15 +330,20 @@ export class LeagueModalManager {
       const code = e.target.value.trim();
 
       if (code.length === 8) {
-        previewTimeout = setTimeout(() => {
-          const preview = this.leagueManager.previewLeague(code);
-          if (preview) {
-            modal.querySelector('#preview-name').textContent = preview.leagueName;
-            modal.querySelector('#preview-members').textContent = `${preview.memberCount}/${preview.maxMembers}`;
-            modal.querySelector('#preview-season').textContent = preview.season;
-            previewDiv.style.display = 'block';
-            errorDiv.style.display = 'none';
-          } else {
+        previewTimeout = setTimeout(async () => {
+          try {
+            const preview = await this.leagueManager.previewLeague(code);
+            if (preview) {
+              modal.querySelector('#preview-name').textContent = preview.leagueName;
+              modal.querySelector('#preview-members').textContent = `${preview.memberCount}/${preview.maxMembers}`;
+              modal.querySelector('#preview-season').textContent = preview.season;
+              previewDiv.style.display = 'block';
+              errorDiv.style.display = 'none';
+            } else {
+              previewDiv.style.display = 'none';
+            }
+          } catch (error) {
+            console.error('Error previewing league:', error);
             previewDiv.style.display = 'none';
           }
         }, 300);
@@ -313,9 +368,17 @@ export class LeagueModalManager {
         // Set as active league
         this.leagueManager.setActiveLeague(league.leagueId);
 
-        // Refresh the page or update UI
+        // Refresh league data from AWS to pick up joined league
+        await refreshLeagueData();
+
+        // Refresh the league selector immediately
+        if (window.leagueSelector && typeof window.leagueSelector.refreshAndRender === 'function') {
+          await window.leagueSelector.refreshAndRender();
+        }
+
+        // Close modal after short delay
         setTimeout(() => {
-          window.location.reload();
+          this.closeActiveModal();
         }, 2000);
 
       } catch (error) {
@@ -442,6 +505,64 @@ export class LeagueModalManager {
     });
   }
 
+  // Show enhanced success modal for league creation with sharing features
+  showLeagueCreatedSuccessModal(leagueName, inviteCode) {
+    this.closeActiveModal();
+
+    const modalHTML = `
+      <div id="league-modal" class="league-modal">
+        <div class="league-modal-content success">
+          <button class="close-btn">&times;</button>
+          <div class="success-header">
+            <div class="success-icon">🎉</div>
+            <h3>League Created Successfully!</h3>
+          </div>
+          
+          <div class="league-created-info">
+            <div class="league-name">
+              <strong>${this.escapeHtml(leagueName)}</strong>
+            </div>
+            <p class="creation-message">Your F1 Survivor league is ready! Share the invite code below with friends and family.</p>
+          </div>
+
+          <div class="invite-code-section">
+            <label class="invite-label">Invite Code</label>
+            <div class="invite-code-container">
+              <input type="text" id="invite-code-display" value="${inviteCode}" readonly class="invite-code-input">
+              <button id="copy-invite-btn" class="copy-btn" data-code="${inviteCode}">
+                <span class="copy-icon">📋</span>
+                Copy
+              </button>
+            </div>
+            <p class="invite-instructions">Anyone with this code can join your league</p>
+          </div>
+
+          <div class="sharing-options">
+            <h4>Share Your League</h4>
+            <div class="share-buttons">
+              <button id="share-native-btn" class="share-btn native-share" style="display: none;">
+                <span class="share-icon">📤</span>
+                Share
+              </button>
+              <button id="share-link-btn" class="share-btn">
+                <span class="share-icon">🔗</span>
+                Copy Link
+              </button>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button class="cta-button" id="continue-btn">Continue</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    this.activeModal = document.getElementById('league-modal');
+    this.attachLeagueCreatedEvents(inviteCode);
+  }
+
   // Show success modal
   showSuccessModal(title, message) {
     this.closeActiveModal();
@@ -474,6 +595,100 @@ export class LeagueModalManager {
     setTimeout(() => {
       errorDiv.remove();
     }, 3000);
+  }
+
+  // Attach event handlers for league created success modal
+  attachLeagueCreatedEvents(inviteCode) {
+    const modal = this.activeModal;
+    const closeBtn = modal.querySelector('.close-btn');
+    const continueBtn = modal.querySelector('#continue-btn');
+    const copyBtn = modal.querySelector('#copy-invite-btn');
+    const shareNativeBtn = modal.querySelector('#share-native-btn');
+    const shareLinkBtn = modal.querySelector('#share-link-btn');
+
+    // Close button
+    closeBtn.addEventListener('click', () => this.closeActiveModal());
+    continueBtn.addEventListener('click', () => this.closeActiveModal());
+
+    // Copy invite code
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(inviteCode);
+        copyBtn.innerHTML = '<span class="copy-icon">✅</span> Copied!';
+        setTimeout(() => {
+          copyBtn.innerHTML = '<span class="copy-icon">📋</span> Copy';
+        }, 2000);
+      } catch (error) {
+        // Fallback for older browsers
+        this.fallbackCopyText(inviteCode);
+        copyBtn.innerHTML = '<span class="copy-icon">✅</span> Copied!';
+        setTimeout(() => {
+          copyBtn.innerHTML = '<span class="copy-icon">📋</span> Copy';
+        }, 2000);
+      }
+    });
+
+    // Native sharing (if supported)
+    if (navigator.share) {
+      shareNativeBtn.style.display = 'inline-flex';
+      shareNativeBtn.addEventListener('click', async () => {
+        try {
+          await navigator.share({
+            title: 'Join my F1 Survivor League!',
+            text: `You're invited to join my F1 Survivor league! Use invite code: ${inviteCode}`,
+            url: window.location.origin
+          });
+        } catch (error) {
+          console.log('Native sharing cancelled or failed');
+        }
+      });
+    }
+
+    // Copy shareable link
+    shareLinkBtn.addEventListener('click', async () => {
+      const shareText = `🏎️ Join my F1 Survivor league!
+      
+Use invite code: ${inviteCode}
+      
+Play at: ${window.location.origin}
+
+Pick one driver each race, can't pick the same driver twice. Last player standing wins!`;
+
+      try {
+        await navigator.clipboard.writeText(shareText);
+        shareLinkBtn.innerHTML = '<span class="share-icon">✅</span> Copied!';
+        setTimeout(() => {
+          shareLinkBtn.innerHTML = '<span class="share-icon">🔗</span> Copy Link';
+        }, 2000);
+      } catch (error) {
+        this.fallbackCopyText(shareText);
+        shareLinkBtn.innerHTML = '<span class="share-icon">✅</span> Copied!';
+        setTimeout(() => {
+          shareLinkBtn.innerHTML = '<span class="share-icon">🔗</span> Copy Link';
+        }, 2000);
+      }
+    });
+
+    // Select invite code on focus for easy manual copying
+    const inviteInput = modal.querySelector('#invite-code-display');
+    inviteInput.addEventListener('focus', () => {
+      inviteInput.select();
+    });
+  }
+
+  // Fallback copy method for older browsers
+  fallbackCopyText(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+    } catch (error) {
+      console.error('Fallback copy failed:', error);
+    }
+    document.body.removeChild(textArea);
   }
 
   // Close active modal

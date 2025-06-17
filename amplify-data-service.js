@@ -270,6 +270,35 @@ export class AmplifyDataService {
     return league;
   }
 
+  async getLeagueByInviteCode(inviteCode) {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    // Find league by invite code (for preview functionality)
+    const leagueResult = await this.client.models.League.list({
+      filter: {
+        inviteCode: { eq: inviteCode },
+        status: { eq: 'ACTIVE' }
+      },
+      authMode: 'userPool'
+    });
+
+    if (!leagueResult.data || leagueResult.data.length === 0) {
+      return null; // League not found - return null instead of throwing error for preview
+    }
+
+    const league = leagueResult.data[0];
+
+    // Get member count for the league
+    const memberCount = await this.getLeagueMembers(league.leagueId);
+    
+    return {
+      ...league,
+      memberCount: memberCount.length,
+      season: '2025' // Add current season for preview
+    };
+  }
+
   async getLeague(leagueId) {
     const user = await authManager.getCurrentUser();
     if (!user) throw new Error('Authentication required');

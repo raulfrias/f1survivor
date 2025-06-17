@@ -303,15 +303,18 @@ export class AmplifyDataService {
     const user = await authManager.getCurrentUser();
     if (!user) throw new Error('Authentication required');
 
-    // Fix: Use 'id' for the GraphQL query parameter, not 'leagueId'
-    // Amplify generates GraphQL queries with 'id' as the primary key parameter
-    const result = await this.client.models.League.get({
-      id: leagueId  // Changed from leagueId to id
+    // Fix: Use list with filter instead of get, since leagueId is a custom field not the DynamoDB primary key
+    // Amplify auto-generates an 'id' field as the primary key, but we use 'leagueId' as our business logic key
+    const result = await this.client.models.League.list({
+      filter: {
+        leagueId: { eq: leagueId }
+      }
     }, {
       authMode: 'userPool'
     });
 
-    return result.data;
+    // Return the first match (should be unique)
+    return result.data && result.data.length > 0 ? result.data[0] : null;
   }
 
   async getLeagueMembers(leagueId) {

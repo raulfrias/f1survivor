@@ -169,6 +169,19 @@ export class AmplifyDataService {
 
     const userId = user.userId || user.username;
       
+      // Check for duplicate league names for this user
+      const existingLeagues = await this.getUserLeagues();
+      const duplicateName = existingLeagues.find(league => 
+        league.name.toLowerCase().trim() === leagueData.name.toLowerCase().trim()
+      );
+      
+      if (duplicateName) {
+        return {
+          success: false,
+          error: `You already have a league named "${leagueData.name}". Please choose a different name.`
+        };
+      }
+      
       // Generate unique league ID
       const leagueId = `league_${userId}_${Date.now()}`;
     

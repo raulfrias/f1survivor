@@ -247,6 +247,11 @@ export class LeagueModalManager {
           autoPickEnabled
         });
 
+        // Check if league creation was successful
+        if (!league.success) {
+          throw new Error(league.error || 'Failed to create league');
+        }
+
         // Show enhanced success message with invite code and sharing options
         this.showLeagueCreatedSuccessModal(league.leagueName, league.inviteCode);
 

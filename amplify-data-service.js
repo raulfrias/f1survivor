@@ -303,8 +303,10 @@ export class AmplifyDataService {
     const user = await authManager.getCurrentUser();
     if (!user) throw new Error('Authentication required');
 
+    // Fix: Use 'id' for the GraphQL query parameter, not 'leagueId'
+    // Amplify generates GraphQL queries with 'id' as the primary key parameter
     const result = await this.client.models.League.get({
-      leagueId
+      id: leagueId  // Changed from leagueId to id
     }, {
       authMode: 'userPool'
     });

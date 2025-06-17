@@ -15,6 +15,7 @@ export class MultiLeagueDashboard {
     this.currentTabLeagueId = null;
     this.leagueChangeHandler = this.handleLeagueContextChange.bind(this);
     this.isInitialized = false;
+    this.currentDashboardLeague = null; // Track dashboard league view (null = all leagues)
     
     if (!this.container) {
       console.error(`Multi-league dashboard container '${containerId}' not found`);
@@ -25,163 +26,301 @@ export class MultiLeagueDashboard {
   async initialize() {
     if (this.isInitialized) return;
     
-    console.log('Initializing Multi-League Dashboard...');
-    
     try {
-      // Add league change listener
-      addLeagueChangeListener(this.leagueChangeHandler);
+      console.log('🏆 Initializing multi-league dashboard...');
       
-      // Load initial data
-      await this.loadDashboardData();
+      // Check if user is authenticated
+      const isAuthenticated = await authManager.isAuthenticated();
+      if (!isAuthenticated) {
+        console.log('🏆 User not authenticated, showing solo dashboard');
+        this.showSoloDashboard();
+        return;
+      }
+
+      // Get multi-league context
+      const context = window.multiLeagueContext ? window.multiLeagueContext.getMultiLeagueContext() : null;
       
-      // Render dashboard
-      await this.renderDashboard();
-      
+      if (!context || context.leagueCount === 0) {
+        console.log('🏆 No leagues found, showing solo dashboard');
+        this.showSoloDashboard();
+        return;
+      }
+
+      console.log(`🏆 Enhancing dashboard for ${context.leagueCount} leagues`);
+      await this.enhanceExistingDashboard(context);
       this.isInitialized = true;
-      console.log('Multi-League Dashboard initialized successfully');
+      
     } catch (error) {
-      console.error('Failed to initialize Multi-League Dashboard:', error);
-      this.renderError('Failed to load dashboard data');
+      console.error('Failed to initialize multi-league dashboard:', error);
+      this.showSoloDashboard();
     }
   }
 
-  async loadDashboardData() {
-    const user = await authManager.getCurrentUser();
-    if (!user) {
-      console.log('No authenticated user for dashboard');
-      return;
-    }
-
-    const context = getMultiLeagueContext();
+  showSoloDashboard() {
+    // Hide multi-league elements, show solo mode
+    const crossLeagueSection = document.getElementById('cross-league-overview');
+    const dashboardTabs = document.getElementById('dashboard-league-tabs');
     
-    if (!context.hasLeagues) {
-      console.log('No leagues to load for dashboard');
-      return;
-    }
-
-    // Load detailed league data
-    await this.loadLeagueDetails(context);
+    if (crossLeagueSection) crossLeagueSection.style.display = 'none';
+    if (dashboardTabs) dashboardTabs.style.display = 'none';
     
-    // Load cross-league statistics
-    await this.loadCrossLeagueStatistics();
+    // Update player status for solo mode
+    this.updatePlayerStatusForSolo();
   }
 
-  async loadLeagueDetails(context) {
-    this.leagues.clear();
+  async enhanceExistingDashboard(context) {
+    // Add cross-league stats section
+    await this.addCrossLeagueStatsSection(context);
     
-    for (const leagueId of context.userLeagues) {
-      try {
-        const [leagueData, members, recentPicks] = await Promise.all([
-          amplifyDataService.getLeague(leagueId),
-          amplifyDataService.getLeagueMembers(leagueId),
-          amplifyDataService.getUserPicks(null, leagueId)
-        ]);
-        
-        this.leagues.set(leagueId, {
-          ...leagueData,
-          members: members || [],
-          recentPicks: recentPicks || [],
-          memberCount: members ? members.length : 0
-        });
-      } catch (error) {
-        console.error(`Failed to load data for league ${leagueId}:`, error);
+    // Add league dashboard tabs
+    this.addLeagueDashboardTabs(context);
+    
+    // Enhance existing sections
+    await this.enhancePickHistoryForLeagues(context);
+    this.enhancePlayerStatusForLeagues(context);
+    
+    // Set up event listeners
+    this.setupDashboardTabEvents();
+  }
+
+  async addCrossLeagueStatsSection(context) {
+    // Calculate cross-league statistics
+    const stats = await this.calculateCrossLeagueStats(context);
+    
+    const crossLeagueHTML = `
+      <div id="cross-league-overview" class="cross-league-overview">
+        <h2>Performance Across All Leagues</h2>
+        <div class="cross-league-stats-grid">
+          <div class="stat-card">
+            <span class="stat-value">${stats.totalLeagues}</span>
+            <span class="stat-label">Active Leagues</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">${stats.overallSurvivalRate}%</span>
+            <span class="stat-label">Overall Survival Rate</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">${stats.bestLeague}</span>
+            <span class="stat-label">Best Performing League</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">${stats.totalPicks}</span>
+            <span class="stat-label">Total Picks Made</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Insert before the dashboard top row
+    const dashboardContainer = document.querySelector('.dashboard-container');
+    const topRow = document.querySelector('.dashboard-top-row');
+    
+    if (dashboardContainer && topRow) {
+      topRow.insertAdjacentHTML('beforebegin', crossLeagueHTML);
+    }
+  }
+
+  addLeagueDashboardTabs(context) {
+    const activeLeague = context.activeLeagueData;
+    const userLeagues = context.userLeagues || [];
+    
+    const tabsHTML = `
+      <div id="dashboard-league-tabs" class="dashboard-league-tabs">
+        <button class="dashboard-tab ${this.currentDashboardLeague === null ? 'active' : ''}" data-league="all">
+          All Leagues
+        </button>
+        ${userLeagues.map(league => `
+          <button class="dashboard-tab ${this.currentDashboardLeague === league.leagueId ? 'active' : ''}" 
+                  data-league="${league.leagueId}">
+            ${league.name}
+          </button>
+        `).join('')}
+      </div>
+    `;
+
+    // Insert after cross-league overview
+    const crossLeagueSection = document.getElementById('cross-league-overview');
+    if (crossLeagueSection) {
+      crossLeagueSection.insertAdjacentHTML('afterend', tabsHTML);
+    }
+  }
+
+  async enhancePickHistoryForLeagues(context) {
+    const pickHistorySection = document.querySelector('.pick-history-section h2');
+    if (!pickHistorySection) return;
+
+    // Update pick history title to show current league context
+    const activeLeague = context.activeLeagueData;
+    const leagueName = this.currentDashboardLeague === null ? 'All Leagues' : 
+                     (activeLeague ? activeLeague.name : 'Current League');
+    
+    pickHistorySection.innerHTML = `Pick History - <span id="dashboard-league-name">${leagueName}</span>`;
+    
+    // Refresh pick history based on current dashboard league filter
+    await this.refreshPickHistory();
+  }
+
+  enhancePlayerStatusForLeagues(context) {
+    const playerNameElement = document.querySelector('.player-name');
+    const statusElement = document.querySelector('.survival-status');
+    
+    if (playerNameElement && context.leagueCount > 0) {
+      // Show league context in player status
+      const activeLeague = context.activeLeagueData;
+      if (activeLeague && this.currentDashboardLeague !== null) {
+        playerNameElement.textContent = `${playerNameElement.textContent} - ${activeLeague.name}`;
       }
     }
   }
 
-  async loadCrossLeagueStatistics() {
+  updatePlayerStatusForSolo() {
+    const playerNameElement = document.querySelector('.player-name');
+    if (playerNameElement) {
+      // Reset to simple player name for solo mode
+      playerNameElement.textContent = 'Player 1';
+    }
+  }
+
+  setupDashboardTabEvents() {
+    const tabs = document.querySelectorAll('.dashboard-tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', async (e) => {
+        const leagueId = e.target.dataset.league;
+        await this.switchDashboardLeague(leagueId === 'all' ? null : leagueId);
+      });
+    });
+  }
+
+  async switchDashboardLeague(leagueId) {
+    console.log(`🏆 Switching dashboard view to league: ${leagueId || 'all'}`);
+    
+    this.currentDashboardLeague = leagueId;
+    
+    // Update active tab
+    document.querySelectorAll('.dashboard-tab').forEach(tab => {
+      const tabLeagueId = tab.dataset.league === 'all' ? null : tab.dataset.league;
+      tab.classList.toggle('active', tabLeagueId === leagueId);
+    });
+    
+    // Update dashboard content for selected league
+    await this.refreshDashboardForLeague(leagueId);
+  }
+
+  async refreshDashboardForLeague(leagueId) {
+    // Update pick history for selected league
+    await this.refreshPickHistory();
+    
+    // Update league name in pick history title
+    const leagueNameElement = document.getElementById('dashboard-league-name');
+    if (leagueNameElement) {
+      if (leagueId === null) {
+        leagueNameElement.textContent = 'All Leagues';
+      } else {
+        const context = window.multiLeagueContext ? window.multiLeagueContext.getMultiLeagueContext() : null;
+        const league = context?.userLeagues?.find(l => l.leagueId === leagueId);
+        leagueNameElement.textContent = league ? league.name : 'Current League';
+      }
+    }
+    
+    console.log(`✅ Dashboard refreshed for league: ${leagueId || 'all'}`);
+  }
+
+  async refreshPickHistory() {
     try {
-      // Calculate statistics across all leagues
-      const totalLeagues = this.leagues.size;
-      let totalPicks = 0;
-      let totalSurvivalDays = 0;
-      let bestLeaguePosition = null;
-      let worstLeaguePosition = null;
-      
-      for (const [leagueId, league] of this.leagues) {
-        const picks = league.recentPicks || [];
-        totalPicks += picks.length;
-        
-        // Calculate survival days for this league
-        const survivalDays = this.calculateSurvivalDays(picks);
-        totalSurvivalDays += survivalDays;
-        
-        // Track best/worst league positions (placeholder for now)
-        // TODO: Implement actual league position calculation
+      // Get picks based on current dashboard league filter
+      let picks;
+      if (this.currentDashboardLeague === null) {
+        // Show all picks across all leagues
+        picks = await amplifyDataService.getMultiLeaguePickHistory();
+      } else {
+        // Show picks for specific league
+        picks = await amplifyDataService.getUserPicks(null, this.currentDashboardLeague);
       }
+
+      // Update pick history display
+      this.updatePickHistoryDisplay(picks);
       
-      const avgSurvivalRate = totalLeagues > 0 ? totalSurvivalDays / totalLeagues : 0;
+    } catch (error) {
+      console.error('Failed to refresh pick history:', error);
+    }
+  }
+
+  updatePickHistoryDisplay(picks) {
+    const pickHistoryBody = document.getElementById('pick-history-body');
+    const noPicksMessage = document.getElementById('no-picks-message');
+    
+    if (!pickHistoryBody) return;
+
+    if (!picks || picks.length === 0) {
+      if (noPicksMessage) {
+        noPicksMessage.style.display = 'block';
+        noPicksMessage.innerHTML = this.currentDashboardLeague === null ? 
+          'No picks made yet across any leagues. <a href="index.html">Make your first pick!</a>' :
+          'No picks made in this league yet. <a href="index.html">Make your first pick!</a>';
+      }
+      // Clear any existing pick rows
+      const existingRows = pickHistoryBody.querySelectorAll('.pick-row');
+      existingRows.forEach(row => row.remove());
+      return;
+    }
+
+    // Hide no picks message
+    if (noPicksMessage) {
+      noPicksMessage.style.display = 'none';
+    }
+
+    // Clear existing pick rows
+    const existingRows = pickHistoryBody.querySelectorAll('.pick-row');
+    existingRows.forEach(row => row.remove());
+
+    // Add pick rows
+    picks.forEach(pick => {
+      const pickRow = this.createPickHistoryRow(pick);
+      pickHistoryBody.appendChild(pickRow);
+    });
+  }
+
+  createPickHistoryRow(pick) {
+    const row = document.createElement('div');
+    row.className = 'pick-row';
+    
+    // Show league name in multi-league view
+    const leagueInfo = this.currentDashboardLeague === null && pick.leagueName ? 
+      ` (${pick.leagueName})` : '';
+    
+    row.innerHTML = `
+      <div class="pick-cell">${pick.raceName || pick.raceId}${leagueInfo}</div>
+      <div class="pick-cell">${pick.driverName}</div>
+      <div class="pick-cell">${pick.finalPosition || 'TBD'}</div>
+      <div class="pick-cell">
+        <span class="status-badge ${pick.survived !== false ? 'survived' : 'eliminated'}">
+          ${pick.survived !== false ? 'Survived' : 'Eliminated'}
+        </span>
+      </div>
+    `;
+    
+    return row;
+  }
+
+  async calculateCrossLeagueStats(context) {
+    try {
+      const stats = await amplifyDataService.getCrossLeagueStatistics();
       
-      this.crossLeagueStats = {
-        totalLeagues,
-        totalPicks,
-        avgSurvivalRate: Math.round(avgSurvivalRate * 100) / 100,
-        bestLeague: this.findBestLeague(),
-        activeSince: this.calculateActiveSince(),
-        streakData: this.calculateStreakData()
+      return {
+        totalLeagues: context.leagueCount,
+        overallSurvivalRate: stats?.overallSurvivalRate || 0,
+        bestLeague: stats?.bestLeague || 'N/A',
+        totalPicks: stats?.totalPicks || 0
       };
     } catch (error) {
-      console.error('Failed to load cross-league statistics:', error);
-      this.crossLeagueStats = {
-        totalLeagues: this.leagues.size,
-        totalPicks: 0,
-        avgSurvivalRate: 0,
-        bestLeague: null,
-        activeSince: new Date(),
-        streakData: { current: 0, best: 0 }
+      console.error('Failed to calculate cross-league stats:', error);
+      return {
+        totalLeagues: context.leagueCount,
+        overallSurvivalRate: 0,
+        bestLeague: 'N/A',
+        totalPicks: 0
       };
     }
-  }
-
-  calculateSurvivalDays(picks) {
-    // Simple survival calculation based on number of picks
-    // In a real implementation, this would check elimination status
-    return picks.length * 7; // Assume 1 week per race
-  }
-
-  findBestLeague() {
-    let bestLeague = null;
-    let bestScore = -1;
-    
-    for (const [leagueId, league] of this.leagues) {
-      // Simple scoring: more picks = better performance
-      const score = league.recentPicks ? league.recentPicks.length : 0;
-      if (score > bestScore) {
-        bestScore = score;
-        bestLeague = {
-          id: leagueId,
-          name: league.name,
-          score: score
-        };
-      }
-    }
-    
-    return bestLeague;
-  }
-
-  calculateActiveSince() {
-    // Find earliest league join date
-    let earliestDate = new Date();
-    
-    for (const [leagueId, league] of this.leagues) {
-      if (league.createdAt) {
-        const createdDate = new Date(league.createdAt);
-        if (createdDate < earliestDate) {
-          earliestDate = createdDate;
-        }
-      }
-    }
-    
-    return earliestDate;
-  }
-
-  calculateStreakData() {
-    // Placeholder for streak calculation
-    // TODO: Implement actual streak calculation based on race results
-    return {
-      current: 3,
-      best: 7
-    };
   }
 
   async renderDashboard() {

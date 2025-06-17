@@ -4,6 +4,7 @@ import { getDashboardData, getRaceName, formatDate, addTestDashboardData } from 
 import EliminationZone from './elimination-zone.js';
 import { authManager } from './auth-manager.js';
 import { authUI } from './auth-ui.js';
+import { multiLeagueDashboard } from './multi-league-dashboard.js';
 
 // Dashboard state
 let dashboardData = null;
@@ -75,6 +76,9 @@ async function updateUIForAuthState(isAuthenticated) {
         link.style.display = 'block';
       });
     }
+    
+    // Refresh multi-league dashboard for authenticated user
+    await multiLeagueDashboard.refresh();
   } else {
     // Update sign in links to show sign in
     signInLinks.forEach(link => {
@@ -185,6 +189,9 @@ async function initializeDashboard() {
     
     // Initialize authentication state first
     await initializeAuthState();
+    
+    // Initialize multi-league dashboard
+    await multiLeagueDashboard.initialize();
     
     // Add test data if needed (for demonstration)
     addTestDashboardData();

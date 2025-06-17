@@ -1,6 +1,7 @@
 import { getMultiLeagueContext, setActiveLeagueId, addLeagueChangeListener, removeLeagueChangeListener } from './league-integration.js';
 import { amplifyDataService } from './amplify-data-service.js';
 import { leagueModalManager } from './league-modal-manager.js';
+import { authManager } from './auth-manager.js';
 
 /**
  * League Selector Component
@@ -19,36 +20,50 @@ export class LeagueSelector {
   }
 
   async initialize() {
+    console.log(`🔍 League selector initializing with container ID: ${this.containerId}`);
+    
     if (!this.container) {
-      console.warn(`League selector container '${this.containerId}' not found in DOM`);
+      console.warn(`❌ League selector container '${this.containerId}' not found in DOM`);
       return;
     }
+    
+    console.log(`✅ League selector container found:`, this.container);
 
     // Listen for league context changes
     if (window.multiLeagueContext) {
       window.multiLeagueContext.addLeagueChangeListener(this.handleLeagueContextChange.bind(this));
+      console.log(`✅ League context listener added`);
     } else {
-      console.warn(`No multiLeagueContext available during initialization`);
+      console.warn(`⚠️ No multiLeagueContext available during initialization`);
     }
 
     await this.render();
+    console.log(`✅ League selector render completed`);
   }
 
   async render() {
+    // Check if user is authenticated first
+    const isAuthenticated = await authManager.isAuthenticated();
+    
+    if (!isAuthenticated) {
+      console.log('🔍 League nav selector - user not authenticated, hiding selector');
+      this.renderHidden();
+      return;
+    }
+
     if (!window.multiLeagueContext) {
+      console.log('🔍 League nav selector - no multiLeagueContext available');
       this.renderHidden();
       return;
     }
 
     const context = window.multiLeagueContext.getMultiLeagueContext();
+    console.log('🔍 League nav selector - render context:', context);
     this.currentContext = context;
     
-    if (!context.hasLeagues) {
-      this.renderHidden();
-      return;
-    }
-
-    // Always render as nav dropdown (whether 1 or multiple leagues)
+    // Always render the dropdown for authenticated users, even with 0 leagues
+    // This allows users to create or join leagues
+    console.log(`🔍 League nav selector - rendering dropdown (${context.leagueCount} leagues)`);
     this.renderNavDropdown(context);
   }
 
@@ -58,30 +73,37 @@ export class LeagueSelector {
   }
 
   renderNavDropdown(context) {
+    console.log(`🎨 Rendering nav dropdown for context:`, context);
+    
     const activeLeague = context.activeLeagueData;
-    const leagueName = activeLeague ? activeLeague.name : 'Select League';
+    // Update the default text when user has no leagues
+    const leagueName = activeLeague ? activeLeague.name : (context.leagueCount === 0 ? 'Leagues' : 'Select League');
+    
+    console.log(`🏆 Active league: ${leagueName}`, activeLeague);
     
     // Get all leagues for dropdown
     const multiLeagueContext = window.multiLeagueContext;
     const allLeaguesContext = multiLeagueContext.getAllLeaguesContext();
     const allLeagues = allLeaguesContext.leagues || [];
     
+    console.log(`📋 All leagues for dropdown:`, allLeagues);
+    
     const html = `
       <div class="league-nav-dropdown ${this.isDropdownOpen ? 'active' : ''}">
         <button class="league-nav-trigger" data-action="toggle">
-          <span class="league-icon">🏆</span>
-          <span class="league-name">${this.escapeHtml(leagueName)}</span>
+              <span class="league-icon">🏆</span>
+                <span class="league-name">${this.escapeHtml(leagueName)}</span>
           <span class="nav-arrow ${this.isDropdownOpen ? 'up' : 'down'}">▼</span>
         </button>
         
         <div class="league-nav-menu ${this.isDropdownOpen ? 'open' : ''}">
           <div class="league-nav-header">
             <span class="menu-title">Your Leagues</span>
-          </div>
+              </div>
           
           <div class="league-nav-list">
             ${this.renderNavLeagueList(allLeagues, context.activeLeague)}
-          </div>
+            </div>
           
           <div class="league-nav-actions">
             <button class="nav-action-btn" data-action="create">
@@ -90,20 +112,25 @@ export class LeagueSelector {
             </button>
             <button class="nav-action-btn" data-action="join">
               <span class="action-icon">🔗</span>
-              Join League
-            </button>
+                Join League
+              </button>
           </div>
         </div>
       </div>
     `;
     
+    console.log(`📝 Generated HTML for nav dropdown:`, html);
+    
     this.container.innerHTML = html;
+    
+    console.log(`✅ HTML set to container, attaching event listeners...`);
     this.attachNavEventListeners();
+    console.log(`✅ Nav dropdown rendering completed`);
   }
 
   renderNavLeagueList(leagues, activeLeagueId) {
     if (leagues.length === 0) {
-      return '<div class="no-leagues-nav">No leagues available</div>';
+      return '<div class="no-leagues-nav">Ready to join your first league?</div>';
     }
 
     return leagues.map(league => {
@@ -258,15 +285,18 @@ export class LeagueSelector {
 
   async joinLeagueByCode(inviteCode) {
     try {
-      // Use the amplify data service to join the league
-      const result = await amplifyDataService.joinLeague(inviteCode);
+      console.log('Joining league with code:', inviteCode);
       
-      if (result.success) {
+      // Use the amplify data service to join the league
+    const result = await amplifyDataService.joinLeague(inviteCode);
+      
+    if (result.success) {
+        console.log('✅ Successfully joined league');
         // Refresh the league selector to show the new league
-        await this.refreshAndRender();
+      await this.refreshAndRender();
         alert('Successfully joined league!');
-      } else {
-        throw new Error(result.error || 'Failed to join league');
+    } else {
+      throw new Error(result.error || 'Failed to join league');
       }
     } catch (error) {
       console.error('Failed to join league:', error);
@@ -276,24 +306,27 @@ export class LeagueSelector {
 
   async createLeague(leagueName) {
     try {
+      console.log('Creating league:', leagueName);
+      
       // Create basic league data
-      const leagueData = {
-        name: leagueName,
-        description: '',
+    const leagueData = {
+      name: leagueName,
+      description: '',
         maxMembers: 20,
         isPrivate: true,
         autoPickEnabled: true
-      };
-      
+    };
+    
       // Use the amplify data service to create the league
-      const result = await amplifyDataService.createLeague(leagueData);
+    const result = await amplifyDataService.createLeague(leagueData);
       
-      if (result.success) {
+    if (result.success) {
+        console.log('✅ Successfully created league');
         // Refresh the league selector to show the new league
-        await this.refreshAndRender();
+      await this.refreshAndRender();
         alert(`Successfully created league "${leagueName}"!`);
-      } else {
-        throw new Error(result.error || 'Failed to create league');
+    } else {
+      throw new Error(result.error || 'Failed to create league');
       }
     } catch (error) {
       console.error('Failed to create league:', error);

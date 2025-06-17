@@ -1027,6 +1027,8 @@ async function initializeApp() {
 // NEW: Initialize Multi-League UI Components
 async function initializeMultiLeagueUI() {
     try {
+        console.log('Initializing multi-league UI components...');
+        
         // Initialize multi-league system backend
         const multiLeagueContext = await initializeMultiLeagueSystem();
         
@@ -1040,8 +1042,12 @@ async function initializeMultiLeagueUI() {
         // Make league selector globally accessible for other components
         window.leagueSelector = leagueSelector;
         
+        console.log('League selector initialized');
+        
         // Update pick flow for league selection
         await initializeMultiLeaguePickFlow();
+        
+        console.log('Multi-league UI components initialized successfully');
     } catch (error) {
         console.error('Failed to initialize multi-league UI:', error);
         // Graceful fallback - continue without multi-league features
@@ -1060,6 +1066,8 @@ async function initializeMultiLeaguePickFlow() {
             // Update pick interface for new league context
             updatePickInterfaceForLeague(leagueId);
         });
+        
+        console.log('Multi-league pick flow initialized');
     } catch (error) {
         console.error('Failed to initialize multi-league pick flow:', error);
     }
@@ -1077,6 +1085,54 @@ async function updatePickInterfaceForLeague(leagueId) {
         console.log(`Pick interface updated for league: ${leagueId}`);
     } catch (error) {
         console.error('Failed to update pick interface for league:', error);
+    }
+}
+
+// NEW: Refresh multi-league components when authentication state changes
+async function refreshMultiLeagueComponents() {
+    try {
+        console.log('🔄 Refreshing multi-league components for authenticated user...');
+        
+        // Refresh the multi-league context to load user's leagues
+        if (window.multiLeagueContext) {
+            await window.multiLeagueContext.refreshLeagues();
+            console.log('✅ Multi-league context refreshed');
+        }
+        
+        // Re-render the league selector to show leagues
+        if (window.leagueSelector) {
+            await window.leagueSelector.render();
+            console.log('✅ League selector re-rendered');
+        }
+        
+        console.log('✅ Multi-league components refresh completed');
+    } catch (error) {
+        console.error('❌ Failed to refresh multi-league components:', error);
+        // Don't throw error - this is non-critical
+    }
+}
+
+// NEW: Clear multi-league components when user signs out
+async function clearMultiLeagueComponents() {
+    try {
+        console.log('🧹 Clearing multi-league components for unauthenticated user...');
+        
+        // Clear the multi-league context
+        if (window.multiLeagueContext) {
+            window.multiLeagueContext.clearContext();
+            console.log('✅ Multi-league context cleared');
+        }
+        
+        // Hide the league selector
+        if (window.leagueSelector) {
+            await window.leagueSelector.render(); // This will render as hidden due to no leagues
+            console.log('✅ League selector hidden');
+        }
+        
+        console.log('✅ Multi-league components clear completed');
+    } catch (error) {
+        console.error('❌ Failed to clear multi-league components:', error);
+        // Don't throw error - this is non-critical
     }
 }
 
@@ -1146,6 +1202,9 @@ async function updateUIForAuthState(isAuthenticated) {
         // Remove unauthenticated message if it exists
         removeUnauthenticatedMessage();
         
+        // Refresh multi-league context and league selector for authenticated user
+        await refreshMultiLeagueComponents();
+        
         console.log('UI updated for authenticated user:', displayText);
         } catch (error) {
             console.error('Error getting user info:', error);
@@ -1194,6 +1253,9 @@ async function updateUIForAuthState(isAuthenticated) {
         
         // Show a sign up call-to-action for unauthenticated users
         showUnauthenticatedMessage();
+        
+        // Clear multi-league components for unauthenticated user
+        await clearMultiLeagueComponents();
         
         console.log('UI updated for unauthenticated user');
     }

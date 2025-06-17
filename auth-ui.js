@@ -688,6 +688,15 @@ class AuthUI {
     try {
       console.log('Starting Google OAuth flow');
       
+      // Check if user is already authenticated
+      const isAuthenticated = await authManager.isAuthenticated();
+      if (isAuthenticated) {
+        console.log('User already authenticated, closing auth modal');
+        this.hideModal();
+        this.handleSuccessfulAuth();
+        return;
+      }
+      
       // Show loading state on the button
       this.setGoogleLoading(e.target, true);
       

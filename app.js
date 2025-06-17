@@ -10,7 +10,8 @@ import { authManager } from './auth-manager.js';
 import { authUI } from './auth-ui.js';
 // Import multi-league components
 import { createLeagueSelector } from './league-selector.js';
-import { createMultiLeagueDashboard } from './multi-league-dashboard.js';
+// Multi-league dashboard is now handled in dashboard.js for dashboard.html
+// App.js focuses on the main index.html pick interface
 
 console.log('app.js loaded - start');
 

@@ -190,8 +190,28 @@ async function initializeDashboard() {
     // Initialize authentication state first
     await initializeAuthState();
     
+    // Wait for multi-league context to be available if user is authenticated
+    const isAuthenticated = await authManager.isAuthenticated();
+    if (isAuthenticated) {
+      // Wait for multi-league context to initialize
+      let attempts = 0;
+      while (!window.multiLeagueContext && attempts < 10) {
+        console.log(`Waiting for multi-league context... attempt ${attempts + 1}/10`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        attempts++;
+      }
+    }
+    
     // Initialize multi-league dashboard
     await multiLeagueDashboard.initialize();
+    
+    // Set up listener for multi-league context changes
+    if (window.multiLeagueContext) {
+      window.multiLeagueContext.addListener(() => {
+        console.log('🔄 Multi-league context changed, refreshing dashboard...');
+        multiLeagueDashboard.refresh();
+      });
+    }
     
     // Add test data if needed (for demonstration)
     addTestDashboardData();

@@ -196,7 +196,7 @@ This document outlines the development phases and tasks for the F1 Survivor game
 - [x] ✅ **League selector in navigation** (9 leagues working, real-time switching)
 - [x] ✅ **Multi-league context management** (unlimited leagues, caching, AWS integration)
 - [x] ✅ **League switching interface with visual feedback** (completed in navigation)
-- [ ] 🔄 **Multi-league dashboard enhancement** (enhance dashboard.html for league-aware views)
+- [x] ✅ **Multi-league dashboard enhancement** (cross-league stats, league tabs, pick filtering - COMPLETED December 2025)
 - [ ] Enhanced league invitation management interface
 - [ ] **Shareable league links** for easy friend & family invitations
 - [ ] Cross-league statistics and performance visualization

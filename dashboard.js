@@ -5,9 +5,46 @@ import EliminationZone from './elimination-zone.js';
 import { authManager } from './auth-manager.js';
 import { authUI } from './auth-ui.js';
 import { multiLeagueDashboard } from './multi-league-dashboard.js';
+// Import multi-league components
+import { createLeagueSelector } from './league-selector.js';
+import { initializeMultiLeagueSystem } from './league-integration.js';
 
 // Dashboard state
 let dashboardData = null;
+
+// Global multi-league component instances
+let leagueSelector = null;
+
+// Debounce mechanism for dashboard refreshes
+let dashboardRefreshTimeout = null;
+let isRefreshing = false;
+
+// Initialize multi-league UI components for dashboard
+async function initializeMultiLeagueUI() {
+    try {
+        console.log('Initializing multi-league UI components for dashboard...');
+        
+        // Initialize multi-league system backend
+        const multiLeagueContext = await initializeMultiLeagueSystem();
+        
+        // Make context globally accessible BEFORE initializing UI components
+        window.multiLeagueContext = multiLeagueContext;
+        
+        // Initialize league selector in navigation
+        leagueSelector = createLeagueSelector('league-nav-selector');
+        await leagueSelector.initialize();
+        
+        // Make league selector globally accessible for other components
+        window.leagueSelector = leagueSelector;
+        
+        console.log('League selector initialized for dashboard');
+        console.log('Multi-league UI components initialized successfully for dashboard');
+    } catch (error) {
+        console.error('Failed to initialize multi-league UI for dashboard:', error);
+        // Graceful fallback - continue without multi-league features
+        console.log('Continuing dashboard without multi-league features');
+    }
+}
 
 // Initialize authentication state management (copied from app.js)
 async function initializeAuthState() {
@@ -77,8 +114,8 @@ async function updateUIForAuthState(isAuthenticated) {
       });
     }
     
-    // Refresh multi-league dashboard for authenticated user
-    await multiLeagueDashboard.refresh();
+    // Refresh multi-league dashboard for authenticated user (debounced)
+    debouncedDashboardRefresh();
   } else {
     // Update sign in links to show sign in
     signInLinks.forEach(link => {
@@ -93,7 +130,35 @@ async function updateUIForAuthState(isAuthenticated) {
     });
     
     console.log('UI updated for unauthenticated user');
-  }
+      }
+}
+
+// Debounced dashboard refresh to prevent multiple rapid refreshes
+function debouncedDashboardRefresh() {
+    if (isRefreshing) {
+        console.log('🏆 Dashboard refresh already in progress, skipping...');
+        return;
+    }
+    
+    // Clear any existing timeout
+    if (dashboardRefreshTimeout) {
+        clearTimeout(dashboardRefreshTimeout);
+    }
+    
+    // Set new timeout
+    dashboardRefreshTimeout = setTimeout(async () => {
+        if (!isRefreshing) {
+            isRefreshing = true;
+            console.log('🏆 Executing debounced dashboard refresh...');
+            try {
+                await multiLeagueDashboard.refresh();
+            } catch (error) {
+                console.error('Error in debounced dashboard refresh:', error);
+            } finally {
+                isRefreshing = false;
+            }
+        }
+    }, 300); // 300ms debounce
 }
 
 // Show user menu (copied from app.js)
@@ -190,27 +255,60 @@ async function initializeDashboard() {
     // Initialize authentication state first
     await initializeAuthState();
     
-    // Wait for multi-league context to be available if user is authenticated
-    const isAuthenticated = await authManager.isAuthenticated();
-    if (isAuthenticated) {
-      // Wait for multi-league context to initialize
-      let attempts = 0;
-      while (!window.multiLeagueContext && attempts < 10) {
-        console.log(`Waiting for multi-league context... attempt ${attempts + 1}/10`);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        attempts++;
-      }
-    }
-    
-    // Initialize multi-league dashboard
+    // Initialize multi-league dashboard (will handle timing internally)
     await multiLeagueDashboard.initialize();
     
-    // Set up listener for multi-league context changes
-    if (window.multiLeagueContext) {
-      window.multiLeagueContext.addListener(() => {
-        console.log('🔄 Multi-league context changed, refreshing dashboard...');
-        multiLeagueDashboard.refresh();
+    // Set up global listener for when multi-league context becomes available
+    const setupMultiLeagueListener = () => {
+      if (window.multiLeagueContext) {
+        // Check if context actually has leagues loaded
+        const context = window.multiLeagueContext.getMultiLeagueContext();
+        if (context && context.leagueCount > 0) {
+          console.log('🔄 Multi-league context available with leagues, refreshing dashboard...');
+          debouncedDashboardRefresh();
+        } else {
+          console.log('🔄 Multi-league context available but no leagues yet, waiting...');
+        }
+        
+        // Add listener for future changes (always add this)
+        window.multiLeagueContext.addLeagueChangeListener((event) => {
+          console.log('🔄 Multi-league context changed, refreshing dashboard...', event);
+          debouncedDashboardRefresh();
+        });
+        return true;
+      }
+      return false;
+    };
+    
+    // Also listen for league change events from league selector (only once)
+    if (!window.dashboardLeagueChangeListenerAdded) {
+      document.addEventListener('leagueChanged', (event) => {
+        console.log('🔄 League changed event received:', event.detail);
+        setTimeout(() => {
+          debouncedDashboardRefresh();
+        }, 100); // Small delay to ensure context is updated
       });
+      window.dashboardLeagueChangeListenerAdded = true;
+    }
+    
+    // Try to set up listener immediately
+    if (!setupMultiLeagueListener()) {
+      // If not available yet, poll for it (but don't block initialization)
+      let hasSetupListener = false;
+      const checkInterval = setInterval(() => {
+        if (!hasSetupListener && setupMultiLeagueListener()) {
+          hasSetupListener = true;
+          clearInterval(checkInterval);
+        }
+      }, 200); // Check every 200ms (less frequent to avoid spam)
+      
+      // Clear interval after 10 seconds to prevent infinite polling
+      setTimeout(() => {
+        if (!hasSetupListener) {
+          console.log('🔄 Multi-league context setup timed out, continuing with solo mode');
+        }
+        clearInterval(checkInterval);
+      }, 10000);
     }
     
     // Add test data if needed (for demonstration)
@@ -442,7 +540,13 @@ window.showAuthModal = async (tab = 'signin') => {
 window.handleSignOut = handleSignOut;
 
 // Initialize dashboard when page loads
-document.addEventListener('DOMContentLoaded', initializeDashboard);
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize multi-league system first
+    await initializeMultiLeagueUI();
+    
+    // Then initialize dashboard
+    await initializeDashboard();
+});
 
 // Listen for storage changes to update dashboard in real-time
 window.addEventListener('storage', (event) => {

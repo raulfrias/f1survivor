@@ -12,6 +12,10 @@ export class MultiLeagueDashboard {
     this.crossLeagueStats = null;
     this.currentDashboardLeague = null; // Track dashboard league view (null = all leagues)
     this.isInitialized = false;
+    // Add caching for stats
+    this.statsCache = null;
+    this.statsCacheTime = 0;
+    this.statsCacheTimeout = 30000; // 30 seconds
   }
 
   async initialize() {
@@ -25,25 +29,26 @@ export class MultiLeagueDashboard {
       if (!isAuthenticated) {
         console.log('🏆 User not authenticated, showing solo dashboard');
         this.showSoloDashboard();
+        this.isInitialized = true;
         return;
       }
 
-      // Get multi-league context
-      const context = window.multiLeagueContext ? window.multiLeagueContext.getMultiLeagueContext() : null;
-      
-      if (!context || context.leagueCount === 0) {
-        console.log('🏆 No leagues found, showing solo dashboard');
-        this.showSoloDashboard();
-        return;
-      }
-
-      console.log(`🏆 Enhancing dashboard for ${context.leagueCount} leagues`);
-      await this.enhanceExistingDashboard(context);
+      // Always start with solo dashboard, then upgrade when context is available
+      console.log('🏆 Starting with solo dashboard, will upgrade when leagues load...');
+      this.showSoloDashboard();
       this.isInitialized = true;
+      
+      // If context is already available, enhance immediately
+      const context = window.multiLeagueContext ? window.multiLeagueContext.getMultiLeagueContext() : null;
+      if (context && context.leagueCount > 0) {
+        console.log(`🏆 Context already available, enhancing for ${context.leagueCount} leagues`);
+        await this.enhanceExistingDashboard(context);
+      }
       
     } catch (error) {
       console.error('Failed to initialize multi-league dashboard:', error);
       this.showSoloDashboard();
+      this.isInitialized = true;
     }
   }
 
@@ -113,7 +118,12 @@ export class MultiLeagueDashboard {
 
   addLeagueDashboardTabs(context) {
     const activeLeague = context.activeLeagueData;
-    const userLeagues = context.userLeagues || [];
+    
+    // Get actual league objects from the multi-league context
+    const allLeaguesContext = window.multiLeagueContext ? window.multiLeagueContext.getAllLeaguesContext() : null;
+    const userLeagues = allLeaguesContext ? allLeaguesContext.leagues : [];
+    
+    console.log('🏆 Creating dashboard tabs for leagues:', userLeagues);
     
     const tabsHTML = `
       <div id="dashboard-league-tabs" class="dashboard-league-tabs">
@@ -297,14 +307,32 @@ export class MultiLeagueDashboard {
 
   async calculateCrossLeagueStats(context) {
     try {
+      // Check cache first
+      const now = Date.now();
+      if (this.statsCache && (now - this.statsCacheTime) < this.statsCacheTimeout) {
+        console.log('📊 Using cached cross-league statistics');
+        return {
+          ...this.statsCache,
+          totalLeagues: context.leagueCount // Always use current league count
+        };
+      }
+      
+      console.log('📊 Calculating fresh cross-league statistics...');
       const stats = await amplifyDataService.getCrossLeagueStatistics();
       
-      return {
+      const result = {
         totalLeagues: context.leagueCount,
         overallSurvivalRate: stats?.overallSurvivalRate || 0,
         bestLeague: stats?.bestLeague || 'N/A',
         totalPicks: stats?.totalPicks || 0
       };
+      
+      // Cache the result
+      this.statsCache = result;
+      this.statsCacheTime = now;
+      console.log('📊 Cross-league statistics cached');
+      
+      return result;
     } catch (error) {
       console.error('Failed to calculate cross-league stats:', error);
       return {
@@ -318,12 +346,52 @@ export class MultiLeagueDashboard {
 
   // Public method to refresh dashboard when league context changes
   async refresh() {
-    if (!this.isInitialized) return;
-    
-    const context = window.multiLeagueContext ? window.multiLeagueContext.getMultiLeagueContext() : null;
-    if (context && context.leagueCount > 0) {
+    try {
+      // Add stack trace to understand what's calling this
+      console.log('🏆 Refreshing multi-league dashboard...', new Error().stack.split('\n')[2].trim());
+      
+      // Check if user is authenticated
+      const isAuthenticated = await authManager.isAuthenticated();
+      if (!isAuthenticated) {
+        console.log('🏆 User not authenticated, showing solo dashboard');
+        this.showSoloDashboard();
+        return;
+      }
+
+      // Get multi-league context
+      const context = window.multiLeagueContext ? window.multiLeagueContext.getMultiLeagueContext() : null;
+      
+      if (!context) {
+        console.log('🏆 No multi-league context available, showing solo dashboard');
+        this.showSoloDashboard();
+        return;
+      }
+      
+      if (context.leagueCount === 0) {
+        console.log('🏆 Context available but no leagues loaded yet (leagueCount: 0), showing solo dashboard');
+        this.showSoloDashboard();
+        return;
+      }
+
+      console.log(`🏆 Refreshing dashboard for ${context.leagueCount} leagues`, context);
+      
+      // Clear any existing multi-league elements first (more thorough cleanup)
+      const existingElements = [
+        ...document.querySelectorAll('#cross-league-overview'),
+        ...document.querySelectorAll('#dashboard-league-tabs'),
+        ...document.querySelectorAll('.cross-league-overview'),
+        ...document.querySelectorAll('.dashboard-league-tabs')
+      ];
+      existingElements.forEach(element => element.remove());
+      
+      console.log(`🧹 Cleaned up ${existingElements.length} existing multi-league elements`);
+      
+      // Re-enhance the dashboard
       await this.enhanceExistingDashboard(context);
-    } else {
+      this.isInitialized = true;
+      
+    } catch (error) {
+      console.error('Failed to refresh multi-league dashboard:', error);
       this.showSoloDashboard();
     }
   }

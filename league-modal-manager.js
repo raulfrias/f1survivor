@@ -1,7 +1,6 @@
-import { leagueManager } from './league-manager.js';
-import { refreshLeagueData } from './league-integration.js';
+// Note: Expects global variables: leagueManager, refreshLeagueData
 
-export class LeagueModalManager {
+class LeagueModalManager {
   constructor() {
     this.leagueManager = leagueManager;
     this.activeModal = null;
@@ -811,5 +810,8 @@ Pick one driver each race, can't pick the same driver twice. Last player standin
   }
 }
 
-// Export singleton instance
-export const leagueModalManager = new LeagueModalManager(); 
+// Create global instance
+window.LeagueModalManager = LeagueModalManager;
+if (typeof window !== 'undefined') {
+  window.leagueModalManager = new LeagueModalManager();
+} 

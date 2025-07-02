@@ -1,12 +1,16 @@
-import { amplifyDataService } from './amplify-data-service.js';
+// Note: Expects global variable: amplifyDataService
 
 /**
  * Lives-Based Elimination Engine
  * Handles the processing of race results and life management for leagues with multiple lives system
  */
-export class LivesEliminationEngine {
+class LivesEliminationEngine {
   constructor() {
-    this.amplifyDataService = amplifyDataService;
+    // Handle case where amplifyDataService might not be available (testing environment)
+    this.amplifyDataService = typeof amplifyDataService !== 'undefined' ? amplifyDataService : null;
+    if (!this.amplifyDataService) {
+      console.warn('amplifyDataService not available - elimination engine will run in mock mode');
+    }
   }
 
   /**
@@ -368,5 +372,8 @@ export class LivesEliminationEngine {
   }
 }
 
-// Export singleton instance
-export const livesEliminationEngine = new LivesEliminationEngine(); 
+// Create global instance
+window.LivesEliminationEngine = LivesEliminationEngine;
+if (typeof window !== 'undefined') {
+  window.livesEliminationEngine = new LivesEliminationEngine();
+} 

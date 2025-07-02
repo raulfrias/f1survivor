@@ -477,10 +477,11 @@ class LivesSystemAPITester {
 
         // Test valid lives
         for (const lives of validLives) {
+            const isValid = (typeof lives === 'number' && Number.isInteger(lives) && lives >= 1 && lives <= 5);
             validationTests.push({
                 value: lives,
                 expected: true,
-                actual: lives >= 1 && lives <= 5
+                actual: isValid
             });
         }
 
@@ -490,7 +491,7 @@ class LivesSystemAPITester {
             validationTests.push({
                 value: lives,
                 expected: false,
-                actual: !isValid
+                actual: isValid
             });
         }
 

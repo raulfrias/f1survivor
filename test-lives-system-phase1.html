@@ -352,16 +352,7 @@
     <script src="test-elimination-scenarios.js"></script>
     
     <script>
-        // Refresh dependencies after all scripts have loaded
-        document.addEventListener('DOMContentLoaded', () => {
-            // Give a moment for all scripts to initialize
-            setTimeout(() => {
-                if (typeof leagueModalManager !== 'undefined' && typeof leagueModalManager.refreshDependencies === 'function') {
-                    leagueModalManager.refreshDependencies();
-                    console.log('Dependencies refreshed for test environment');
-                }
-            }, 100);
-        });
+        // Dependencies will be handled automatically via global variables
 
         // Test execution tracking
         let testResults = {};

@@ -1,4 +1,7 @@
-// Note: Expects global variables: amplifyDataService, authManager, setActiveLeagueId
+// ES6 imports for module environment (real app)
+import { amplifyDataService } from './amplify-data-service.js';
+import { authManager } from './auth-manager.js';
+import { setActiveLeagueId } from './league-integration.js';
 
 // PHASE 3: League Operations Backend Integration
 // Helper function now uses AWS backend instead of localStorage
@@ -11,7 +14,7 @@ async function getActiveLeagueIdFromAWS() {
   }
 }
 
-class LeagueManager {
+export class LeagueManager {
   constructor() {
     this.currentSeason = "2025";
   }
@@ -328,8 +331,11 @@ class LeagueManager {
   }
 }
 
-// Create global instance
-window.LeagueManager = LeagueManager;
+// Export for ES6 modules (real app)
+export const leagueManager = new LeagueManager();
+
+// Also create global instance for browser script loading (test environment)
 if (typeof window !== 'undefined') {
-  window.leagueManager = new LeagueManager();
+  window.LeagueManager = LeagueManager;
+  window.leagueManager = leagueManager;
 } 

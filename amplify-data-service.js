@@ -1,11 +1,13 @@
-// Note: Expects global variables: generateClient (from AWS Amplify) and authManager
+// ES6 imports for module environment (real app)
+import { generateClient } from 'aws-amplify/data';
+import { authManager } from './auth-manager.js';
 
-class AmplifyDataService {
+export class AmplifyDataService {
   constructor() {
     // Handle case where dependencies might not be available (testing environment)
-    if (typeof generateClient !== 'undefined') {
+    try {
       this.client = generateClient();
-    } else {
+    } catch (error) {
       console.warn('AWS Amplify generateClient not available - using mock client');
       this.client = this.createMockClient(); // Enhanced mock client for testing
     }
@@ -1436,8 +1438,11 @@ class AmplifyDataService {
   }
 }
 
-// Create global instance
-window.AmplifyDataService = AmplifyDataService;
+// Export for ES6 modules (real app)
+export const amplifyDataService = new AmplifyDataService();
+
+// Also create global instance for browser script loading (test environment)
 if (typeof window !== 'undefined') {
-  window.amplifyDataService = new AmplifyDataService();
+  window.AmplifyDataService = AmplifyDataService;
+  window.amplifyDataService = amplifyDataService;
 } 

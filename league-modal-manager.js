@@ -1,45 +1,42 @@
-// Note: Expects global variables: leagueManager, refreshLeagueData
+// ES6 imports for module environment (real app)
+import { leagueManager } from './league-manager.js';
+import { refreshLeagueData } from './league-integration.js';
 
-class LeagueModalManager {
+export class LeagueModalManager {
   constructor() {
     this.activeModal = null;
-    // Use lazy initialization for leagueManager to avoid dependency order issues
-    this._leagueManager = null;
+    // In ES6 module environment, leagueManager is available via import
+    // In test environment, use lazy initialization with fallback
+    try {
+      this.leagueManager = leagueManager;
+    } catch (error) {
+      this.leagueManager = this.createMockLeagueManager();
+    }
   }
 
-  // Lazy getter for leagueManager
-  get leagueManager() {
-    if (!this._leagueManager) {
-      this._leagueManager = typeof leagueManager !== 'undefined' ? leagueManager : null;
-      if (!this._leagueManager) {
-        console.warn('leagueManager not available yet - using mock');
-        this._leagueManager = {
-          // Mock methods for testing environment
-          createLeague: () => Promise.resolve({ success: false, error: 'Mock leagueManager' }),
-          joinLeague: () => Promise.resolve({ leagueName: 'Mock League' }),
-          getUserLeagues: () => [],
-          getLeague: () => null,
-          isLeagueOwner: () => false,
-          previewLeague: () => Promise.resolve(null),
-          setActiveLeague: () => {},
-          currentUserId: 'mock_user'
-        };
-      }
-    }
-    return this._leagueManager;
+  // Create mock league manager for test environment
+  createMockLeagueManager() {
+    console.warn('leagueManager not available - using mock');
+    return {
+      createLeague: () => Promise.resolve({ success: false, error: 'Mock leagueManager' }),
+      joinLeague: () => Promise.resolve({ leagueName: 'Mock League' }),
+      getUserLeagues: () => [],
+      getLeague: () => null,
+      isLeagueOwner: () => false,
+      previewLeague: () => Promise.resolve(null),
+      setActiveLeague: () => {},
+      currentUserId: 'mock_user'
+    };
   }
 
   // Helper method to get refreshLeagueData function safely
   getRefreshLeagueData() {
-    return typeof refreshLeagueData !== 'undefined' ? refreshLeagueData : (() => {
+    try {
+      return refreshLeagueData;
+    } catch (error) {
       console.warn('refreshLeagueData not available - using mock');
-      return Promise.resolve();
-    });
-  }
-
-  // Refresh dependencies (call this after all scripts have loaded)
-  refreshDependencies() {
-    this._leagueManager = null; // Force refresh of leagueManager
+      return () => Promise.resolve();
+    }
   }
 
   // Show create league modal
@@ -846,8 +843,11 @@ Pick one driver each race, can't pick the same driver twice. Last player standin
   }
 }
 
-// Create global instance
-window.LeagueModalManager = LeagueModalManager;
+// Export for ES6 modules (real app)
+export const leagueModalManager = new LeagueModalManager();
+
+// Also create global instance for browser script loading (test environment)
 if (typeof window !== 'undefined') {
-  window.leagueModalManager = new LeagueModalManager();
+  window.LeagueModalManager = LeagueModalManager;
+  window.leagueModalManager = leagueModalManager;
 } 

@@ -816,6 +816,325 @@ export class AmplifyDataService {
       }
     }
   }
+
+  // PHASE 2: League Operations Backend Integration - Missing AWS Operations
+
+  // Active League Management - Store in UserProfile for persistence
+  async setActiveLeague(leagueId) {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    // Validate league exists and user is a member
+    if (leagueId) {
+      const league = await this.getLeague(leagueId);
+      if (!league) {
+        throw new Error('League not found');
+      }
+
+      const members = await this.getLeagueMembers(leagueId);
+      const userId = user.userId || user.username;
+      const isMember = members.some(member => member.userId === userId);
+      
+      if (!isMember) {
+        throw new Error('You are not a member of this league');
+      }
+    }
+
+    try {
+      // Update UserProfile with active league
+      await this.client.models.UserProfile.update({
+        userId: user.userId || user.username,
+        activeLeagueId: leagueId
+      }, {
+        authMode: 'userPool'
+      });
+
+      // Clear cache to force refresh
+      this._clearCache('userLeagues');
+      
+      console.log(`Active league set to: ${leagueId || 'None (Solo Mode)'}`);
+      return { success: true, activeLeagueId: leagueId };
+    } catch (error) {
+      console.error('Failed to set active league:', error);
+      throw new Error('Failed to update active league setting');
+    }
+  }
+
+  async getActiveLeague() {
+    const user = await authManager.getCurrentUser();
+    if (!user) return null;
+
+    try {
+      // Get user profile with active league
+      const userProfile = await this.client.models.UserProfile.list({
+        filter: {
+          userId: { eq: user.userId || user.username }
+        },
+        authMode: 'userPool'
+      });
+
+      if (!userProfile.data || userProfile.data.length === 0) {
+        console.log('No user profile found, returning null active league');
+        return null;
+      }
+
+      const activeLeagueId = userProfile.data[0].activeLeagueId;
+      if (!activeLeagueId) return null;
+
+      // Return the full league data
+      return await this.getLeague(activeLeagueId);
+    } catch (error) {
+      console.error('Failed to get active league:', error);
+      return null;
+    }
+  }
+
+  async getActiveLeagueId() {
+    const user = await authManager.getCurrentUser();
+    if (!user) return null;
+
+    try {
+      const userProfile = await this.client.models.UserProfile.list({
+        filter: {
+          userId: { eq: user.userId || user.username }
+        },
+        authMode: 'userPool'
+      });
+
+      if (!userProfile.data || userProfile.data.length === 0) {
+        return null;
+      }
+
+      return userProfile.data[0].activeLeagueId || null;
+    } catch (error) {
+      console.error('Failed to get active league ID:', error);
+      return null;
+    }
+  }
+
+  // League Member Removal
+  async removeUserFromLeague(leagueId, userId = null) {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    const currentUserId = user.userId || user.username;
+    const targetUserId = userId || currentUserId;
+
+    try {
+      // Get league to check permissions
+      const league = await this.getLeague(leagueId);
+      if (!league) {
+        throw new Error('League not found');
+      }
+
+      // Only league owner can remove other users, users can remove themselves
+      if (targetUserId !== currentUserId && league.ownerId !== currentUserId) {
+        throw new Error('Only league owners can remove other members');
+      }
+
+      // Find and remove league membership
+      const memberResult = await this.client.models.LeagueMember.list({
+        filter: {
+          leagueId: { eq: leagueId },
+          userId: { eq: targetUserId }
+        },
+        authMode: 'userPool'
+      });
+
+      if (!memberResult.data || memberResult.data.length === 0) {
+        throw new Error('User is not a member of this league');
+      }
+
+      // Delete the membership record
+      await this.client.models.LeagueMember.delete({
+        id: memberResult.data[0].id
+      }, {
+        authMode: 'userPool'
+      });
+
+      // If user is removing themselves and this was their active league, clear it
+      if (targetUserId === currentUserId) {
+        const activeLeagueId = await this.getActiveLeagueId();
+        if (activeLeagueId === leagueId) {
+          await this.setActiveLeague(null);
+        }
+      }
+
+      // Clear relevant caches
+      this._clearCache('userLeagues');
+      
+      console.log(`User ${targetUserId} removed from league ${leagueId}`);
+      return { success: true, removedUserId: targetUserId, leagueId };
+    } catch (error) {
+      console.error('Failed to remove user from league:', error);
+      throw error;
+    }
+  }
+
+  // League Settings Update
+  async updateLeagueSettings(leagueId, settings) {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    try {
+      // Get league to check ownership
+      const league = await this.getLeague(leagueId);
+      if (!league) {
+        throw new Error('League not found');
+      }
+
+      const currentUserId = user.userId || user.username;
+      if (league.ownerId !== currentUserId) {
+        throw new Error('Only league owners can update league settings');
+      }
+
+      // Validate settings
+      const validSettings = {};
+      if (settings.name !== undefined) validSettings.name = settings.name;
+      if (settings.maxMembers !== undefined) validSettings.maxMembers = parseInt(settings.maxMembers);
+      if (settings.autoPickEnabled !== undefined) validSettings.autoPickEnabled = settings.autoPickEnabled;
+      if (settings.isPrivate !== undefined) validSettings.isPrivate = settings.isPrivate;
+
+      // Update league via list/filter since leagueId is not the primary key
+      const leagueResult = await this.client.models.League.list({
+        filter: {
+          leagueId: { eq: leagueId }
+        }
+      }, {
+        authMode: 'userPool'
+      });
+
+      if (!leagueResult.data || leagueResult.data.length === 0) {
+        throw new Error('League not found for update');
+      }
+
+      // Update the league using the DynamoDB primary key (id)
+      const updateResult = await this.client.models.League.update({
+        id: leagueResult.data[0].id,
+        ...validSettings,
+        lastActiveAt: new Date().toISOString()
+      }, {
+        authMode: 'userPool'
+      });
+
+      console.log(`League ${leagueId} settings updated successfully`);
+      return { success: true, league: updateResult.data };
+    } catch (error) {
+      console.error('Failed to update league settings:', error);
+      throw error;
+    }
+  }
+
+  // Data Consistency Validation
+  async validateLeagueDataConsistency(leagueId) {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    try {
+      const issues = [];
+      
+      // 1. Check league exists
+      const league = await this.getLeague(leagueId);
+      if (!league) {
+        issues.push('League not found in database');
+        return { isConsistent: false, issues };
+      }
+
+      // 2. Check league members exist and are valid
+      const members = await this.getLeagueMembers(leagueId);
+      if (members.length === 0) {
+        issues.push('League has no members');
+      }
+
+      // 3. Check owner is a member
+      const ownerIsMember = members.some(member => 
+        member.userId === league.ownerId && member.isOwner === true
+      );
+      if (!ownerIsMember) {
+        issues.push('League owner is not listed as a member');
+      }
+
+      // 4. Check for orphaned picks (picks without valid race data)
+      const currentUserId = user.userId || user.username;
+      const userPicks = await this.getUserPicks(currentUserId, leagueId);
+      
+      const raceData = JSON.parse(localStorage.getItem('nextRaceData') || '{}');
+      const currentRaceId = raceData.raceId;
+      
+      if (userPicks.length > 0 && !currentRaceId) {
+        issues.push('User has picks but no current race data available');
+      }
+
+      // 5. Check for duplicate picks in same race
+      const raceGroups = {};
+      userPicks.forEach(pick => {
+        if (!raceGroups[pick.raceId]) {
+          raceGroups[pick.raceId] = [];
+        }
+        raceGroups[pick.raceId].push(pick);
+      });
+
+      Object.entries(raceGroups).forEach(([raceId, picks]) => {
+        if (picks.length > 1) {
+          issues.push(`Multiple picks found for race ${raceId}: ${picks.length} picks`);
+        }
+      });
+
+      const isConsistent = issues.length === 0;
+      
+      console.log(`League ${leagueId} consistency check: ${isConsistent ? 'PASS' : 'ISSUES FOUND'}`);
+      if (!isConsistent) {
+        console.warn('Consistency issues:', issues);
+      }
+
+      return {
+        isConsistent,
+        issues,
+        league,
+        memberCount: members.length,
+        userPickCount: userPicks.length,
+        checkedAt: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Failed to validate league data consistency:', error);
+      return {
+        isConsistent: false,
+        issues: [`Validation failed: ${error.message}`],
+        checkedAt: new Date().toISOString()
+      };
+    }
+  }
+
+  // Force refresh league data from AWS (no cache)
+  async syncLeagueData(leagueId) {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    try {
+      // Clear all relevant caches
+      this._clearCache('userLeagues');
+      this._clearCache(`league_${leagueId}`);
+      this._clearCache(`members_${leagueId}`);
+
+      // Fetch fresh data
+      const league = await this.getLeague(leagueId);
+      const members = await this.getLeagueMembers(leagueId);
+      const currentUserId = user.userId || user.username;
+      const userPicks = await this.getUserPicks(currentUserId, leagueId);
+
+      console.log(`League ${leagueId} data synced successfully`);
+      return {
+        success: true,
+        league,
+        memberCount: members.length,
+        userPickCount: userPicks.length,
+        syncedAt: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Failed to sync league data:', error);
+      throw error;
+    }
+  }
 }
 
 export const amplifyDataService = new AmplifyDataService(); 

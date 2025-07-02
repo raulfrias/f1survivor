@@ -43,7 +43,7 @@ export class LeagueDashboard {
     }
 
     const userLeagues = await this.leagueManager.getUserLeagues();
-    const activeLeagueId = localStorage.getItem('activeLeagueId');
+    const activeLeagueId = await amplifyDataService.getActiveLeagueId();
 
     const selectorHTML = `
       <div class="league-selector-wrapper">
@@ -76,13 +76,13 @@ export class LeagueDashboard {
     const manageBtn = document.getElementById('manage-leagues-btn');
 
     if (selector) {
-      selector.addEventListener('change', (e) => {
+      selector.addEventListener('change', async (e) => {
         const leagueId = e.target.value;
         
         if (leagueId) {
-          this.leagueManager.setActiveLeague(leagueId);
+          await this.leagueManager.setActiveLeague(leagueId);
         } else {
-          this.leagueManager.setActiveLeague(null);
+          await this.leagueManager.setActiveLeague(null);
         }
         
         // Reload the page to update all components
@@ -144,86 +144,76 @@ export class LeagueDashboard {
     }
   }
 
-  updateStatsForLeague() {
+  async updateStatsForLeague() {
     if (!this.currentLeague) return;
 
-    // Get current user's picks for this league
-    const userPicks = this.storageManager.loadLeaguePicks(this.currentLeague.leagueId);
-    
-    // Update races survived stat
-    const racesSurvivedElement = document.querySelector('[data-stat="races-survived"]');
-    if (racesSurvivedElement) {
-      racesSurvivedElement.textContent = userPicks.length;
-    }
-
-    // Update current standing in league
-    const standings = this.leagueManager.getLeagueStandings(this.currentLeague.leagueId);
-    const userStanding = standings.findIndex(s => s.userId === this.leagueManager.currentUserId) + 1;
-    
-    const standingElement = document.querySelector('[data-stat="league-position"]');
-    if (standingElement) {
-      standingElement.textContent = `${userStanding}/${standings.length}`;
-    } else {
-      // Add league position stat if it doesn't exist
-      const statsGrid = document.querySelector('.stats-grid');
-      if (statsGrid) {
-        const leaguePositionCard = document.createElement('div');
-        leaguePositionCard.className = 'stat-card';
-        leaguePositionCard.innerHTML = `
-          <h3>League Position</h3>
-          <p class="stat-value" data-stat="league-position">${userStanding}/${standings.length}</p>
-        `;
-        statsGrid.appendChild(leaguePositionCard);
+    try {
+      // Get current user's picks for this league using AWS backend
+      const userPicks = await amplifyDataService.getUserPicks(null, this.currentLeague.leagueId);
+      
+      // Update races survived stat
+      const racesSurvivedElement = document.querySelector('[data-stat="races-survived"]');
+      if (racesSurvivedElement) {
+        racesSurvivedElement.textContent = userPicks.length;
       }
+
+      // Update current standing in league
+      const standings = await this.leagueManager.getLeagueStandings(this.currentLeague.leagueId);
+      const user = await authManager.getCurrentUser();
+      const currentUserId = user?.userId || user?.username;
+      const userStanding = standings.findIndex(s => s.userId === currentUserId) + 1;
+      
+      const standingElement = document.querySelector('[data-stat="league-position"]');
+      if (standingElement) {
+        standingElement.textContent = `${userStanding}/${standings.length}`;
+      } else {
+        // Add league position stat if it doesn't exist
+        const statsGrid = document.querySelector('.stats-grid');
+        if (statsGrid) {
+          const leaguePositionCard = document.createElement('div');
+          leaguePositionCard.className = 'stat-card';
+          leaguePositionCard.innerHTML = `
+            <h3>League Position</h3>
+            <p class="stat-value" data-stat="league-position">${userStanding}/${standings.length}</p>
+          `;
+          statsGrid.appendChild(leaguePositionCard);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update league stats:', error);
     }
   }
 
-  // Get pick context (league or solo)
-  getPickContext() {
-    const activeLeagueId = this.storageManager.getActiveLeagueId();
+  // Get pick context (league or solo) - AWS BACKEND
+  async getPickContext() {
+    const activeLeagueId = await amplifyDataService.getActiveLeagueId();
     return {
       isLeagueMode: !!activeLeagueId,
       leagueId: activeLeagueId,
-      league: activeLeagueId ? this.leagueManager.getLeague(activeLeagueId) : null
+      league: activeLeagueId ? await this.leagueManager.getLeague(activeLeagueId) : null
     };
   }
 
-  // Save pick with league context
+  // Save pick with league context - AWS BACKEND  
   async savePickWithContext(driverId, driverInfo) {
-    const context = this.getPickContext();
-    
-    if (context.isLeagueMode) {
-      return await this.storageManager.saveLeaguePick(context.leagueId, driverId, driverInfo);
-    } else {
-      // Use the existing solo pick saving method
-      const { saveUserPicks } = await import('./storage-utils.js');
-      return saveUserPicks(driverId, driverInfo);
-    }
+    // Use the league integration layer instead of direct methods
+    return await savePickWithContext(driverId, driverInfo);
   }
 
-  // Load picks with league context
-  loadPicksWithContext() {
-    const context = this.getPickContext();
-    
-    if (context.isLeagueMode) {
-      return this.storageManager.loadLeaguePicks(context.leagueId);
-    } else {
-      // Use the existing solo pick loading method
-      const { loadUserPicks } = window;
-      return loadUserPicks();
-    }
+  // Load picks with league context - AWS BACKEND
+  async loadPicksWithContext() {
+    // Use the league integration layer instead of direct methods
+    return await loadPicksWithContext();
   }
 
-  // Check if driver is already picked in current context
-  isDriverAlreadyPickedInContext(driverId) {
-    const context = this.getPickContext();
+  // Check if driver is already picked in current context - AWS BACKEND
+  async isDriverAlreadyPickedInContext(driverId) {
+    const context = await this.getPickContext();
     
     if (context.isLeagueMode) {
-      return this.storageManager.isDriverAlreadyPickedInLeague(driverId, context.leagueId);
+      return await amplifyDataService.isDriverAlreadyPicked(driverId, context.leagueId);
     } else {
-      // Use the existing solo check method
-      const { isDriverAlreadyPicked } = window;
-      return isDriverAlreadyPicked(driverId);
+      return await amplifyDataService.isDriverAlreadyPicked(driverId);
     }
   }
 

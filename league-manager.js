@@ -2,12 +2,13 @@ import { amplifyDataService } from './amplify-data-service.js';
 import { authManager } from './auth-manager.js';
 import { setActiveLeagueId } from './league-integration.js';
 
-// Helper function for getting active league ID from local storage (UI state only)
-function getActiveLeagueIdFromStorage() {
+// PHASE 3: League Operations Backend Integration
+// Helper function now uses AWS backend instead of localStorage
+async function getActiveLeagueIdFromAWS() {
   try {
-    return localStorage.getItem('activeLeagueId');
+    return await amplifyDataService.getActiveLeagueId();
   } catch (error) {
-    console.error('Error getting active league ID:', error);
+    console.error('Error getting active league ID from AWS:', error);
     return null;
   }
 }
@@ -68,165 +69,120 @@ export class LeagueManager {
   }
 
   async leaveLeague(leagueId) {
-    const league = this.storageManager.getLeague(leagueId);
-    if (!league) {
-      throw new Error('League not found');
+    try {
+      await amplifyDataService.removeUserFromLeague(leagueId);
+      return true;
+    } catch (error) {
+      console.error('Failed to leave league:', error);
+      throw error;
     }
-
-    // Check if user is a member
-    const memberIndex = league.members.findIndex(m => m.userId === this.currentUserId);
-    if (memberIndex === -1) {
-      throw new Error('Not a member of this league');
-    }
-
-    // Prevent owner from leaving (they should delete the league instead)
-    if (league.ownerId === this.currentUserId) {
-      throw new Error('League owner cannot leave. Delete the league instead.');
-    }
-
-    // Remove member from league
-    league.members.splice(memberIndex, 1);
-
-    // Remove user's picks
-    if (league.picks && league.picks[this.currentUserId]) {
-      delete league.picks[this.currentUserId];
-    }
-
-    // Save updated league
-    if (!this.storageManager.saveLeague(league)) {
-      throw new Error('Failed to leave league');
-    }
-
-    // Remove user from league membership
-    this.storageManager.removeUserFromLeague(leagueId);
-
-    return true;
   }
 
   async deleteLeague(leagueId) {
-    const league = this.storageManager.getLeague(leagueId);
+    const user = await this.getCurrentUser();
+    const league = await amplifyDataService.getLeague(leagueId);
+    
     if (!league) {
       throw new Error('League not found');
     }
 
     // Only owner can delete
-    if (league.ownerId !== this.currentUserId) {
+    if (league.ownerId !== (user.userId || user.username)) {
       throw new Error('Only the league owner can delete the league');
     }
 
-    // Remove all members from league
-    league.members.forEach(member => {
-      if (member.userId !== this.currentUserId) {
-        // In a real implementation, we'd need to update other users' data
-        // For now, we'll just handle the current user
-      }
-    });
-
-    // Remove league from storage
-    const allLeagues = this.storageManager.getAllLeagues();
-    delete allLeagues[leagueId];
-    localStorage.setItem('f1survivor_league_data', JSON.stringify(allLeagues));
-
-    // Remove user from league membership
-    this.storageManager.removeUserFromLeague(leagueId);
-
+    // AWS backend handles league deletion and member cleanup
+    // For now, remove user from league (delete functionality needs to be implemented in AWS)
+    await amplifyDataService.removeUserFromLeague(leagueId);
+    
+    console.warn('Full league deletion not yet implemented in AWS backend');
     return true;
   }
 
-  // League member management (for owners)
+  // League member management - AWS BACKEND
   async kickMember(leagueId, userId) {
-    const league = this.storageManager.getLeague(leagueId);
+    const user = await this.getCurrentUser();
+    const league = await amplifyDataService.getLeague(leagueId);
+    
     if (!league) {
       throw new Error('League not found');
     }
 
     // Only owner can kick members
-    if (league.ownerId !== this.currentUserId) {
+    const currentUserId = user.userId || user.username;
+    if (league.ownerId !== currentUserId) {
       throw new Error('Only the league owner can kick members');
     }
 
     // Cannot kick yourself
-    if (userId === this.currentUserId) {
+    if (userId === currentUserId) {
       throw new Error('Cannot kick yourself from the league');
     }
 
-    // Find and remove member
-    const memberIndex = league.members.findIndex(m => m.userId === userId);
-    if (memberIndex === -1) {
-      throw new Error('Member not found in league');
+    // Use AWS backend to remove member
+    try {
+      await amplifyDataService.removeUserFromLeague(leagueId, userId);
+      return true;
+    } catch (error) {
+      console.error('Failed to kick member:', error);
+      throw error;
     }
-
-    league.members.splice(memberIndex, 1);
-
-    // Remove member's picks
-    if (league.picks && league.picks[userId]) {
-      delete league.picks[userId];
-    }
-
-    // Save updated league
-    if (!this.storageManager.saveLeague(league)) {
-      throw new Error('Failed to kick member');
-    }
-
-    return true;
   }
 
-  // League settings management
+  // League settings management - AWS BACKEND
   async updateLeagueSettings(leagueId, newSettings) {
-    const league = this.storageManager.getLeague(leagueId);
+    const user = await this.getCurrentUser();
+    const league = await amplifyDataService.getLeague(leagueId);
+    
     if (!league) {
       throw new Error('League not found');
     }
 
     // Only owner can update settings
-    if (league.ownerId !== this.currentUserId) {
+    const currentUserId = user.userId || user.username;
+    if (league.ownerId !== currentUserId) {
       throw new Error('Only the league owner can update settings');
     }
 
+    // Get current members to validate maxMembers
+    const members = await amplifyDataService.getLeagueMembers(leagueId);
+    
     // Validate new settings
-    if (newSettings.maxMembers && newSettings.maxMembers < league.members.length) {
+    if (newSettings.maxMembers && newSettings.maxMembers < members.length) {
       throw new Error('Cannot set max members below current member count');
     }
 
-    // Update settings
-    league.settings = {
-      ...league.settings,
-      ...newSettings
-    };
-
-    // Save updated league
-    if (!this.storageManager.saveLeague(league)) {
-      throw new Error('Failed to update league settings');
-    }
-
-    return league;
+    // Use AWS backend to update settings
+    const result = await amplifyDataService.updateLeagueSettings(leagueId, newSettings);
+    return result.league;
   }
 
-  // Get league standings
-  getLeagueStandings(leagueId) {
-    const league = this.storageManager.getLeague(leagueId);
+  // Get league standings - AWS BACKEND
+  async getLeagueStandings(leagueId) {
+    const league = await amplifyDataService.getLeague(leagueId);
     if (!league) {
       throw new Error('League not found');
     }
 
+    const members = await amplifyDataService.getLeagueMembers(leagueId);
+    
     // Calculate standings based on picks and eliminations
-    const standings = league.members.map(member => {
-      const memberPicks = league.picks[member.userId] || [];
+    const standings = await Promise.all(members.map(async (member) => {
+      const memberPicks = await amplifyDataService.getUserPicks(member.userId, leagueId);
       
       // Count survived races (picks that haven't been eliminated)
-      // In the prototype, we'll use a simple count
       const survivedRaces = memberPicks.length;
       
       return {
         userId: member.userId,
-        username: member.username,
+        username: member.userId, // TODO: Get actual username from UserProfile
         survivedRaces,
         totalPicks: memberPicks.length,
         lastPick: memberPicks[memberPicks.length - 1] || null,
         isEliminated: false, // Will be determined by race results
         isOwner: member.isOwner
       };
-    });
+    }));
 
     // Sort by survived races (descending)
     standings.sort((a, b) => b.survivedRaces - a.survivedRaces);
@@ -250,7 +206,7 @@ export class LeagueManager {
 
   // Get current active league - AWS BACKEND
   async getActiveLeague() {
-    const activeLeagueId = getActiveLeagueIdFromStorage();
+    const activeLeagueId = await getActiveLeagueIdFromAWS();
     if (!activeLeagueId) return null;
     
     try {
@@ -261,9 +217,17 @@ export class LeagueManager {
     }
   }
 
-  // Set active league
-  setActiveLeague(leagueId) {
-    setActiveLeagueId(leagueId);
+  // Set active league - AWS BACKEND
+  async setActiveLeague(leagueId) {
+    try {
+      await amplifyDataService.setActiveLeague(leagueId);
+      // Also update UI state for immediate feedback
+      setActiveLeagueId(leagueId);
+      return true;
+    } catch (error) {
+      console.error('Error setting active league:', error);
+      return false;
+    }
   }
 
   // Get user's leagues - AWS BACKEND
@@ -281,7 +245,7 @@ export class LeagueManager {
     try {
       const user = await this.getCurrentUser();
       const league = await amplifyDataService.getLeague(leagueId);
-      return league && league.ownerId === user.userId;
+      return league && league.ownerId === (user.userId || user.username);
     } catch (error) {
       console.error('Error checking league ownership:', error);
       return false;

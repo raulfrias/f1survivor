@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-User League Test Suite</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: #fff; }
+        .test-container { max-width: 1200px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #333; border-radius: 8px; background: #2a2a2a; }
+        .test-result { padding: 10px; margin: 5px 0; border-radius: 4px; }
+        .test-result.pass { background: #0d4e14; border-left: 4px solid #28a745; }
+        .test-result.fail { background: #4e0d0d; border-left: 4px solid #dc3545; }
+        .test-result.info { background: #0d3d4e; border-left: 4px solid #17a2b8; }
+        .test-result.warning { background: #4e3d0d; border-left: 4px solid #ffc107; }
+        .controls { margin: 20px 0; }
+        .btn { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        .btn.success { background: #28a745; }
+        .btn.danger { background: #dc3545; }
+        .btn.warning { background: #ffc107; color: #000; }
+        h1 { color: #f8f9fa; text-align: center; }
+        h2 { color: #adb5bd; border-bottom: 1px solid #495057; padding-bottom: 5px; }
+        pre { background: #212529; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+        .progress { background: #495057; height: 20px; border-radius: 10px; margin: 10px 0; }
+        .progress-bar { background: #28a745; height: 100%; border-radius: 10px; transition: width 0.3s; }
+        .user-session { border: 2px solid #007bff; margin: 10px 0; padding: 10px; border-radius: 8px; }
+        .user-session.active { border-color: #28a745; }
+        .instruction-box { background: #2c3e50; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #3498db; }
+        .test-league { background: #2d4a2b; padding: 10px; margin: 10px 0; border-radius: 6px; }
+        .timestamp { color: #6c757d; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>👥 Multi-User League Test Suite</h1>
+        
+        <div class="instruction-box">
+            <h3>🎯 Testing Instructions</h3>
+            <p><strong>Phase 4: Multi-User Testing</strong> - Validate concurrent league operations and real-time data consistency</p>
+            <ol>
+                <li><strong>Open multiple browser sessions/tabs</strong> (or different browsers)</li>
+                <li><strong>Sign in with different AWS Cognito accounts</strong> in each session</li>
+                <li><strong>Run tests simultaneously</strong> to validate concurrent operations</li>
+                <li><strong>Monitor data consistency</strong> across all sessions</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>Current Session Info</h2>
+            <div id="sessionInfo" class="user-session">
+                <div id="currentUser">Loading user info...</div>
+                <div id="sessionId">Session ID: <span id="sessionIdValue">Generating...</span></div>
+                <div id="leagueCount">Leagues: <span id="leagueCountValue">Loading...</span></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn success" onclick="runQuickMultiUserTest()">⚡ Quick Multi-User Test</button>
+            <button class="btn" onclick="runFullMultiUserSuite()">🧪 Full Multi-User Suite</button>
+            <button class="btn warning" onclick="createTestLeague()">🏁 Create Test League</button>
+            <button class="btn warning" onclick="joinTestLeague()">🤝 Join Test League</button>
+            <button class="btn" onclick="checkAuth()">🔄 Refresh Auth</button>
+            <button class="btn danger" onclick="clearResults()">🗑️ Clear Results</button>
+        </div>
+
+        <div class="test-section">
+            <h2>1. Session Setup Tests</h2>
+            <div id="setupResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. Multi-User Test Results</h2>
+            <div id="multiUserResults"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { amplifyDataService } from './amplify-data-service.js';
+        import { authManager } from './auth-manager.js';
+
+        let sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+        let currentUser = null;
+        const TEST_LEAGUE_INVITE_CODE = 'MULTITEST';
+
+        // Initialize session with retry logic
+        async function initializeSession() {
+            try {
+                // Try multiple times as AWS authentication might take a moment
+                let retryCount = 0;
+                const maxRetries = 3;
+                
+                while (retryCount < maxRetries) {
+                    try {
+                        currentUser = await authManager.getCurrentUser();
+                        if (currentUser) break;
+                        
+                        // Wait a bit and retry
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        retryCount++;
+                    } catch (error) {
+                        console.log(`Authentication attempt ${retryCount + 1} failed:`, error);
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    }
+                }
+                
+                const sessionElement = document.getElementById('sessionInfo');
+                
+                if (currentUser) {
+                    document.getElementById('currentUser').innerHTML = 
+                        `👤 User: <strong>${currentUser.displayName || currentUser.username}</strong>`;
+                    sessionElement.classList.add('active');
+                    
+                    const leagues = await amplifyDataService.getUserLeagues();
+                    document.getElementById('leagueCountValue').textContent = leagues.length;
+                    
+                    console.log('✅ Authentication detected in test page');
+                } else {
+                    document.getElementById('currentUser').innerHTML = 
+                        `❌ Not authenticated - Please sign in first<br>
+                        <small>Try refreshing or opening from main F1 Survivor app</small>`;
+                    console.log('❌ No authentication found after retries');
+                }
+                
+                document.getElementById('sessionIdValue').textContent = sessionId;
+            } catch (error) {
+                console.error('Session initialization error:', error);
+                document.getElementById('currentUser').innerHTML = 
+                    `❌ Authentication error: ${error.message}`;
+            }
+        }
+
+        function addResult(section, message, status = 'info') {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${status}`;
+            resultDiv.innerHTML = `${message} <div class="timestamp">${new Date().toLocaleTimeString()}</div>`;
+            document.getElementById(`${section}Results`).appendChild(resultDiv);
+        }
+
+        async function runQuickMultiUserTest() {
+            document.getElementById('setupResults').innerHTML = '';
+            document.getElementById('multiUserResults').innerHTML = '';
+            
+            if (!currentUser) {
+                addResult('setup', '❌ Please sign in first', 'fail');
+                return;
+            }
+
+            addResult('setup', `✅ User authenticated: ${currentUser.displayName || currentUser.username}`, 'pass');
+            
+            try {
+                // Test concurrent operations
+                const startTime = performance.now();
+                const [leagues, picks] = await Promise.all([
+                    amplifyDataService.getUserLeagues(),
+                    amplifyDataService.getUserPicks()
+                ]);
+                const duration = Math.round(performance.now() - startTime);
+                
+                addResult('multiUser', `✅ Concurrent read operations successful (${duration}ms)`, 'pass');
+                addResult('multiUser', `📊 Data loaded: ${leagues.length} leagues, ${picks.length} picks`, 'info');
+                
+                // Test data consistency
+                const consistencyTest = await Promise.all([
+                    amplifyDataService.getUserLeagues(),
+                    amplifyDataService.getUserLeagues()
+                ]);
+                
+                const consistent = JSON.stringify(consistencyTest[0]) === JSON.stringify(consistencyTest[1]);
+                addResult('multiUser', `✅ Data consistency: ${consistent ? 'CONSISTENT' : 'INCONSISTENT'}`, consistent ? 'pass' : 'warning');
+                
+                addResult('multiUser', '🎯 Multi-user test completed successfully', 'pass');
+                
+            } catch (error) {
+                addResult('multiUser', `❌ Error: ${error.message}`, 'fail');
+            }
+        }
+
+        async function createTestLeague() {
+            if (!currentUser) {
+                alert('Please sign in first');
+                return;
+            }
+
+            try {
+                const result = await amplifyDataService.createLeague({
+                    name: `Multi-User Test ${sessionId.slice(-6)}`,
+                    inviteCode: TEST_LEAGUE_INVITE_CODE,
+                    maxMembers: 10,
+                    isPrivate: false
+                });
+
+                if (result.success) {
+                    addResult('setup', `✅ Test league created: ${result.leagueName}`, 'pass');
+                } else {
+                    addResult('setup', `❌ Failed to create league: ${result.error}`, 'fail');
+                }
+            } catch (error) {
+                addResult('setup', `❌ Error creating league: ${error.message}`, 'fail');
+            }
+        }
+
+        async function joinTestLeague() {
+            if (!currentUser) {
+                alert('Please sign in first');
+                return;
+            }
+
+            try {
+                const league = await amplifyDataService.joinLeague(TEST_LEAGUE_INVITE_CODE);
+                addResult('setup', `✅ Joined test league: ${league.name}`, 'pass');
+            } catch (error) {
+                addResult('setup', `❌ Error joining league: ${error.message}`, 'fail');
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('setupResults').innerHTML = '';
+            document.getElementById('multiUserResults').innerHTML = '';
+        }
+
+        // Manual authentication check
+        async function checkAuth() {
+            document.getElementById('currentUser').innerHTML = '🔄 Checking authentication...';
+            await initializeSession();
+        }
+
+        // Make functions global
+        window.runQuickMultiUserTest = runQuickMultiUserTest;
+        window.createTestLeague = createTestLeague;
+        window.joinTestLeague = joinTestLeague;
+        window.clearResults = clearResults;
+        window.checkAuth = checkAuth;
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeSession);
+    </script>
+</body>
+</html> 

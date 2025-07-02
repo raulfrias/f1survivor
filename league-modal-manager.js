@@ -41,6 +41,34 @@ export class LeagueModalManager {
               </label>
             </div>
             
+            <div class="form-group lives-configuration">
+              <h4>Lives Configuration</h4>
+              
+              <div class="form-row">
+                <label>
+                  <input type="checkbox" id="lives-enabled" />
+                  Enable Multiple Lives System
+                </label>
+              </div>
+              
+              <div id="lives-options" class="lives-options" style="display: none;">
+                <div class="form-row">
+                  <label for="max-lives">Lives per Player</label>
+                  <select id="max-lives">
+                    <option value="1">1 Life (Classic)</option>
+                    <option value="2">2 Lives</option>
+                    <option value="3" selected>3 Lives</option>
+                    <option value="4">4 Lives</option>
+                    <option value="5">5 Lives (Maximum)</option>
+                  </select>
+                </div>
+                
+                <div class="lives-explanation">
+                  <p>Players will be eliminated when they lose all their lives. Lives are lost when picked drivers finish outside the top 10.</p>
+                </div>
+              </div>
+            </div>
+            
             <div class="form-actions">
               <button type="button" id="cancel-create">Cancel</button>
               <button type="submit" id="create-league-btn">Create League</button>
@@ -190,6 +218,38 @@ export class LeagueModalManager {
               </label>
             </div>
             
+            <div class="form-group lives-settings">
+              <h4>Lives System</h4>
+              
+              <div class="current-lives-status">
+                <p><strong>Current Setting:</strong> <span id="current-lives-display">${league.settings?.maxLives || 1} Lives per Player</span></p>
+                <p class="lives-lock-info" id="lives-lock-info">${league.settings?.livesLockDate ? 'Lives settings are locked for this season' : 'Lives can be configured until season starts'}</p>
+              </div>
+              
+              <div id="lives-modification" class="lives-modification" ${league.settings?.livesLockDate && new Date() > new Date(league.settings.livesLockDate) ? 'style="display: none;"' : ''}>
+                <div class="form-row">
+                  <label>
+                    <input type="checkbox" id="lives-enabled-setting" ${league.settings?.livesEnabled ? 'checked' : ''}>
+                    Enable Multiple Lives System
+                  </label>
+                </div>
+                
+                <div id="lives-options-setting" class="lives-options" ${!league.settings?.livesEnabled ? 'style="display: none;"' : ''}>
+                  <div class="form-row">
+                    <label for="max-lives-setting">Lives per Player</label>
+                    <select id="max-lives-setting">
+                      <option value="1" ${league.settings?.maxLives === 1 ? 'selected' : ''}>1 Life (Classic)</option>
+                      <option value="2" ${league.settings?.maxLives === 2 ? 'selected' : ''}>2 Lives</option>
+                      <option value="3" ${league.settings?.maxLives === 3 ? 'selected' : ''}>3 Lives</option>
+                      <option value="4" ${league.settings?.maxLives === 4 ? 'selected' : ''}>4 Lives</option>
+                      <option value="5" ${league.settings?.maxLives === 5 ? 'selected' : ''}>5 Lives (Maximum)</option>
+                    </select>
+                    <small>Changes affect all current and future members</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             <div class="form-actions">
               <button type="button" id="cancel-settings">Cancel</button>
               <button type="submit" id="save-settings-btn">Save Settings</button>
@@ -227,12 +287,24 @@ export class LeagueModalManager {
     closeBtn.addEventListener('click', () => this.closeActiveModal());
     cancelBtn.addEventListener('click', () => this.closeActiveModal());
 
+    // Handle lives configuration toggle
+    const livesEnabledCheckbox = modal.querySelector('#lives-enabled');
+    const livesOptionsDiv = modal.querySelector('#lives-options');
+    
+    livesEnabledCheckbox.addEventListener('change', (e) => {
+      livesOptionsDiv.style.display = e.target.checked ? 'block' : 'none';
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const leagueName = document.getElementById('league-name').value;
       const maxMembers = parseInt(document.getElementById('max-members').value);
       const autoPickEnabled = document.getElementById('auto-pick-enabled').checked;
+      
+      // Capture lives configuration
+      const livesEnabled = document.getElementById('lives-enabled').checked;
+      const maxLives = livesEnabled ? parseInt(document.getElementById('max-lives').value) : 1;
       
       // Get form submit button and show loading state
       const submitBtn = form.querySelector('button[type="submit"]');
@@ -244,7 +316,9 @@ export class LeagueModalManager {
       try {
         const league = await this.leagueManager.createLeague(leagueName, {
           maxMembers,
-          autoPickEnabled
+          autoPickEnabled,
+          livesEnabled,
+          maxLives
         });
 
         // Check if league creation was successful
@@ -457,6 +531,16 @@ export class LeagueModalManager {
     closeBtn.addEventListener('click', () => this.closeActiveModal());
     cancelBtn.addEventListener('click', () => this.closeActiveModal());
 
+    // Handle lives configuration toggle in settings
+    const livesEnabledSettingCheckbox = modal.querySelector('#lives-enabled-setting');
+    const livesOptionsSettingDiv = modal.querySelector('#lives-options-setting');
+    
+    if (livesEnabledSettingCheckbox && livesOptionsSettingDiv) {
+      livesEnabledSettingCheckbox.addEventListener('change', (e) => {
+        livesOptionsSettingDiv.style.display = e.target.checked ? 'block' : 'none';
+      });
+    }
+
     // Copy invite code
     copyBtn.addEventListener('click', (e) => {
       const code = e.target.dataset.code;
@@ -474,12 +558,24 @@ export class LeagueModalManager {
 
       const maxMembers = parseInt(document.getElementById('max-members-setting').value);
       const autoPickEnabled = document.getElementById('auto-pick-enabled-setting').checked;
+      
+      // Capture lives configuration if available
+      const livesEnabledSetting = document.getElementById('lives-enabled-setting');
+      const maxLivesSetting = document.getElementById('max-lives-setting');
+      
+      const settings = {
+        maxMembers,
+        autoPickEnabled
+      };
+      
+      // Add lives settings if the controls exist (not locked)
+      if (livesEnabledSetting && maxLivesSetting) {
+        settings.livesEnabled = livesEnabledSetting.checked;
+        settings.maxLives = settings.livesEnabled ? parseInt(maxLivesSetting.value) : 1;
+      }
 
       try {
-        await this.leagueManager.updateLeagueSettings(leagueId, {
-          maxMembers,
-          autoPickEnabled
-        });
+        await this.leagueManager.updateLeagueSettings(leagueId, settings);
 
         this.showSuccessModal('Settings Updated', 'League settings have been updated successfully.');
         setTimeout(() => {

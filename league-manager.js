@@ -152,7 +152,46 @@ export class LeagueManager {
       throw new Error('Cannot set max members below current member count');
     }
 
-    // Use AWS backend to update settings
+    // Enhanced validation for lives settings
+    if (newSettings.livesEnabled !== undefined || newSettings.maxLives !== undefined) {
+      // Validate lives count
+      if (newSettings.maxLives && (newSettings.maxLives < 1 || newSettings.maxLives > 5)) {
+        throw new Error('Lives per player must be between 1 and 5');
+      }
+
+      // Check if lives are being enabled/changed after season start
+      const currentSettings = league.settings || {};
+      const isLivesLocked = currentSettings.livesLockDate && new Date() > new Date(currentSettings.livesLockDate);
+      
+      if (isLivesLocked) {
+        throw new Error('Lives configuration cannot be changed after the season has started');
+      }
+
+      // If lives settings are changing, use the enhanced lives settings update method
+      if (newSettings.livesEnabled !== undefined || newSettings.maxLives !== undefined) {
+        const livesSettings = {
+          livesEnabled: newSettings.livesEnabled,
+          maxLives: newSettings.maxLives,
+          livesLockDate: newSettings.livesLockDate
+        };
+        
+        const result = await amplifyDataService.updateLeagueLivesSettings(leagueId, livesSettings);
+        
+        // Update other settings separately if needed
+        const otherSettings = { ...newSettings };
+        delete otherSettings.livesEnabled;
+        delete otherSettings.maxLives;
+        delete otherSettings.livesLockDate;
+        
+        if (Object.keys(otherSettings).length > 0) {
+          await amplifyDataService.updateLeagueSettings(leagueId, otherSettings);
+        }
+        
+        return result;
+      }
+    }
+
+    // Use AWS backend to update settings (non-lives settings)
     const result = await amplifyDataService.updateLeagueSettings(leagueId, newSettings);
     return result.league;
   }

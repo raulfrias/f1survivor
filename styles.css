@@ -1809,6 +1809,262 @@ nav {
     }
 }
 
+/* ========================================
+   ADVANCED LEAGUE CUSTOMIZATION: LIVES SYSTEM STYLING
+   ======================================== */
+
+/* Lives Configuration in Forms */
+.lives-configuration {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border: 1px solid rgba(225, 6, 0, 0.2);
+    border-radius: 8px;
+    background: rgba(225, 6, 0, 0.05);
+}
+
+.lives-configuration h4 {
+    margin: 0 0 1rem 0;
+    color: var(--primary-red);
+    font-size: 1.1rem;
+}
+
+.lives-options {
+    margin-top: 1rem;
+    padding-left: 1rem;
+    border-left: 2px solid rgba(225, 6, 0, 0.3);
+}
+
+.lives-explanation {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}
+
+/* Lives Status Display */
+.lives-status {
+    margin-top: 0.5rem;
+}
+
+.lives-display {
+    display: flex;
+    gap: 0.2rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.life-indicator {
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.life-indicator.remaining {
+    color: #4caf50;
+    text-shadow: 0 0 4px rgba(76, 175, 80, 0.3);
+}
+
+.life-indicator.lost {
+    color: #666;
+    opacity: 0.5;
+}
+
+/* Member Lives Management */
+.lives-settings {
+    margin-top: 2rem;
+    padding: 1rem;
+    border: 1px solid rgba(225, 6, 0, 0.2);
+    border-radius: 8px;
+    background: rgba(225, 6, 0, 0.05);
+}
+
+.lives-settings h4 {
+    margin: 0 0 1rem 0;
+    color: var(--primary-red);
+    font-size: 1.1rem;
+}
+
+.current-lives-status {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.current-lives-status p {
+    margin: 0.25rem 0;
+}
+
+.lives-modification {
+    margin-top: 1rem;
+}
+
+.members-lives-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.member-lives-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.member-lives-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.member-lives-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.lives-adjust-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    border: 1px solid var(--primary-red);
+    background: transparent;
+    color: var(--primary-red);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lives-adjust-btn:hover {
+    background: var(--primary-red);
+    color: white;
+}
+
+/* Lives Lock Warning */
+.lives-lock-info {
+    padding: 0.5rem;
+    background: rgba(255, 152, 0, 0.1);
+    border-left: 3px solid #ff9800;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: #ff9800;
+    margin: 0.5rem 0;
+}
+
+/* Enhanced Player Cards with Lives */
+.player-card .lives-status {
+    margin-top: 0.5rem;
+}
+
+.player-card.eliminated .lives-display {
+    opacity: 0.6;
+}
+
+/* Lives Statistics */
+.lives-statistics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.lives-stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid rgba(225, 6, 0, 0.1);
+}
+
+.lives-stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-red);
+}
+
+.lives-stat-label {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-top: 0.25rem;
+}
+
+/* Lives Indicators in Dashboard */
+.elimination-zone .player-card .lives-display {
+    margin-top: 0.25rem;
+}
+
+.elimination-zone .player-card.eliminated .lives-display .life-indicator {
+    color: #999;
+}
+
+/* Form styling for lives options */
+.form-row {
+    margin-bottom: 1rem;
+}
+
+.form-row label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-row select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.form-row select:focus {
+    outline: none;
+    border-color: var(--primary-red);
+    box-shadow: 0 0 0 2px rgba(225, 6, 0, 0.2);
+}
+
+.form-row small {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+/* Mobile responsive lives styling */
+@media (max-width: 768px) {
+    .lives-configuration,
+    .lives-settings {
+        margin: 1rem 0;
+        padding: 0.75rem;
+    }
+    
+    .lives-options {
+        padding-left: 0.5rem;
+    }
+    
+    .lives-display {
+        gap: 0.15rem;
+    }
+    
+    .life-indicator {
+        font-size: 0.8rem;
+    }
+    
+    .member-lives-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .member-lives-controls {
+        align-self: stretch;
+        justify-content: space-around;
+    }
+}
+
 /* Navigation League Selector - Clean Nav Integration */
 .league-nav-selector {
   position: relative;

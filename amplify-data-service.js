@@ -185,23 +185,36 @@ export class AmplifyDataService {
       // Generate unique league ID
       const leagueId = `league_${userId}_${Date.now()}`;
     
+    // Prepare league settings with lives configuration
+    const leagueSettings = {
+      maxMembers: leagueData.maxMembers || 50,
+      autoPickEnabled: leagueData.autoPickEnabled !== false,
+      isPrivate: leagueData.isPrivate !== false,
+      // Lives system configuration
+      livesEnabled: leagueData.livesEnabled || false,
+      maxLives: leagueData.maxLives || 1,
+      livesLockDate: leagueData.livesLockDate || null,
+      customRules: leagueData.customRules || ''
+    };
+
     const league = await this.client.models.League.create({
         leagueId: leagueId,
       name: leagueData.name,
       inviteCode: leagueData.inviteCode,
       ownerId: userId,
-      maxMembers: leagueData.maxMembers || 50,
+      maxMembers: leagueSettings.maxMembers,
       season: this.currentSeason,
-      autoPickEnabled: leagueData.autoPickEnabled || true,
-      isPrivate: leagueData.isPrivate || true,
+      autoPickEnabled: leagueSettings.autoPickEnabled,
+      isPrivate: leagueSettings.isPrivate,
       status: 'ACTIVE',
+      settings: leagueSettings,
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString()
     }, {
       authMode: 'userPool'
     });
 
-    // Add owner as member
+    // Add owner as member with lives initialization
     await this.client.models.LeagueMember.create({
       leagueId: league.data.leagueId,
       userId: userId,
@@ -210,7 +223,12 @@ export class AmplifyDataService {
       isOwner: true,
       survivedRaces: 0,
       totalPicks: 0,
-      autoPickCount: 0
+      autoPickCount: 0,
+      // Initialize lives from league settings
+      remainingLives: leagueSettings.maxLives,
+      livesUsed: 0,
+      maxLives: leagueSettings.maxLives,
+      eliminationHistory: []
     }, {
       authMode: 'userPool'
     });
@@ -266,7 +284,11 @@ export class AmplifyDataService {
       throw new Error('You are already a member of this league');
     }
 
-    // Add as member
+    // Get league lives configuration for member initialization
+    const leagueSettings = league.settings || {};
+    const maxLives = leagueSettings.maxLives || 1;
+
+    // Add as member with lives initialization
     await this.client.models.LeagueMember.create({
       leagueId: league.leagueId,
       userId: userId,
@@ -275,7 +297,12 @@ export class AmplifyDataService {
       isOwner: false,
       survivedRaces: 0,
       totalPicks: 0,
-      autoPickCount: 0
+      autoPickCount: 0,
+      // Initialize lives from league settings
+      remainingLives: maxLives,
+      livesUsed: 0,
+      maxLives: maxLives,
+      eliminationHistory: []
     }, {
       authMode: 'userPool'
     });
@@ -814,6 +841,244 @@ export class AmplifyDataService {
           localStorage.removeItem(storageKey);
         }
       }
+    }
+  }
+
+  // ADVANCED LEAGUE CUSTOMIZATION: Lives System Management
+  
+  // Lives configuration management
+  async updateLeagueLivesSettings(leagueId, livesSettings) {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    try {
+      // Get league to check ownership
+      const league = await this.getLeague(leagueId);
+      if (!league) {
+        throw new Error('League not found');
+      }
+
+      const currentUserId = user.userId || user.username;
+      if (league.ownerId !== currentUserId) {
+        throw new Error('Only league owners can update lives settings');
+      }
+
+      // Validate lives settings
+      const { maxLives, livesEnabled, livesLockDate } = livesSettings;
+      
+      if (maxLives && (maxLives < 1 || maxLives > 5)) {
+        throw new Error('Lives per player must be between 1 and 5');
+      }
+
+      // Check if lives are locked (season has started)
+      if (livesLockDate && new Date() > new Date(livesLockDate)) {
+        throw new Error('Lives configuration cannot be changed after the lock date');
+      }
+
+      // Get current settings and merge with new ones
+      const currentSettings = league.settings || {};
+      const updatedSettings = {
+        ...currentSettings,
+        maxLives: maxLives || currentSettings.maxLives || 1,
+        livesEnabled: livesEnabled !== undefined ? livesEnabled : currentSettings.livesEnabled || false,
+        livesLockDate: livesLockDate || currentSettings.livesLockDate,
+        autoPickEnabled: currentSettings.autoPickEnabled !== undefined ? currentSettings.autoPickEnabled : true,
+        isPrivate: currentSettings.isPrivate !== undefined ? currentSettings.isPrivate : true
+      };
+
+      // Update league settings
+      const result = await this.updateLeagueSettings(leagueId, { settings: updatedSettings });
+      
+      // If maxLives changed, update all active members' maxLives
+      if (maxLives && maxLives !== currentSettings.maxLives) {
+        await this.updateAllMemberMaxLives(leagueId, maxLives);
+      }
+
+      console.log(`League ${leagueId} lives settings updated successfully`);
+      return { success: true, settings: updatedSettings };
+    } catch (error) {
+      console.error('Failed to update league lives settings:', error);
+      throw error;
+    }
+  }
+
+  async getLeagueLivesConfiguration(leagueId) {
+    try {
+      const league = await this.getLeague(leagueId);
+      if (!league) {
+        throw new Error('League not found');
+      }
+
+      const settings = league.settings || {};
+      const livesConfig = {
+        maxLives: settings.maxLives || 1,
+        livesEnabled: settings.livesEnabled || false,
+        livesLockDate: settings.livesLockDate,
+        isLocked: settings.livesLockDate ? new Date() > new Date(settings.livesLockDate) : false,
+        customRules: settings.customRules || ''
+      };
+
+      return livesConfig;
+    } catch (error) {
+      console.error('Failed to get league lives configuration:', error);
+      throw error;
+    }
+  }
+
+  // Member lives management
+  async updateMemberLives(leagueId, userId, livesOperation) {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    try {
+      // Get league to check ownership (admin-only operation)
+      const league = await this.getLeague(leagueId);
+      if (!league) {
+        throw new Error('League not found');
+      }
+
+      const currentUserId = user.userId || user.username;
+      if (league.ownerId !== currentUserId) {
+        throw new Error('Only league owners can manage member lives');
+      }
+
+      // Get current member data
+      const memberResult = await this.client.models.LeagueMember.list({
+        filter: {
+          leagueId: { eq: leagueId },
+          userId: { eq: userId }
+        },
+        authMode: 'userPool'
+      });
+
+      if (!memberResult.data || memberResult.data.length === 0) {
+        throw new Error('Member not found in league');
+      }
+
+      const member = memberResult.data[0];
+      const { operation, value, reason } = livesOperation;
+      
+      let newRemainingLives = member.remainingLives;
+      
+      switch (operation) {
+        case 'SET':
+          newRemainingLives = Math.max(0, Math.min(value, member.maxLives));
+          break;
+        case 'ADD':
+          newRemainingLives = Math.min(member.remainingLives + value, member.maxLives);
+          break;
+        case 'SUBTRACT':
+          newRemainingLives = Math.max(0, member.remainingLives - value);
+          break;
+        default:
+          throw new Error('Invalid lives operation');
+      }
+
+      // Update member lives
+      await this.client.models.LeagueMember.update({
+        id: member.id,
+        remainingLives: newRemainingLives,
+        livesUsed: member.maxLives - newRemainingLives,
+        status: newRemainingLives === 0 ? 'ELIMINATED' : 'ACTIVE'
+      }, {
+        authMode: 'userPool'
+      });
+
+      // Create life event record for audit trail
+      await this.createLifeEvent(userId, leagueId, 'current', 
+        newRemainingLives === 0 ? 'FINAL_ELIMINATION' : 'LIFE_RESTORED', 
+        newRemainingLives, {
+          adminUserId: currentUserId,
+          adminReason: reason || 'Admin adjustment'
+        });
+
+      console.log(`Member ${userId} lives updated: ${member.remainingLives} → ${newRemainingLives}`);
+      return { success: true, remainingLives: newRemainingLives };
+    } catch (error) {
+      console.error('Failed to update member lives:', error);
+      throw error;
+    }
+  }
+
+  async getMemberLivesStatus(leagueId, userId = null) {
+    const user = await authManager.getCurrentUser();
+    if (!user) throw new Error('Authentication required');
+
+    try {
+      const targetUserId = userId || user.userId || user.username;
+      
+      const memberResult = await this.client.models.LeagueMember.list({
+        filter: {
+          leagueId: { eq: leagueId },
+          userId: { eq: targetUserId }
+        },
+        authMode: 'userPool'
+      });
+
+      if (!memberResult.data || memberResult.data.length === 0) {
+        return null;
+      }
+
+      const member = memberResult.data[0];
+      return {
+        userId: member.userId,
+        remainingLives: member.remainingLives,
+        livesUsed: member.livesUsed,
+        maxLives: member.maxLives,
+        eliminationHistory: member.eliminationHistory || [],
+        status: member.status
+      };
+    } catch (error) {
+      console.error('Failed to get member lives status:', error);
+      throw error;
+    }
+  }
+
+  // Helper method to update all members' maxLives when league setting changes
+  async updateAllMemberMaxLives(leagueId, newMaxLives) {
+    try {
+      const members = await this.getLeagueMembers(leagueId);
+      
+      const updatePromises = members.map(member => 
+        this.client.models.LeagueMember.update({
+          id: member.id,
+          maxLives: newMaxLives,
+          // Adjust remaining lives if current is higher than new max
+          remainingLives: Math.min(member.remainingLives, newMaxLives)
+        }, {
+          authMode: 'userPool'
+        })
+      );
+
+      await Promise.all(updatePromises);
+      console.log(`Updated maxLives to ${newMaxLives} for ${members.length} members in league ${leagueId}`);
+    } catch (error) {
+      console.error('Failed to update member max lives:', error);
+      throw error;
+    }
+  }
+
+  // Create life event for audit trail
+  async createLifeEvent(userId, leagueId, raceId, eventType, livesRemaining, eventData = {}) {
+    try {
+      const lifeEvent = {
+        userId,
+        leagueId,
+        raceId,
+        eventType,
+        livesRemaining,
+        eventDate: new Date().toISOString(),
+        ...eventData
+      };
+
+      await this.client.models.LifeEvent.create(lifeEvent, {
+        authMode: 'userPool'
+      });
+
+      console.log(`Life event created: ${eventType} for user ${userId} in league ${leagueId}`);
+    } catch (error) {
+      console.error('Failed to create life event:', error);
+      // Don't throw here - life events are audit trail, not critical for functionality
     }
   }
 

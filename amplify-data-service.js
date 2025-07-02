@@ -253,21 +253,21 @@ export class AmplifyDataService {
     }
 
     // Handle different possible response structures
-    let leagueData;
+    let createdLeague;
     if (league.data) {
-      leagueData = league.data;
+      createdLeague = league.data;
     } else if (league.leagueId || league.id) {
-      leagueData = league;
+      createdLeague = league;
     } else {
       console.error('Unexpected league response structure:', league);
       throw new Error('League creation failed - unexpected response structure');
     }
 
-    console.log('League created successfully:', leagueData);
+    console.log('League created successfully:', createdLeague);
 
     // Add owner as member with lives initialization
     await this.client.models.LeagueMember.create({
-      leagueId: leagueData.leagueId || leagueId,
+      leagueId: createdLeague.leagueId || leagueId,
       userId: userId,
       joinedAt: new Date().toISOString(),
       status: 'ACTIVE',
@@ -287,11 +287,11 @@ export class AmplifyDataService {
       // Return formatted data for UI compatibility
       return {
         success: true,
-        leagueId: leagueData.leagueId || leagueId,
-        leagueName: leagueData.name || leagueData.name,
-        inviteCode: leagueData.inviteCode || leagueData.inviteCode,
+        leagueId: createdLeague.leagueId || leagueId,
+        leagueName: createdLeague.name || leagueData.name,
+        inviteCode: createdLeague.inviteCode || leagueData.inviteCode,
         settings: leagueSettings,
-        ...leagueData
+        ...createdLeague
       };
     } catch (error) {
       console.error('Create league error:', error);

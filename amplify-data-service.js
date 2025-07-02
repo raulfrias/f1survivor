@@ -242,16 +242,32 @@ export class AmplifyDataService {
       authMode: 'userPool'
     });
 
-    // Validate league creation response
-    if (!league || !league.data) {
-      throw new Error('League creation failed - invalid response from AWS');
+    // Log the actual response structure for debugging
+    console.log('League creation response:', league);
+    console.log('League response type:', typeof league);
+    console.log('League response keys:', league ? Object.keys(league) : 'null');
+
+    // Validate league creation response - be more flexible with response structure
+    if (!league) {
+      throw new Error('League creation failed - no response from AWS');
     }
 
-    console.log('League created successfully:', league.data);
+    // Handle different possible response structures
+    let leagueData;
+    if (league.data) {
+      leagueData = league.data;
+    } else if (league.leagueId || league.id) {
+      leagueData = league;
+    } else {
+      console.error('Unexpected league response structure:', league);
+      throw new Error('League creation failed - unexpected response structure');
+    }
+
+    console.log('League created successfully:', leagueData);
 
     // Add owner as member with lives initialization
     await this.client.models.LeagueMember.create({
-      leagueId: league.data.leagueId || leagueId,
+      leagueId: leagueData.leagueId || leagueId,
       userId: userId,
       joinedAt: new Date().toISOString(),
       status: 'ACTIVE',
@@ -271,11 +287,11 @@ export class AmplifyDataService {
       // Return formatted data for UI compatibility
       return {
         success: true,
-        leagueId: league.data.leagueId || leagueId,
-        leagueName: league.data.name || leagueData.name,
-        inviteCode: league.data.inviteCode || leagueData.inviteCode,
+        leagueId: leagueData.leagueId || leagueId,
+        leagueName: leagueData.name || leagueData.name,
+        inviteCode: leagueData.inviteCode || leagueData.inviteCode,
         settings: leagueSettings,
-        ...league.data
+        ...leagueData
       };
     } catch (error) {
       console.error('Create league error:', error);

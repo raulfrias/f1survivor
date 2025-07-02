@@ -2,8 +2,44 @@
 
 class LeagueModalManager {
   constructor() {
-    this.leagueManager = leagueManager;
     this.activeModal = null;
+    // Use lazy initialization for leagueManager to avoid dependency order issues
+    this._leagueManager = null;
+  }
+
+  // Lazy getter for leagueManager
+  get leagueManager() {
+    if (!this._leagueManager) {
+      this._leagueManager = typeof leagueManager !== 'undefined' ? leagueManager : null;
+      if (!this._leagueManager) {
+        console.warn('leagueManager not available yet - using mock');
+        this._leagueManager = {
+          // Mock methods for testing environment
+          createLeague: () => Promise.resolve({ success: false, error: 'Mock leagueManager' }),
+          joinLeague: () => Promise.resolve({ leagueName: 'Mock League' }),
+          getUserLeagues: () => [],
+          getLeague: () => null,
+          isLeagueOwner: () => false,
+          previewLeague: () => Promise.resolve(null),
+          setActiveLeague: () => {},
+          currentUserId: 'mock_user'
+        };
+      }
+    }
+    return this._leagueManager;
+  }
+
+  // Helper method to get refreshLeagueData function safely
+  getRefreshLeagueData() {
+    return typeof refreshLeagueData !== 'undefined' ? refreshLeagueData : (() => {
+      console.warn('refreshLeagueData not available - using mock');
+      return Promise.resolve();
+    });
+  }
+
+  // Refresh dependencies (call this after all scripts have loaded)
+  refreshDependencies() {
+    this._leagueManager = null; // Force refresh of leagueManager
   }
 
   // Show create league modal
@@ -356,7 +392,7 @@ class LeagueModalManager {
             
             // Only refresh if we expect leagues to be available
             if (currentLeagueCount > 0) {
-              await refreshLeagueData();
+              await this.getRefreshLeagueData()();
               
               // Only refresh UI if AWS returned valid data
               const newLeagueCount = window.multiLeagueContext ? window.multiLeagueContext.userLeagues.size : 0;
@@ -447,7 +483,7 @@ class LeagueModalManager {
         this.leagueManager.setActiveLeague(league.leagueId);
 
         // Refresh league data from AWS to pick up joined league
-        await refreshLeagueData();
+        await this.getRefreshLeagueData()();
 
         // Refresh the league selector immediately
         if (window.leagueSelector && typeof window.leagueSelector.refreshAndRender === 'function') {

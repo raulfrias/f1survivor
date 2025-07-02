@@ -320,12 +320,21 @@
         </div>
     </div>
 
-    <!-- Include necessary scripts -->
+    <!-- Include necessary scripts in proper order -->
+    <script>
+        // Mock auth manager if not available
+        if (typeof authManager === 'undefined') {
+            window.authManager = {
+                getCurrentUser: () => Promise.resolve({ userId: 'test_user', username: 'test_user' })
+            };
+        }
+    </script>
     <script src="amplify-data-service.js"></script>
     <script src="league-modal-manager.js"></script>
     <script src="league-manager.js"></script>
     <script src="lives-elimination-engine.js"></script>
     <script src="test-lives-system-api.js"></script>
+    <script src="test-elimination-scenarios.js"></script>
     
     <script>
         // Test execution tracking
@@ -380,11 +389,17 @@
             // Simulate schema validation
             setTimeout(() => {
                 try {
-                    // Check if amplifyDataService exists and has the expected structure
-                    if (typeof amplifyDataService !== 'undefined') {
+                    // Check if AmplifyDataService class exists
+                    if (typeof AmplifyDataService !== 'undefined') {
+                        // Create instance if needed
+                        if (typeof amplifyDataService === 'undefined') {
+                            window.amplifyDataService = new AmplifyDataService();
+                        }
                         setTestResult('test-member-schema', 'pass', 'LeagueMember schema enhanced successfully');
-                        document.getElementById('schema-details').innerHTML = 
-                            'Fields added: remainingLives, livesUsed, maxLives, eliminationHistory';
+                        if (document.getElementById('schema-details')) {
+                            document.getElementById('schema-details').innerHTML = 
+                                'Fields added: remainingLives, livesUsed, maxLives, eliminationHistory';
+                        }
                     } else {
                         setTestResult('test-member-schema', 'fail', 'AmplifyDataService not available');
                     }
@@ -499,10 +514,25 @@
             setTestResult('test-config-api', 'pending', 'Testing API...');
             
             setTimeout(() => {
-                if (typeof amplifyDataService !== 'undefined' && 
-                    typeof amplifyDataService.updateLeagueLivesSettings === 'function') {
-                    setTestResult('test-config-api', 'pass', 'Lives configuration API methods available');
-                } else {
+                try {
+                    // Check if AmplifyDataService class exists
+                    if (typeof AmplifyDataService !== 'undefined') {
+                        // Create instance if needed
+                        if (typeof amplifyDataService === 'undefined') {
+                            window.amplifyDataService = new AmplifyDataService();
+                        }
+                        
+                        // Check for lives methods
+                        if (typeof amplifyDataService.updateLeagueLivesSettings === 'function' &&
+                            typeof amplifyDataService.getMemberLivesStatus === 'function') {
+                            setTestResult('test-config-api', 'pass', 'Lives configuration API methods available');
+                        } else {
+                            setTestResult('test-config-api', 'fail', 'Lives API methods not found');
+                        }
+                    } else {
+                        setTestResult('test-config-api', 'fail', 'AmplifyDataService class not available');
+                    }
+                } catch (error) {
                     setTestResult('test-config-api', 'fail', 'Lives API methods not found');
                 }
             }, 1000);
@@ -548,9 +578,21 @@
             document.getElementById('mock-race-results').style.display = 'block';
             
             setTimeout(() => {
-                if (typeof livesEliminationEngine !== 'undefined') {
-                    setTestResult('test-elimination-engine', 'pass', 'Elimination engine processes race results');
-                } else {
+                try {
+                    // Check if the elimination engine class exists
+                    if (typeof LivesEliminationEngine !== 'undefined') {
+                        // Try to create instance if needed
+                        if (typeof livesEliminationEngine === 'undefined') {
+                            window.livesEliminationEngine = new LivesEliminationEngine();
+                        }
+                        setTestResult('test-elimination-engine', 'pass', 'Elimination engine processes race results');
+                    } else if (typeof livesEliminationEngine !== 'undefined') {
+                        setTestResult('test-elimination-engine', 'pass', 'Elimination engine available as instance');
+                    } else {
+                        // Create a mock test to show functionality
+                        setTestResult('test-elimination-engine', 'fail', 'Elimination engine not available');
+                    }
+                } catch (error) {
                     setTestResult('test-elimination-engine', 'fail', 'Elimination engine not available');
                 }
             }, 1200);

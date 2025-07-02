@@ -214,9 +214,16 @@ export class AmplifyDataService {
       authMode: 'userPool'
     });
 
+    // Validate league creation response
+    if (!league || !league.data) {
+      throw new Error('League creation failed - invalid response from AWS');
+    }
+
+    console.log('League created successfully:', league.data);
+
     // Add owner as member with lives initialization
     await this.client.models.LeagueMember.create({
-      leagueId: league.data.leagueId,
+      leagueId: league.data.leagueId || leagueId,
       userId: userId,
       joinedAt: new Date().toISOString(),
       status: 'ACTIVE',
@@ -236,9 +243,10 @@ export class AmplifyDataService {
       // Return formatted data for UI compatibility
       return {
         success: true,
-        leagueId: league.data.leagueId,
-        leagueName: league.data.name,
-        inviteCode: league.data.inviteCode,
+        leagueId: league.data.leagueId || leagueId,
+        leagueName: league.data.name || leagueData.name,
+        inviteCode: league.data.inviteCode || leagueData.inviteCode,
+        settings: leagueSettings,
         ...league.data
       };
     } catch (error) {

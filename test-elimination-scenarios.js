@@ -3,8 +3,7 @@
  * Focused testing for lives-based elimination logic
  */
 
-// Import the elimination engine
-import { livesEliminationEngine } from './lives-elimination-engine.js';
+// Note: livesEliminationEngine will be available globally if loaded
 
 /**
  * Mock Race Scenarios for Testing

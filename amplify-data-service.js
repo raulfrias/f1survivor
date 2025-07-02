@@ -7,9 +7,30 @@ class AmplifyDataService {
       this.client = generateClient();
     } else {
       console.warn('AWS Amplify generateClient not available - using mock client');
-      this.client = { models: {} }; // Mock client for testing
+      this.client = this.createMockClient(); // Enhanced mock client for testing
     }
     this.currentSeason = "season_2025"; // Use proper ID format
+  }
+
+  // Create enhanced mock client for testing
+  createMockClient() {
+    const mockResponse = { data: [], errors: [] };
+    const mockModel = {
+      create: () => Promise.resolve({ data: { id: 'mock_id', leagueId: 'mock_league_' + Date.now() } }),
+      list: () => Promise.resolve(mockResponse),
+      update: () => Promise.resolve({ data: { id: 'mock_id' } }),
+      delete: () => Promise.resolve({ data: { id: 'mock_id' } })
+    };
+
+    return {
+      models: {
+        League: mockModel,
+        LeagueMember: mockModel,
+        DriverPick: mockModel,
+        LifeEvent: mockModel,
+        UserProfile: mockModel
+      }
+    };
   }
 
   // Replace storage-utils.js - AUTH REQUIRED

@@ -328,6 +328,21 @@
                 getCurrentUser: () => Promise.resolve({ userId: 'test_user', username: 'test_user' })
             };
         }
+        
+        // Mock refreshLeagueData if not available
+        if (typeof refreshLeagueData === 'undefined') {
+            window.refreshLeagueData = () => {
+                console.log('Mock refreshLeagueData called');
+                return Promise.resolve();
+            };
+        }
+        
+        // Mock setActiveLeagueId if not available  
+        if (typeof setActiveLeagueId === 'undefined') {
+            window.setActiveLeagueId = (leagueId) => {
+                console.log('Mock setActiveLeagueId called with:', leagueId);
+            };
+        }
     </script>
     <script src="amplify-data-service.js"></script>
     <script src="league-manager.js"></script>
@@ -337,6 +352,17 @@
     <script src="test-elimination-scenarios.js"></script>
     
     <script>
+        // Refresh dependencies after all scripts have loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Give a moment for all scripts to initialize
+            setTimeout(() => {
+                if (typeof leagueModalManager !== 'undefined' && typeof leagueModalManager.refreshDependencies === 'function') {
+                    leagueModalManager.refreshDependencies();
+                    console.log('Dependencies refreshed for test environment');
+                }
+            }, 100);
+        });
+
         // Test execution tracking
         let testResults = {};
         let testsCompleted = 0;

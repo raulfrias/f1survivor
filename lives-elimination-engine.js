@@ -212,7 +212,7 @@ export class LivesEliminationEngine {
       const allLeagues = await this.getAllActiveLeagues();
       
       return allLeagues.filter(league => {
-        const settings = league.settings || {};
+        const settings = this.amplifyDataService.parseLeagueSettings(league);
         return settings.livesEnabled === true && settings.maxLives > 1;
       });
 

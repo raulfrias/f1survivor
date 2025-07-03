@@ -2276,4 +2276,954 @@ nav {
     min-width: 220px;
     right: -80px;
   }
+}
+
+/* ========================================
+   ENHANCED ADMIN CONTROLS & MEMBER MANAGEMENT
+   ======================================== */
+
+/* Enhanced Member List */
+.members-list.enhanced {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid rgba(225, 6, 0, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.member-item.enhanced {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background-color 0.2s ease;
+}
+
+.member-item.enhanced:hover {
+  background: rgba(225, 6, 0, 0.1);
+}
+
+.member-item.enhanced:last-child {
+  border-bottom: none;
+}
+
+/* Member Info Section */
+.member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.member-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.member-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+}
+
+.member-picks {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.member-status {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.member-status.status-active {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid #4caf50;
+}
+
+.member-status.status-eliminated {
+  background: rgba(255, 0, 0, 0.2);
+  color: #ff0000;
+  border: 1px solid #ff0000;
+}
+
+/* Member Lives Display */
+.member-lives {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.lives-label {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.lives-display {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.life-indicator {
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.life-indicator.remaining {
+  filter: drop-shadow(0 0 2px rgba(76, 175, 80, 0.5));
+}
+
+.life-indicator.lost {
+  opacity: 0.4;
+  filter: grayscale(100%);
+}
+
+.lives-count {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: bold;
+}
+
+/* Member Actions Section */
+.member-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+/* Lives Control Buttons */
+.lives-controls {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.lives-btn {
+  background: rgba(225, 6, 0, 0.1);
+  border: 1px solid rgba(225, 6, 0, 0.3);
+  color: var(--text-color);
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.lives-btn:hover:not(:disabled) {
+  background: rgba(225, 6, 0, 0.2);
+  border-color: var(--primary-red);
+  transform: translateY(-1px);
+}
+
+.lives-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.lives-btn.add:hover:not(:disabled) {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: #4caf50;
+  color: #4caf50;
+}
+
+.lives-btn.subtract:hover:not(:disabled) {
+  background: rgba(255, 152, 0, 0.2);
+  border-color: #ff9800;
+  color: #ff9800;
+}
+
+.lives-btn.reset:hover:not(:disabled) {
+  background: rgba(33, 150, 243, 0.2);
+  border-color: #2196f3;
+  color: #2196f3;
+}
+
+/* Bulk Actions Section */
+.bulk-actions {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(225, 6, 0, 0.2);
+}
+
+.bulk-actions h5 {
+  margin: 0 0 0.75rem 0;
+  color: var(--primary-red);
+  font-size: 0.95rem;
+}
+
+.bulk-controls {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.bulk-btn {
+  background: rgba(225, 6, 0, 0.1);
+  border: 1px solid rgba(225, 6, 0, 0.3);
+  color: var(--text-color);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.bulk-btn:hover:not(:disabled) {
+  background: rgba(225, 6, 0, 0.2);
+  border-color: var(--primary-red);
+  transform: translateY(-1px);
+}
+
+.bulk-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Quick Notifications */
+.quick-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  font-size: 0.875rem;
+  font-weight: 500;
+  animation: slideInRight 0.3s ease-out;
+  max-width: 300px;
+}
+
+.quick-notification.success {
+  background: rgba(76, 175, 80, 0.9);
+  color: white;
+  border: 1px solid #4caf50;
+}
+
+.quick-notification.info {
+  background: rgba(33, 150, 243, 0.9);
+  color: white;
+  border: 1px solid #2196f3;
+}
+
+.quick-notification.warning {
+  background: rgba(255, 152, 0, 0.9);
+  color: white;
+  border: 1px solid #ff9800;
+}
+
+/* League item removal animation */
+.league-item.removing {
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+/* Loading state for league action buttons */
+.league-actions-item button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Error Toast (existing but enhanced) */
+.error-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(255, 0, 0, 0.9);
+  color: white;
+  padding: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  animation: slideUp 0.3s ease-out;
+  max-width: 400px;
+}
+
+/* Mobile Responsive for Admin Controls */
+@media (max-width: 768px) {
+  .member-item.enhanced {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .member-actions {
+    align-self: stretch;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .lives-controls {
+    gap: 0.5rem;
+  }
+  
+  .lives-btn {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .bulk-controls {
+    flex-direction: column;
+  }
+  
+  .bulk-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .member-lives {
+    flex-wrap: wrap;
+  }
+  
+  .quick-notification {
+    right: 10px;
+    top: 10px;
+    max-width: 280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .members-list.enhanced {
+    max-height: 300px;
+  }
+  
+  .member-item.enhanced {
+    padding: 0.75rem;
+  }
+  
+  .member-name {
+    font-size: 0.95rem;
+  }
+  
+  .member-stats {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .lives-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+  }
+  
+  .life-indicator {
+    font-size: 0.8rem;
+  }
+}
+
+/* ========================================
+   ENHANCED DASHBOARD & ELIMINATION ZONE STATS
+   ======================================== */
+
+/* Enhanced Stat Cards */
+.stat-card.lives-stat,
+.stat-card.status-stat,
+.stat-card.members-stat,
+.stat-card.lives-system-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 80px;
+}
+
+.stat-card .stat-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.stat-card .stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-card .stat-content h3 {
+  margin: 0;
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+.stat-card .stat-content .stat-value {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.stat-card.status-stat.active .stat-value {
+  color: #4caf50;
+}
+
+.stat-card.status-stat.eliminated .stat-value {
+  color: #ff0000;
+}
+
+/* Mini Lives Display */
+.lives-display-mini {
+  display: flex;
+  gap: 0.15rem;
+  margin-top: 0.25rem;
+}
+
+.life-mini {
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.life-mini.remaining {
+  filter: drop-shadow(0 0 1px rgba(76, 175, 80, 0.5));
+}
+
+.life-mini.lost {
+  opacity: 0.4;
+  filter: grayscale(100%);
+}
+
+/* Enhanced Player Cards */
+.player-card.enhanced {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.player-card.enhanced:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(225, 6, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.player-card.enhanced.current-user {
+  border-color: var(--primary-red);
+  background: rgba(225, 6, 0, 0.1);
+}
+
+.player-card.enhanced.eliminated {
+  opacity: 0.6;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.player-card.enhanced.eliminated:hover {
+  transform: none;
+}
+
+.player-rank {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--primary-red);
+  min-width: 40px;
+  text-align: center;
+}
+
+.player-rank.eliminated {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.player-info {
+  flex: 1;
+}
+
+.player-info h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.owner-badge {
+  font-size: 0.8rem;
+}
+
+.player-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.races-survived {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.player-lives {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.lives-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.lives-display-small {
+  display: flex;
+  gap: 0.1rem;
+}
+
+.lives-display-small .life-mini {
+  font-size: 0.7rem;
+}
+
+.lives-count {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: bold;
+}
+
+.last-pick {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.player-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.status.active {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid #4caf50;
+}
+
+.status.eliminated {
+  background: rgba(255, 0, 0, 0.2);
+  color: #ff0000;
+  border: 1px solid #ff0000;
+}
+
+/* League Summary Statistics */
+.league-summary {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: rgba(225, 6, 0, 0.05);
+  border: 1px solid rgba(225, 6, 0, 0.2);
+  border-radius: 8px;
+}
+
+.summary-stats {
+  display: flex;
+  justify-content: space-around;
+  gap: 1rem;
+}
+
+.summary-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.summary-stat:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.summary-stat.active {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.summary-stat.eliminated {
+  background: rgba(255, 0, 0, 0.1);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+}
+
+.summary-stat .stat-icon {
+  font-size: 1.2rem;
+}
+
+.summary-stat .stat-label {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  text-align: center;
+}
+
+.summary-stat .stat-value {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--primary-red);
+}
+
+.summary-stat.active .stat-value {
+  color: #4caf50;
+}
+
+.summary-stat.eliminated .stat-value {
+  color: #ff0000;
+}
+
+/* Mobile Responsive for Enhanced Dashboard */
+@media (max-width: 768px) {
+  .player-card.enhanced {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+  
+  .player-rank {
+    align-self: flex-start;
+    font-size: 1.2rem;
+    min-width: auto;
+  }
+  
+  .player-info {
+    width: 100%;
+  }
+  
+  .player-stats {
+    gap: 0.5rem;
+  }
+  
+  .player-lives {
+    flex-wrap: wrap;
+  }
+  
+  .player-status {
+    align-self: stretch;
+    align-items: center;
+  }
+  
+  .summary-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .summary-stat {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0.75rem;
+  }
+  
+  .stat-card.lives-stat,
+  .stat-card.status-stat,
+  .stat-card.members-stat,
+  .stat-card.lives-system-stat {
+    min-height: 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .player-card.enhanced {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+  
+  .player-info h3 {
+    font-size: 1rem;
+  }
+  
+  .races-survived,
+  .last-pick {
+    font-size: 0.8rem;
+  }
+  
+  .lives-display-small .life-mini {
+    font-size: 0.65rem;
+  }
+  
+  .lives-count {
+    font-size: 0.7rem;
+  }
+  
+  .status {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+  }
+  
+  .league-summary {
+    padding: 0.75rem;
+  }
+  
+  .summary-stat {
+    padding: 0.5rem;
+  }
+  
+  .summary-stat .stat-value {
+    font-size: 1rem;
+  }
+}
+
+/* ========================================
+   AUDIT TRAIL SYSTEM
+   ======================================== */
+
+/* Audit Trail Section */
+.audit-trail-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(225, 6, 0, 0.2);
+}
+
+.audit-trail-section h5 {
+  margin: 0 0 1rem 0;
+  color: var(--primary-red);
+  font-size: 0.95rem;
+}
+
+.audit-trail-controls {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.audit-btn {
+  background: rgba(33, 150, 243, 0.1);
+  border: 1px solid rgba(33, 150, 243, 0.3);
+  color: var(--text-color);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.audit-btn:hover:not(:disabled) {
+  background: rgba(33, 150, 243, 0.2);
+  border-color: #2196f3;
+  color: #2196f3;
+}
+
+.audit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Audit Trail Container */
+.audit-trail-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+}
+
+.audit-loading {
+  text-align: center;
+  padding: 2rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+.audit-empty {
+  text-align: center;
+  padding: 2rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.audit-error {
+  text-align: center;
+  padding: 2rem;
+  color: var(--primary-red);
+  background: rgba(255, 0, 0, 0.1);
+  border-radius: 6px;
+}
+
+/* Audit Event List */
+.audit-trail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.audit-event {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border-left: 3px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.2s ease;
+}
+
+.audit-event:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.audit-event.life-lost {
+  border-left-color: #ff9800;
+  background: rgba(255, 152, 0, 0.05);
+}
+
+.audit-event.life-restored {
+  border-left-color: #4caf50;
+  background: rgba(76, 175, 80, 0.05);
+}
+
+.audit-event.elimination {
+  border-left-color: #f44336;
+  background: rgba(244, 67, 54, 0.05);
+}
+
+.audit-event.admin-action {
+  border-left-color: #2196f3;
+  background: rgba(33, 150, 243, 0.05);
+}
+
+.event-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.event-details {
+  flex: 1;
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.event-user {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.event-date {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.event-description {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 0.25rem;
+}
+
+.event-admin {
+  font-size: 0.75rem;
+  color: rgba(33, 150, 243, 0.8);
+  font-style: italic;
+}
+
+.event-reason {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  margin-top: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+/* Mobile Responsive for Audit Trail */
+@media (max-width: 768px) {
+  .audit-trail-controls {
+    flex-direction: column;
+  }
+  
+  .audit-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .audit-trail-container {
+    max-height: 300px;
+    padding: 0.75rem;
+  }
+  
+  .audit-event {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+  
+  .event-icon {
+    align-self: flex-start;
+    width: 25px;
+    height: 25px;
+    font-size: 1rem;
+  }
+  
+  .event-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .audit-trail-section {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+  }
+  
+  .audit-trail-container {
+    padding: 0.5rem;
+  }
+  
+  .audit-event {
+    padding: 0.5rem;
+  }
+  
+  .event-description,
+  .event-admin,
+  .event-reason {
+    font-size: 0.8rem;
+  }
+  
+  .event-date {
+    font-size: 0.7rem;
+  }
 } 

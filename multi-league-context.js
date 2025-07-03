@@ -71,7 +71,7 @@ export class MultiLeagueContext {
           this.userLeagues.set(league.leagueId, {
             ...league,
             lastAccessed: Date.now(),
-            memberCount: 0 // Will be loaded on demand
+            memberCount: league.memberCount || 0 // Use actual member count from AWS
           });
         }
         
@@ -171,7 +171,7 @@ export class MultiLeagueContext {
       this.notifyLeagueChange(leagueId, previousLeagueId);
       return true;
     } else {
-      console.warn(`League ${leagueId} not found in user leagues`);
+      console.warn(`⚠️ League ${leagueId} not found in user leagues (Available leagues: ${Array.from(this.userLeagues.keys()).join(', ') || 'none'})`);
       return false;
     }
   }
@@ -181,7 +181,7 @@ export class MultiLeagueContext {
     this.userLeagues.set(league.leagueId, {
       ...league,
       lastAccessed: Date.now(),
-      memberCount: 0
+      memberCount: league.memberCount || 1 // Default to 1 (at least the joining user)
     });
     
     // Set as active if it's the first league

@@ -112,8 +112,12 @@ export class LeagueSelector {
             </button>
             <button class="nav-action-btn" data-action="join">
               <span class="action-icon">🔗</span>
-                Join League
-              </button>
+              Join League
+            </button>
+            <button class="nav-action-btn" data-action="manage">
+              <span class="action-icon">⚙️</span>
+              Manage Leagues
+            </button>
           </div>
         </div>
       </div>
@@ -172,6 +176,7 @@ export class LeagueSelector {
     // Action buttons
     const createBtn = this.container.querySelector('[data-action="create"]');
     const joinBtn = this.container.querySelector('[data-action="join"]');
+    const manageBtn = this.container.querySelector('[data-action="manage"]');
     
     if (createBtn) {
       createBtn.addEventListener('click', (e) => {
@@ -186,6 +191,14 @@ export class LeagueSelector {
         e.stopPropagation();
         this.closeDropdown();
         this.handleJoinLeague();
+      });
+    }
+    
+    if (manageBtn) {
+      manageBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeDropdown();
+        this.handleManageLeagues();
       });
     }
   }
@@ -280,6 +293,19 @@ export class LeagueSelector {
     } catch (error) {
       console.error('Create league failed:', error);
       this.showError('Failed to create league. Please try again.');
+    }
+  }
+
+  async handleManageLeagues() {
+    try {
+      if (leagueModalManager && leagueModalManager.showManageLeaguesModal) {
+        await leagueModalManager.showManageLeaguesModal();
+      } else {
+        this.showError('League management not available');
+      }
+    } catch (error) {
+      console.error('Manage leagues failed:', error);
+      this.showError('Failed to open league management. Please try again.');
     }
   }
 

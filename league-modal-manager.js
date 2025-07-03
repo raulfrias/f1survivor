@@ -158,10 +158,10 @@ export class LeagueModalManager {
   }
 
   // Show manage leagues modal
-  showManageLeaguesModal() {
+  async showManageLeaguesModal() {
     this.closeActiveModal();
 
-    const userLeagues = this.leagueManager.getUserLeagues();
+    const userLeagues = await this.leagueManager.getUserLeagues();
 
     const modalHTML = `
       <div id="league-modal" class="league-modal">
@@ -188,14 +188,14 @@ export class LeagueModalManager {
                 userLeagues.map(league => `
                   <div class="league-item" data-league-id="${league.leagueId}">
                     <div class="league-info">
-                      <h5>${this.escapeHtml(league.leagueName)}</h5>
-                      <p>${league.members.length} members • ${league.isOwner ? 'Owner' : 'Member'}</p>
-                      ${league.isOwner ? `<p class="invite-code">Invite Code: <strong>${league.inviteCode}</strong></p>` : ''}
+                      <h5>${this.escapeHtml(league.name)}</h5>
+                      <p>${league.members ? league.members.length : 0} members • ${league.membershipData?.isOwner || league.ownerId === (window.authManager?.currentUser?.userId || window.authManager?.currentUser?.username) ? 'Owner' : 'Member'}</p>
+                      ${(league.membershipData?.isOwner || league.ownerId === (window.authManager?.currentUser?.userId || window.authManager?.currentUser?.username)) ? `<p class="invite-code">Invite Code: <strong>${league.inviteCode}</strong></p>` : ''}
                     </div>
                     <div class="league-actions-item">
                       <button class="select-league" data-league-id="${league.leagueId}">Select</button>
-                      ${league.isOwner ? `<button class="manage-league" data-league-id="${league.leagueId}">Settings</button>` : ''}
-                      <button class="leave-league" data-league-id="${league.leagueId}">${league.isOwner ? 'Delete' : 'Leave'}</button>
+                      ${(league.membershipData?.isOwner || league.ownerId === (window.authManager?.currentUser?.userId || window.authManager?.currentUser?.username)) ? `<button class="manage-league" data-league-id="${league.leagueId}">Settings</button>` : ''}
+                      <button class="leave-league" data-league-id="${league.leagueId}">${(league.membershipData?.isOwner || league.ownerId === (window.authManager?.currentUser?.userId || window.authManager?.currentUser?.username)) ? 'Delete' : 'Leave'}</button>
                     </div>
                   </div>
                 `).join('')
@@ -212,19 +212,30 @@ export class LeagueModalManager {
   }
 
   // Show league settings modal (for owners)
-  showLeagueSettingsModal(leagueId) {
+  async showLeagueSettingsModal(leagueId) {
     this.closeActiveModal();
 
-    const league = this.leagueManager.getLeague(leagueId);
-    if (!league || league.ownerId !== this.leagueManager.currentUserId) {
+    const league = await this.leagueManager.getLeague(leagueId);
+    const user = await authManager.getCurrentUser();
+    const currentUserId = user?.userId || user?.username;
+    
+    if (!league || league.ownerId !== currentUserId) {
+      this.showError('You do not have permission to manage this league.');
       return;
     }
+
+    // Get league members for member count and member management
+    const members = await amplifyDataService.getLeagueMembers(leagueId);
+    league.members = members; // Add members array to league object
+
+    // Parse league settings safely for template use
+    const settings = amplifyDataService.parseLeagueSettings(league);
 
     const modalHTML = `
       <div id="league-modal" class="league-modal">
         <div class="league-modal-content">
           <button class="close-btn">&times;</button>
-          <h3>League Settings: ${this.escapeHtml(league.leagueName)}</h3>
+          <h3>League Settings: ${this.escapeHtml(league.name)}</h3>
           
           <div class="league-info-section">
             <p><strong>Invite Code:</strong> <span class="invite-code-display">${league.inviteCode}</span></p>
@@ -235,17 +246,17 @@ export class LeagueModalManager {
             <div class="form-group">
               <label for="max-members-setting">Max Members</label>
               <select id="max-members-setting">
-                <option value="10" ${league.settings.maxMembers === 10 ? 'selected' : ''}>10 Players</option>
-                <option value="15" ${league.settings.maxMembers === 15 ? 'selected' : ''}>15 Players</option>
-                <option value="20" ${league.settings.maxMembers === 20 ? 'selected' : ''}>20 Players</option>
-                <option value="30" ${league.settings.maxMembers === 30 ? 'selected' : ''}>30 Players</option>
+                <option value="10" ${settings.maxMembers === 10 ? 'selected' : ''}>10 Players</option>
+                <option value="15" ${settings.maxMembers === 15 ? 'selected' : ''}>15 Players</option>
+                <option value="20" ${settings.maxMembers === 20 ? 'selected' : ''}>20 Players</option>
+                <option value="30" ${settings.maxMembers === 30 ? 'selected' : ''}>30 Players</option>
               </select>
               <small>Current members: ${league.members.length}</small>
             </div>
             
             <div class="form-group">
               <label>
-                <input type="checkbox" id="auto-pick-enabled-setting" ${league.settings.autoPickEnabled ? 'checked' : ''}>
+                <input type="checkbox" id="auto-pick-enabled-setting" ${settings.autoPickEnabled ? 'checked' : ''}>
                 Enable auto-pick for missed deadlines
               </label>
             </div>
@@ -254,27 +265,27 @@ export class LeagueModalManager {
               <h4>Lives System</h4>
               
               <div class="current-lives-status">
-                <p><strong>Current Setting:</strong> <span id="current-lives-display">${league.settings?.maxLives || 1} Lives per Player</span></p>
-                <p class="lives-lock-info" id="lives-lock-info">${league.settings?.livesLockDate ? 'Lives settings are locked for this season' : 'Lives can be configured until season starts'}</p>
+                <p><strong>Current Setting:</strong> <span id="current-lives-display">${settings?.maxLives || 1} Lives per Player</span></p>
+                <p class="lives-lock-info" id="lives-lock-info">${settings?.livesLockDate ? 'Lives settings are locked for this season' : 'Lives can be configured until season starts'}</p>
               </div>
               
-              <div id="lives-modification" class="lives-modification" ${league.settings?.livesLockDate && new Date() > new Date(league.settings.livesLockDate) ? 'style="display: none;"' : ''}>
+              <div id="lives-modification" class="lives-modification" ${settings?.livesLockDate && new Date() > new Date(settings.livesLockDate) ? 'style="display: none;"' : ''}>
                 <div class="form-row">
                   <label>
-                    <input type="checkbox" id="lives-enabled-setting" ${league.settings?.livesEnabled ? 'checked' : ''}>
+                    <input type="checkbox" id="lives-enabled-setting" ${settings?.livesEnabled ? 'checked' : ''}>
                     Enable Multiple Lives System
                   </label>
                 </div>
                 
-                <div id="lives-options-setting" class="lives-options" ${!league.settings?.livesEnabled ? 'style="display: none;"' : ''}>
+                <div id="lives-options-setting" class="lives-options" ${!settings?.livesEnabled ? 'style="display: none;"' : ''}>
                   <div class="form-row">
                     <label for="max-lives-setting">Lives per Player</label>
                     <select id="max-lives-setting">
-                      <option value="1" ${league.settings?.maxLives === 1 ? 'selected' : ''}>1 Life (Classic)</option>
-                      <option value="2" ${league.settings?.maxLives === 2 ? 'selected' : ''}>2 Lives</option>
-                      <option value="3" ${league.settings?.maxLives === 3 ? 'selected' : ''}>3 Lives</option>
-                      <option value="4" ${league.settings?.maxLives === 4 ? 'selected' : ''}>4 Lives</option>
-                      <option value="5" ${league.settings?.maxLives === 5 ? 'selected' : ''}>5 Lives (Maximum)</option>
+                      <option value="1" ${settings?.maxLives === 1 ? 'selected' : ''}>1 Life (Classic)</option>
+                      <option value="2" ${settings?.maxLives === 2 ? 'selected' : ''}>2 Lives</option>
+                      <option value="3" ${settings?.maxLives === 3 ? 'selected' : ''}>3 Lives</option>
+                      <option value="4" ${settings?.maxLives === 4 ? 'selected' : ''}>4 Lives</option>
+                      <option value="5" ${settings?.maxLives === 5 ? 'selected' : ''}>5 Lives (Maximum)</option>
                     </select>
                     <small>Changes affect all current and future members</small>
                   </div>
@@ -289,16 +300,59 @@ export class LeagueModalManager {
           </form>
           
           <div class="members-section">
-            <h4>Members</h4>
-            <div class="members-list">
+            <h4>Member Management</h4>
+            <div class="members-list enhanced">
               ${league.members.map(member => `
-                <div class="member-item">
-                  <span class="member-name">${this.escapeHtml(member.username)} ${member.isOwner ? '(Owner)' : ''}</span>
-                  ${!member.isOwner && member.userId !== this.leagueManager.currentUserId ? 
-                    `<button class="kick-member" data-user-id="${member.userId}">Remove</button>` : ''}
+                <div class="member-item enhanced" data-user-id="${member.userId}">
+                  <div class="member-info">
+                    <span class="member-name">${this.escapeHtml(member.username)} ${member.isOwner ? '(Owner)' : ''}</span>
+                    <div class="member-stats">
+                      <span class="member-picks">${member.totalPicks || 0} picks</span>
+                      <span class="member-status status-${member.status?.toLowerCase() || 'active'}">${member.status || 'Active'}</span>
+                    </div>
+                    <div class="member-lives" data-league-id="${leagueId}" data-user-id="${member.userId}">
+                      <span class="lives-label">Lives:</span>
+                      <div class="lives-display">
+                        ${this.generateLivesDisplay(member.remainingLives || settings?.maxLives || 1, member.maxLives || settings?.maxLives || 1)}
+                      </div>
+                      <span class="lives-count">${member.remainingLives || settings?.maxLives || 1}/${member.maxLives || settings?.maxLives || 1}</span>
+                    </div>
+                  </div>
+                  <div class="member-actions">
+                    ${settings?.livesEnabled && !member.isOwner ? `
+                      <div class="lives-controls">
+                        <button class="lives-btn subtract" data-action="subtract" data-user-id="${member.userId}" title="Remove Life">-</button>
+                        <button class="lives-btn add" data-action="add" data-user-id="${member.userId}" title="Add Life">+</button>
+                        <button class="lives-btn reset" data-action="reset" data-user-id="${member.userId}" title="Reset Lives">↻</button>
+                      </div>
+                    ` : ''}
+                    ${!member.isOwner && member.userId !== this.leagueManager.currentUserId ? 
+                      `<button class="kick-member" data-user-id="${member.userId}">Remove</button>` : ''}
+                  </div>
                 </div>
               `).join('')}
             </div>
+            
+            ${settings?.livesEnabled ? `
+              <div class="bulk-actions">
+                <h5>Bulk Actions</h5>
+                <div class="bulk-controls">
+                  <button class="bulk-btn" data-action="reset-all-lives">Reset All Lives</button>
+                  <button class="bulk-btn" data-action="eliminate-inactive">Eliminate Inactive</button>
+                </div>
+              </div>
+              
+              <div class="audit-trail-section">
+                <h5>Lives Audit Trail</h5>
+                <div class="audit-trail-controls">
+                  <button class="audit-btn" id="view-audit-trail">View Recent Activity</button>
+                  <button class="audit-btn" id="export-audit-trail">Export Full History</button>
+                </div>
+                <div class="audit-trail-container" id="audit-trail-display" style="display: none;">
+                  <div class="audit-loading">Loading audit trail...</div>
+                </div>
+              </div>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -359,22 +413,27 @@ export class LeagueModalManager {
         }
 
         // Show enhanced success message with invite code and sharing options
-        this.showLeagueCreatedSuccessModal(league.leagueName, league.inviteCode);
+        this.showLeagueCreatedSuccessModal(league.name, league.inviteCode);
 
         // Add league directly to context first (immediate UI update)
         if (window.multiLeagueContext) {
           window.multiLeagueContext.addLeague({
             leagueId: league.leagueId,
-            name: league.leagueName,
+            name: league.name,
             inviteCode: league.inviteCode,
-            memberCount: 1,
+            memberCount: 1, // Owner is the first member
             isOwner: true,
-            status: 'ACTIVE'
+            status: 'ACTIVE',
+            ownerId: league.ownerId,
+            season: league.season,
+            maxMembers: league.maxMembers,
+            isPrivate: league.isPrivate,
+            autoPickEnabled: league.autoPickEnabled
           });
         }
 
-        // Set as active league
-        this.leagueManager.setActiveLeague(league.leagueId);
+        // Set as active league (with new league flag for retry logic)
+        this.leagueManager.setActiveLeague(league.leagueId, true);
 
         // Immediately refresh the league selector with new context
         if (window.leagueSelector && typeof window.leagueSelector.refreshAndRender === 'function') {
@@ -445,9 +504,9 @@ export class LeagueModalManager {
           try {
             const preview = await this.leagueManager.previewLeague(code);
             if (preview) {
-              modal.querySelector('#preview-name').textContent = preview.leagueName;
-              modal.querySelector('#preview-members').textContent = `${preview.memberCount}/${preview.maxMembers}`;
-              modal.querySelector('#preview-season').textContent = preview.season;
+              modal.querySelector('#preview-name').textContent = preview.name;
+              modal.querySelector('#preview-members').textContent = `${preview.memberCount || 0}/${preview.maxMembers || 'N/A'}`;
+              modal.querySelector('#preview-season').textContent = preview.season || '2025';
               previewDiv.style.display = 'block';
               errorDiv.style.display = 'none';
             } else {
@@ -473,18 +532,58 @@ export class LeagueModalManager {
 
         // Show success message
         this.showSuccessModal('Joined League!', 
-          `You have successfully joined "${league.leagueName}".`
+          `You have successfully joined "${league.name}".`
         );
 
-        // Set as active league
-        this.leagueManager.setActiveLeague(league.leagueId);
+        // IMMEDIATELY add league to local context to avoid timing issues
+        if (window.multiLeagueContext && window.multiLeagueContext.addLeague) {
+          console.log(`🔄 Adding joined league to local context: ${league.name}`);
+          
+          // Get current member count for the league if available
+          let memberCount = 1; // Default to at least current user
+          try {
+            const members = await amplifyDataService.getLeagueMembers(league.leagueId);
+            memberCount = members.length;
+          } catch (error) {
+            console.warn('Could not get member count for joined league, using default:', error);
+          }
+          
+          window.multiLeagueContext.addLeague({
+            leagueId: league.leagueId,
+            name: league.name,
+            inviteCode: league.inviteCode,
+            memberCount: memberCount,
+            isOwner: false,
+            status: 'ACTIVE',
+            ownerId: league.ownerId,
+            season: league.season,
+            maxMembers: league.maxMembers,
+            isPrivate: league.isPrivate,
+            autoPickEnabled: league.autoPickEnabled
+          });
+        }
 
-        // Refresh league data from AWS to pick up joined league
+        // Now set as active league (should work since we added it to context)
+        const activeLeagueSet = this.leagueManager.setActiveLeague(league.leagueId);
+        if (activeLeagueSet) {
+          console.log(`✅ Successfully set joined league as active: ${league.name}`);
+        } else {
+          console.warn(`⚠️ Failed to set joined league as active, will retry after refresh`);
+        }
+
+        // Refresh league data from AWS to ensure full synchronization
         await this.getRefreshLeagueData()();
 
         // Refresh the league selector immediately
         if (window.leagueSelector && typeof window.leagueSelector.refreshAndRender === 'function') {
           await window.leagueSelector.refreshAndRender();
+        }
+
+        // Ensure the joined league is still active after refresh (fallback)
+        if (!activeLeagueSet) {
+          setTimeout(() => {
+            this.leagueManager.setActiveLeague(league.leagueId);
+          }, 500);
         }
 
         // Close modal after short delay
@@ -520,32 +619,105 @@ export class LeagueModalManager {
     });
 
     modal.querySelectorAll('.manage-league').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         const leagueId = e.target.dataset.leagueId;
-        this.showLeagueSettingsModal(leagueId);
+        await this.showLeagueSettingsModal(leagueId);
       });
     });
 
     modal.querySelectorAll('.leave-league').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const leagueId = e.target.dataset.leagueId;
-        const league = this.leagueManager.getLeague(leagueId);
-        const isOwner = this.leagueManager.isLeagueOwner(leagueId);
+        const league = await this.leagueManager.getLeague(leagueId);
+        const isOwner = this.leagueManager.isLeagueOwner ? await this.leagueManager.isLeagueOwner(leagueId) : (league && league.ownerId === (window.authManager?.currentUser?.userId || window.authManager?.currentUser?.username));
 
         const message = isOwner ? 
-          `Are you sure you want to delete "${league.leagueName}"? This action cannot be undone.` :
-          `Are you sure you want to leave "${league.leagueName}"?`;
+          `Are you sure you want to delete "${league.name}"? This action cannot be undone.` :
+          `Are you sure you want to leave "${league.name}"?`;
 
         if (confirm(message)) {
           try {
+            // Show loading state
+            btn.disabled = true;
+            btn.textContent = isOwner ? 'Deleting...' : 'Leaving...';
+            
+            let result;
             if (isOwner) {
-              await this.leagueManager.deleteLeague(leagueId);
+              result = await this.leagueManager.deleteLeague(leagueId);
             } else {
               await this.leagueManager.leaveLeague(leagueId);
             }
-            window.location.reload();
+            
+            // Remove the league item from the modal immediately
+            const leagueItem = modal.querySelector(`[data-league-id="${leagueId}"]`);
+            if (leagueItem) {
+              leagueItem.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+              leagueItem.style.opacity = '0';
+              leagueItem.style.transform = 'translateX(-20px)';
+              
+              setTimeout(() => {
+                leagueItem.remove();
+                
+                // Check if any leagues remain
+                const remainingLeagues = modal.querySelectorAll('.league-item');
+                if (remainingLeagues.length === 0) {
+                  const leaguesList = modal.querySelector('.leagues-list');
+                  if (leaguesList) {
+                    leaguesList.innerHTML = '<p class="no-leagues">You haven\'t joined any leagues yet.</p>';
+                  }
+                }
+              }, 300);
+            }
+            
+            // Show enhanced success message with deletion details
+            if (isOwner) {
+              const deletionSummary = result.deletedItems ? 
+                ` (${result.deletedItems.members} members, ${result.deletedItems.picks} picks, ${result.deletedItems.lifeEvents} events removed)` : '';
+              this.showQuickNotification(
+                `League "${league.name}" completely deleted${deletionSummary}`,
+                'success'
+              );
+            } else {
+              this.showQuickNotification(
+                `Left league "${league.name}" successfully`,
+                'success'
+              );
+            }
+            
+            // Update league context in background
+            if (window.multiLeagueContext && window.multiLeagueContext.removeLeague) {
+              window.multiLeagueContext.removeLeague(leagueId);
+            }
+            
+            // Refresh league selector in background
+            if (window.leagueSelector && typeof window.leagueSelector.refreshAndRender === 'function') {
+              setTimeout(async () => {
+                try {
+                  await window.leagueSelector.refreshAndRender();
+                } catch (error) {
+                  console.warn('Failed to refresh league selector:', error);
+                }
+              }, 500);
+            }
+            
+            // If this was the active league, clear it
+            const activeLeagueId = localStorage.getItem('activeLeagueId');
+            if (activeLeagueId === leagueId) {
+              localStorage.removeItem('activeLeagueId');
+              // Set another league as active if available
+              if (window.multiLeagueContext && window.multiLeagueContext.userLeagues.size > 0) {
+                const firstLeague = Array.from(window.multiLeagueContext.userLeagues.values())[0];
+                if (firstLeague && firstLeague.leagueId !== leagueId) {
+                  this.leagueManager.setActiveLeague(firstLeague.leagueId);
+                }
+              }
+            }
+            
           } catch (error) {
             this.showError(error.message);
+            // Reset button state on error
+            btn.disabled = false;
+            btn.textContent = isOwner ? 'Delete' : 'Leave';
           }
         }
       });
@@ -619,17 +791,99 @@ export class LeagueModalManager {
       }
     });
 
+    // Lives control buttons
+    modal.querySelectorAll('.lives-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const action = e.target.dataset.action;
+        const userId = e.target.dataset.userId;
+        
+        // Disable button during operation
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        btn.textContent = '...';
+        
+        try {
+          await this.handleLivesAdjustment(leagueId, userId, action);
+        } catch (error) {
+          // Error already handled in handleLivesAdjustment
+        } finally {
+          // Re-enable button
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      });
+    });
+
+    // Bulk action buttons
+    modal.querySelectorAll('.bulk-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const action = e.target.dataset.action;
+        
+        let confirmMessage = '';
+        switch (action) {
+          case 'reset-all-lives':
+            confirmMessage = 'Are you sure you want to reset all members\' lives to maximum? This cannot be undone.';
+            break;
+          case 'eliminate-inactive':
+            confirmMessage = 'Are you sure you want to eliminate all inactive members? This cannot be undone.';
+            break;
+        }
+        
+        if (confirm(confirmMessage)) {
+          btn.disabled = true;
+          const originalText = btn.textContent;
+          btn.textContent = 'Processing...';
+          
+          try {
+            await this.handleBulkAction(leagueId, action);
+            this.showQuickNotification('Bulk action completed successfully', 'success');
+            
+            // Refresh the modal to show updated data
+            setTimeout(async () => {
+              await this.showLeagueSettingsModal(leagueId);
+            }, 1000);
+          } catch (error) {
+            this.showError(error.message);
+          } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+          }
+        }
+      });
+    });
+
+    // Audit trail buttons
+    const viewAuditBtn = modal.querySelector('#view-audit-trail');
+    const exportAuditBtn = modal.querySelector('#export-audit-trail');
+    
+    if (viewAuditBtn) {
+      viewAuditBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await this.toggleAuditTrail(leagueId);
+      });
+    }
+    
+    if (exportAuditBtn) {
+      exportAuditBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await this.exportAuditTrail(leagueId);
+      });
+    }
+
     // Kick members
     modal.querySelectorAll('.kick-member').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const userId = e.target.dataset.userId;
-        const league = this.leagueManager.getLeague(leagueId);
-        const member = league.members.find(m => m.userId === userId);
+        const league = await this.leagueManager.getLeague(leagueId);
+        const members = await amplifyDataService.getLeagueMembers(leagueId);
+        const member = members.find(m => m.userId === userId);
 
-        if (confirm(`Are you sure you want to remove ${member.username} from the league?`)) {
+        if (confirm(`Are you sure you want to remove ${member.username || member.userId} from the league?`)) {
           try {
             await this.leagueManager.kickMember(leagueId, userId);
-            this.showLeagueSettingsModal(leagueId);
+            await this.showLeagueSettingsModal(leagueId);
           } catch (error) {
             this.showError(error.message);
           }
@@ -832,9 +1086,366 @@ Pick one driver each race, can't pick the same driver twice. Last player standin
     }
   }
 
+  // Generate lives display for member management
+  generateLivesDisplay(remainingLives, maxLives) {
+    let display = '';
+    for (let i = 0; i < maxLives; i++) {
+      if (i < remainingLives) {
+        display += '<span class="life-indicator remaining">❤️</span>';
+      } else {
+        display += '<span class="life-indicator lost">🖤</span>';
+      }
+    }
+    return display;
+  }
+
+  // Handle member lives adjustment
+  async handleLivesAdjustment(leagueId, userId, action) {
+    try {
+      let operation;
+      let value = 1;
+      let reason = '';
+
+      switch (action) {
+        case 'add':
+          operation = 'ADD';
+          reason = 'Admin granted additional life';
+          break;
+        case 'subtract':
+          operation = 'SUBTRACT';
+          reason = 'Admin removed life';
+          break;
+        case 'reset':
+          operation = 'SET';
+          value = await this.getMaxLivesForLeague(leagueId);
+          reason = 'Admin reset lives to maximum';
+          break;
+        default:
+          throw new Error('Invalid lives action');
+      }
+
+      // Use amplifyDataService to update member lives
+      const result = await amplifyDataService.updateMemberLives(leagueId, userId, {
+        operation,
+        value,
+        reason
+      });
+
+      if (result.success) {
+        // Update the UI immediately
+        this.updateMemberLivesDisplay(userId, result.remainingLives);
+        this.showQuickNotification(`Lives updated successfully`, 'success');
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Failed to adjust member lives:', error);
+      this.showError(error.message);
+      throw error;
+    }
+  }
+
+  // Get max lives for a league
+  async getMaxLivesForLeague(leagueId) {
+    try {
+      const league = await amplifyDataService.getLeague(leagueId);
+      const settings = amplifyDataService.parseLeagueSettings(league);
+      return settings.maxLives || 1;
+    } catch (error) {
+      console.error('Failed to get max lives for league:', error);
+      return 1;
+    }
+  }
+
+  // Update member lives display in UI
+  updateMemberLivesDisplay(userId, remainingLives) {
+    const memberElement = document.querySelector(`[data-user-id="${userId}"]`);
+    if (memberElement) {
+      const livesDisplayElement = memberElement.querySelector('.lives-display');
+      const livesCountElement = memberElement.querySelector('.lives-count');
+      
+      if (livesDisplayElement && livesCountElement) {
+        const maxLives = parseInt(livesCountElement.textContent.split('/')[1]);
+        livesDisplayElement.innerHTML = this.generateLivesDisplay(remainingLives, maxLives);
+        livesCountElement.textContent = `${remainingLives}/${maxLives}`;
+        
+        // Update member status if eliminated
+        const statusElement = memberElement.querySelector('.member-status');
+        if (statusElement && remainingLives === 0) {
+          statusElement.textContent = 'Eliminated';
+          statusElement.className = 'member-status status-eliminated';
+        } else if (statusElement && remainingLives > 0) {
+          statusElement.textContent = 'Active';
+          statusElement.className = 'member-status status-active';
+        }
+      }
+    }
+  }
+
+  // Handle bulk actions for member management
+  async handleBulkAction(leagueId, action) {
+    try {
+      const league = await amplifyDataService.getLeague(leagueId);
+      const members = await amplifyDataService.getLeagueMembers(leagueId);
+      const settings = amplifyDataService.parseLeagueSettings(league);
+      
+      switch (action) {
+        case 'reset-all-lives':
+          const maxLives = settings.maxLives || 1;
+          const resetPromises = members
+            .filter(member => !member.isOwner) // Don't reset owner lives
+            .map(member => 
+              amplifyDataService.updateMemberLives(leagueId, member.userId, {
+                operation: 'SET',
+                value: maxLives,
+                reason: 'Admin bulk reset - all lives restored'
+              })
+            );
+          
+          await Promise.all(resetPromises);
+          console.log(`Reset lives for ${resetPromises.length} members in league ${leagueId}`);
+          break;
+          
+        case 'eliminate-inactive':
+          // Find members with no recent picks (you can customize this logic)
+          const inactiveMembers = members.filter(member => {
+            return !member.isOwner && (member.totalPicks || 0) === 0;
+          });
+          
+          const eliminatePromises = inactiveMembers.map(member =>
+            amplifyDataService.updateMemberLives(leagueId, member.userId, {
+              operation: 'SET',
+              value: 0,
+              reason: 'Admin bulk elimination - inactive member'
+            })
+          );
+          
+          await Promise.all(eliminatePromises);
+          console.log(`Eliminated ${inactiveMembers.length} inactive members in league ${leagueId}`);
+          break;
+          
+        default:
+          throw new Error('Unknown bulk action');
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Bulk action failed:', error);
+      throw error;
+    }
+  }
+
+  // Toggle audit trail display
+  async toggleAuditTrail(leagueId) {
+    const auditContainer = document.getElementById('audit-trail-display');
+    const viewBtn = document.getElementById('view-audit-trail');
+    
+    if (!auditContainer || !viewBtn) return;
+    
+    if (auditContainer.style.display === 'none') {
+      // Show audit trail
+      auditContainer.style.display = 'block';
+      viewBtn.textContent = 'Hide Activity';
+      
+      try {
+        await this.loadAuditTrail(leagueId);
+      } catch (error) {
+        this.showError('Failed to load audit trail: ' + error.message);
+        auditContainer.style.display = 'none';
+        viewBtn.textContent = 'View Recent Activity';
+      }
+    } else {
+      // Hide audit trail
+      auditContainer.style.display = 'none';
+      viewBtn.textContent = 'View Recent Activity';
+    }
+  }
+
+  // Load and display audit trail
+  async loadAuditTrail(leagueId) {
+    const auditContainer = document.getElementById('audit-trail-display');
+    if (!auditContainer) return;
+    
+    try {
+      // Get recent life events for the league
+      const auditEvents = await this.getLeagueAuditTrail(leagueId, 20); // Get last 20 events
+      
+      if (auditEvents.length === 0) {
+        auditContainer.innerHTML = `
+          <div class="audit-empty">
+            <p>No recent lives activity found.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      const auditHTML = `
+        <div class="audit-trail-list">
+          ${auditEvents.map(event => this.renderAuditEvent(event)).join('')}
+        </div>
+      `;
+      
+      auditContainer.innerHTML = auditHTML;
+    } catch (error) {
+      console.error('Failed to load audit trail:', error);
+      auditContainer.innerHTML = `
+        <div class="audit-error">
+          <p>Failed to load audit trail. Please try again.</p>
+        </div>
+      `;
+    }
+  }
+
+  // Get audit trail for a league
+  async getLeagueAuditTrail(leagueId, limit = 20) {
+    try {
+      // This would query the LifeEvent model to get recent events
+      // For now, we'll create a mock implementation since the backend method isn't exposed
+      const events = await amplifyDataService.client.models.LifeEvent.list({
+        filter: {
+          leagueId: { eq: leagueId }
+        },
+        limit: limit,
+        authMode: 'userPool'
+      });
+      
+      // Sort by date (most recent first)
+      if (events.data) {
+        return events.data.sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate));
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Failed to get audit trail:', error);
+      return [];
+    }
+  }
+
+  // Render a single audit event
+  renderAuditEvent(event) {
+    const eventDate = new Date(event.eventDate);
+    const formattedDate = eventDate.toLocaleDateString() + ' ' + eventDate.toLocaleTimeString();
+    
+    let eventIcon = '📝';
+    let eventClass = '';
+    let eventDescription = '';
+    
+    switch (event.eventType) {
+      case 'LIFE_LOST':
+        eventIcon = '💔';
+        eventClass = 'life-lost';
+        eventDescription = `Lost a life - ${event.livesRemaining} remaining`;
+        break;
+      case 'LIFE_RESTORED':
+        eventIcon = '💚';
+        eventClass = 'life-restored';
+        eventDescription = `Life restored - ${event.livesRemaining} remaining`;
+        break;
+      case 'FINAL_ELIMINATION':
+        eventIcon = '❌';
+        eventClass = 'elimination';
+        eventDescription = 'Eliminated from league (0 lives remaining)';
+        break;
+      case 'ADMIN_ADJUSTMENT':
+        eventIcon = '⚙️';
+        eventClass = 'admin-action';
+        eventDescription = `Admin adjustment - ${event.livesRemaining} lives remaining`;
+        break;
+      default:
+        eventDescription = `Lives update - ${event.livesRemaining} remaining`;
+    }
+    
+    return `
+      <div class="audit-event ${eventClass}">
+        <div class="event-icon">${eventIcon}</div>
+        <div class="event-details">
+          <div class="event-header">
+            <span class="event-user">${this.escapeHtml(event.userId)}</span>
+            <span class="event-date">${formattedDate}</span>
+          </div>
+          <div class="event-description">${eventDescription}</div>
+          ${event.adminUserId ? `<div class="event-admin">By admin: ${this.escapeHtml(event.adminUserId)}</div>` : ''}
+          ${event.adminReason ? `<div class="event-reason">"${this.escapeHtml(event.adminReason)}"</div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // Export audit trail to CSV
+  async exportAuditTrail(leagueId) {
+    const exportBtn = document.getElementById('export-audit-trail');
+    if (!exportBtn) return;
+    
+    const originalText = exportBtn.textContent;
+    exportBtn.disabled = true;
+    exportBtn.textContent = 'Exporting...';
+    
+    try {
+      // Get full audit trail (no limit)
+      const auditEvents = await this.getLeagueAuditTrail(leagueId, 1000);
+      
+      if (auditEvents.length === 0) {
+        this.showQuickNotification('No audit events to export', 'warning');
+        return;
+      }
+      
+      // Create CSV content
+      const headers = ['Date', 'User', 'Event Type', 'Lives Remaining', 'Admin User', 'Reason'];
+      const csvContent = [
+        headers.join(','),
+        ...auditEvents.map(event => [
+          new Date(event.eventDate).toISOString(),
+          `"${event.userId}"`,
+          `"${event.eventType}"`,
+          event.livesRemaining,
+          `"${event.adminUserId || ''}"`,
+          `"${event.adminReason || ''}"`
+        ].join(','))
+      ].join('\n');
+      
+      // Download CSV file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `league_${leagueId}_audit_trail_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      this.showQuickNotification('Audit trail exported successfully', 'success');
+    } catch (error) {
+      console.error('Failed to export audit trail:', error);
+      this.showError('Failed to export audit trail: ' + error.message);
+    } finally {
+      exportBtn.disabled = false;
+      exportBtn.textContent = originalText;
+    }
+  }
+
+  // Show quick notification
+  showQuickNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `quick-notification ${type}`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+  }
+
   // Utility: Escape HTML
   escapeHtml(unsafe) {
-    return unsafe
+    if (unsafe == null || unsafe === undefined) {
+      return '';
+    }
+    return String(unsafe)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")

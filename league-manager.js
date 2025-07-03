@@ -81,23 +81,12 @@ export class LeagueManager {
 
   async deleteLeague(leagueId) {
     const user = await this.getCurrentUser();
-    const league = await amplifyDataService.getLeague(leagueId);
     
-    if (!league) {
-      throw new Error('League not found');
-    }
-
-    // Only owner can delete
-    if (league.ownerId !== (user.userId || user.username)) {
-      throw new Error('Only the league owner can delete the league');
-    }
-
-    // AWS backend handles league deletion and member cleanup
-    // For now, remove user from league (delete functionality needs to be implemented in AWS)
-    await amplifyDataService.removeUserFromLeague(leagueId);
+    // Use the new comprehensive deleteLeague method in AWS backend
+    const result = await amplifyDataService.deleteLeague(leagueId);
     
-    console.warn('Full league deletion not yet implemented in AWS backend');
-    return true;
+    console.log(`✅ League deletion completed:`, result);
+    return result;
   }
 
   // League member management - AWS BACKEND
@@ -161,7 +150,7 @@ export class LeagueManager {
       }
 
       // Check if lives are being enabled/changed after season start
-      const currentSettings = league.settings || {};
+      const currentSettings = amplifyDataService.parseLeagueSettings(league);
       const isLivesLocked = currentSettings.livesLockDate && new Date() > new Date(currentSettings.livesLockDate);
       
       if (isLivesLocked) {
@@ -258,9 +247,9 @@ export class LeagueManager {
   }
 
   // Set active league - AWS BACKEND
-  async setActiveLeague(leagueId) {
+  async setActiveLeague(leagueId, isNewLeague = false) {
     try {
-      await amplifyDataService.setActiveLeague(leagueId);
+      await amplifyDataService.setActiveLeague(leagueId, { isNewLeague });
       // Also update UI state for immediate feedback
       setActiveLeagueId(leagueId);
       return true;
@@ -318,7 +307,8 @@ export class LeagueManager {
 
       // Return limited info for preview
       return {
-        leagueName: league.name,
+        name: league.name, // Use 'name' to match expected property in modal
+        leagueName: league.name, // Keep for backward compatibility
         memberCount: league.memberCount || 0,
         maxMembers: league.maxMembers || 20,
         season: league.season || '2025',

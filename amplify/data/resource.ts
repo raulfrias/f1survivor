@@ -39,7 +39,8 @@ const schema = a.schema({
     // Relationships
     picks: a.hasMany('DriverPick', 'userId'),
     leagueMemberships: a.hasMany('LeagueMember', 'userId'),
-    ownedLeagues: a.hasMany('League', 'ownerId')
+    ownedLeagues: a.hasMany('League', 'ownerId'),
+    lifeEvents: a.hasMany('LifeEvent', 'userId')
   }).authorization((allow) => [
     allow.owner().identityClaim("sub"),
     allow.authenticated().to(["read"])
@@ -86,7 +87,8 @@ const schema = a.schema({
     // Relationships
     owner: a.belongsTo('UserProfile', 'ownerId'),
     members: a.hasMany('LeagueMember', 'leagueId'),
-    picks: a.hasMany('DriverPick', 'leagueId')
+    picks: a.hasMany('DriverPick', 'leagueId'),
+    lifeEvents: a.hasMany('LifeEvent', 'leagueId')
   })
   .secondaryIndexes((index) => [
     index('ownerId').name('byOwner'),

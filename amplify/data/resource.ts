@@ -39,7 +39,8 @@ const schema = a.schema({
     // Relationships
     picks: a.hasMany('DriverPick', 'userId'),
     leagueMemberships: a.hasMany('LeagueMember', 'userId'),
-    ownedLeagues: a.hasMany('League', 'ownerId')
+    ownedLeagues: a.hasMany('League', 'ownerId'),
+    lifeEvents: a.hasMany('LifeEvent', 'userId')
   }).authorization((allow) => [
     allow.owner().identityClaim("sub"),
     allow.authenticated().to(["read"])
@@ -70,13 +71,24 @@ const schema = a.schema({
     createdAt: a.datetime().required(),
     lastActiveAt: a.datetime(),
     
-    // Settings as JSON for flexibility
+    // Enhanced settings with lives configuration
     settings: a.json(),
+    /*
+    {
+      maxLives: 1-5,           // Default: 1 (backward compatible)
+      livesEnabled: boolean,   // Default: false (single life)
+      autoPickEnabled: boolean,
+      isPrivate: boolean,
+      livesLockDate: string,   // ISO date when lives can no longer be changed
+      customRules: string      // Optional additional rules text
+    }
+    */
     
     // Relationships
     owner: a.belongsTo('UserProfile', 'ownerId'),
     members: a.hasMany('LeagueMember', 'leagueId'),
-    picks: a.hasMany('DriverPick', 'leagueId')
+    picks: a.hasMany('DriverPick', 'leagueId'),
+    lifeEvents: a.hasMany('LifeEvent', 'leagueId')
   })
   .secondaryIndexes((index) => [
     index('ownerId').name('byOwner'),
@@ -106,6 +118,26 @@ const schema = a.schema({
     totalPicks: a.integer().default(0),
     autoPickCount: a.integer().default(0),
     
+    // Lives tracking fields (NEW)
+    remainingLives: a.integer().default(1),
+    livesUsed: a.integer().default(0),
+    maxLives: a.integer().default(1), // Copy from league settings at join time
+    
+    // Enhanced elimination tracking (NEW)
+    eliminationHistory: a.json(), // Array of elimination events
+    /*
+    [
+      {
+        raceId: string,
+        raceName: string,
+        driverPicked: string,
+        finalPosition: number,
+        eliminatedAt: string,
+        livesLostCount: number
+      }
+    ]
+    */
+    
     // Member role
     isOwner: a.boolean().default(false),
     isModerator: a.boolean().default(false),
@@ -116,6 +148,36 @@ const schema = a.schema({
   }).authorization((allow) => [
     allow.owner(),
     allow.authenticated().to(['read'])
+  ]),
+
+  // ========================================
+  // LIFE EVENTS TRACKING (NEW)
+  // ========================================
+  
+  LifeEvent: a.model({
+    userId: a.id().required(),
+    leagueId: a.id().required(),
+    raceId: a.string().required(),
+    
+    eventType: a.enum(['LIFE_LOST', 'LIFE_RESTORED', 'FINAL_ELIMINATION']),
+    livesRemaining: a.integer().required(),
+    
+    // Event details
+    driverPicked: a.string(),
+    finalPosition: a.integer(),
+    eventDate: a.datetime().required(),
+    
+    // Admin action tracking
+    adminUserId: a.id(), // If life restored by admin
+    adminReason: a.string(),
+    
+    // Relationships
+    user: a.belongsTo('UserProfile', 'userId'),
+    league: a.belongsTo('League', 'leagueId')
+  }).authorization((allow) => [
+    allow.authenticated().to(['read']),
+    allow.ownerDefinedIn('userId'),
+    allow.ownerDefinedIn('adminUserId')
   ]),
 
   // ========================================

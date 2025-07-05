@@ -1,3 +1,4 @@
+// ES6 imports for module environment (real app)
 import { amplifyDataService } from './amplify-data-service.js';
 import { authManager } from './auth-manager.js';
 import { setActiveLeagueId } from './league-integration.js';
@@ -80,23 +81,12 @@ export class LeagueManager {
 
   async deleteLeague(leagueId) {
     const user = await this.getCurrentUser();
-    const league = await amplifyDataService.getLeague(leagueId);
     
-    if (!league) {
-      throw new Error('League not found');
-    }
-
-    // Only owner can delete
-    if (league.ownerId !== (user.userId || user.username)) {
-      throw new Error('Only the league owner can delete the league');
-    }
-
-    // AWS backend handles league deletion and member cleanup
-    // For now, remove user from league (delete functionality needs to be implemented in AWS)
-    await amplifyDataService.removeUserFromLeague(leagueId);
+    // Use the new comprehensive deleteLeague method in AWS backend
+    const result = await amplifyDataService.deleteLeague(leagueId);
     
-    console.warn('Full league deletion not yet implemented in AWS backend');
-    return true;
+    console.log(`✅ League deletion completed:`, result);
+    return result;
   }
 
   // League member management - AWS BACKEND
@@ -152,7 +142,46 @@ export class LeagueManager {
       throw new Error('Cannot set max members below current member count');
     }
 
-    // Use AWS backend to update settings
+    // Enhanced validation for lives settings
+    if (newSettings.livesEnabled !== undefined || newSettings.maxLives !== undefined) {
+      // Validate lives count
+      if (newSettings.maxLives && (newSettings.maxLives < 1 || newSettings.maxLives > 5)) {
+        throw new Error('Lives per player must be between 1 and 5');
+      }
+
+      // Check if lives are being enabled/changed after season start
+      const currentSettings = amplifyDataService.parseLeagueSettings(league);
+      const isLivesLocked = currentSettings.livesLockDate && new Date() > new Date(currentSettings.livesLockDate);
+      
+      if (isLivesLocked) {
+        throw new Error('Lives configuration cannot be changed after the season has started');
+      }
+
+      // If lives settings are changing, use the enhanced lives settings update method
+      if (newSettings.livesEnabled !== undefined || newSettings.maxLives !== undefined) {
+        const livesSettings = {
+          livesEnabled: newSettings.livesEnabled,
+          maxLives: newSettings.maxLives,
+          livesLockDate: newSettings.livesLockDate
+        };
+        
+        const result = await amplifyDataService.updateLeagueLivesSettings(leagueId, livesSettings);
+        
+        // Update other settings separately if needed
+        const otherSettings = { ...newSettings };
+        delete otherSettings.livesEnabled;
+        delete otherSettings.maxLives;
+        delete otherSettings.livesLockDate;
+        
+        if (Object.keys(otherSettings).length > 0) {
+          await amplifyDataService.updateLeagueSettings(leagueId, otherSettings);
+        }
+        
+        return result;
+      }
+    }
+
+    // Use AWS backend to update settings (non-lives settings)
     const result = await amplifyDataService.updateLeagueSettings(leagueId, newSettings);
     return result.league;
   }
@@ -218,9 +247,9 @@ export class LeagueManager {
   }
 
   // Set active league - AWS BACKEND
-  async setActiveLeague(leagueId) {
+  async setActiveLeague(leagueId, isNewLeague = false) {
     try {
-      await amplifyDataService.setActiveLeague(leagueId);
+      await amplifyDataService.setActiveLeague(leagueId, { isNewLeague });
       // Also update UI state for immediate feedback
       setActiveLeagueId(leagueId);
       return true;
@@ -278,7 +307,8 @@ export class LeagueManager {
 
       // Return limited info for preview
       return {
-        leagueName: league.name,
+        name: league.name, // Use 'name' to match expected property in modal
+        leagueName: league.name, // Keep for backward compatibility
         memberCount: league.memberCount || 0,
         maxMembers: league.maxMembers || 20,
         season: league.season || '2025',
@@ -291,5 +321,11 @@ export class LeagueManager {
   }
 }
 
-// Export singleton instance
-export const leagueManager = new LeagueManager(); 
+// Export for ES6 modules (real app)
+export const leagueManager = new LeagueManager();
+
+// Also create global instance for browser script loading (test environment)
+if (typeof window !== 'undefined') {
+  window.LeagueManager = LeagueManager;
+  window.leagueManager = leagueManager;
+} 

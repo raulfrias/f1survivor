@@ -1,6 +1,57 @@
 # F1 Survivor Development Roadmap
 
-This document outlines the development phases and tasks for the F1 Survivor game, organized into small, manageable features.
+## Current Focus & Next Steps (as of July 19, 2025)
+1. ✅ **Project Structure & Documentation Restructuring (COMPLETED - July 19, 2025)**
+   - ✅ Comprehensive reorganization of all code, assets, and documentation into a modern, maintainable structure.
+   - ✅ All files moved to modular architecture with clear separation of concerns.
+   - ✅ Updated all import paths, HTML references, and documentation.
+   - ✅ Created comprehensive developer guides and migration logs.
+   - ✅ Build and development server working perfectly.
+
+2. **Technical Debt Cleanup (IMMEDIATE PRIORITY)**
+   - Remove solo mode functionality and UI components
+   - Remove multiple lives system (simplify to single elimination)
+   - Update database schema to reflect simplified game logic
+   - Clean up deprecated methods and update test suites
+   - **Must be completed before implementing new backend features**
+
+3. **Auto-Pick Lambda Function (HIGH PRIORITY)**
+   - Server-side auto-pick processing with OpenF1 API integration
+   - P15 fallback system with intelligent driver selection
+   - Error handling and retry mechanisms for reliability
+   - Integration with batch processing workflow
+
+4. **Batch Results Processing (HIGH PRIORITY)**
+   - Race completion detection and 8-hour penalty buffer timer
+   - F1 results fetching and league-specific pick processing
+   - Single-life elimination logic and status updates
+   - Multi-league result processing and standings updates
+
+5. **Pick Validation & Business Logic (HIGH PRIORITY)**
+   - Server-side deadline enforcement (no client-side manipulation)
+   - Driver validation and pick change logic (unlimited changes before race)
+   - League-specific pick isolation (no cross-league conflicts)
+   - Comprehensive testing suite for all scenarios
+
+6. **Notification System (MEDIUM PRIORITY)**
+   - Email notifications for race results and eliminations
+   - Push notifications for mobile users
+   - Customizable notification preferences
+
+---
+
+## 🎉 **Project Structure Reorganization COMPLETED** (July 19, 2025)
+The project has been successfully reorganized into a modern, modular architecture:
+- ✅ **Modular Structure:** Clear separation of components, services, utils, and styles
+- ✅ **Path Aliases:** Clean imports using Vite aliases (`@services`, `@components`, etc.)
+- ✅ **Organized Testing:** Integration and unit tests properly organized
+- ✅ **Comprehensive Documentation:** Developer guides and migration logs created
+- ✅ **Build System:** Development and production builds working perfectly
+- ✅ **Development Server:** `http://localhost:5173/` serving correctly
+
+**Next Priority:** Technical Debt Cleanup must be completed before implementing new backend features.
+
+---
 
 ## Phase 1: User Flow Foundation ⚡
 
@@ -262,223 +313,219 @@ This document outlines the development phases and tasks for the F1 Survivor game
 - ✅ Complete admin workflow: individual adjustment → bulk actions → audit export
 - ✅ Production-ready error handling and data consistency validation
 
-### Real-time League Updates (AppSync Subscriptions)
-- [ ] Implement real-time pick submissions within leagues
-- [ ] Add live league member status updates
-- [ ] Create real-time elimination notifications
-- [ ] Build live countdown synchronization across users
-- [ ] Test multi-user real-time functionality
+### Real-time League Updates (AppSync Subscriptions) - REMOVED FROM SCOPE
+**Date:** July 5, 2025
+**Reason:** Scope change during development - F1 Survivor is a batch-based game where players submit picks before races and results are processed after races. Real-time updates add complexity without significant value for this game mechanic.
 
-### Auto-Pick Lambda Function
-- [ ] Convert current JavaScript auto-pick logic to Lambda
+**What was removed:**
+- Live pick submissions within leagues
+- Live league member status updates  
+- Real-time elimination notifications
+- Live countdown synchronization across users
+- Multi-user real-time functionality testing
+
+**Impact:** Simplified development focus on core batch processing workflow.
+
+### Auto-Pick Lambda Function - HIGH PRIORITY
+**Date:** July 5, 2025
+**Status:** Ready for implementation - OpenF1 API integration already completed
+
+- [ ] Convert current JavaScript auto-pick logic to AWS Lambda
 - [x] ✅ **COMPLETED:** Integrate with OpenF1 API for qualifying results (Fixed cache-busting bug, successfully fetching real data)
 - [x] ✅ **COMPLETED:** Implement P15 fallback system in serverless environment (Tested with Spanish GP 2025: Carlos Sainz P15, Alexander Albon P16 fallback)
 - [ ] Add error handling and retry mechanisms
 - [ ] Test auto-pick triggers and notifications
+- [ ] **NEW:** Integrate with batch processing workflow (race end + 8hr buffer)
+- [ ] **NEW:** Ensure auto-pick works for league-based picks only (no solo mode)
 
-### Pick Validation & Business Logic
-- [ ] Server-side pick deadline enforcement
-- [ ] Driver already-picked validation via GraphQL
-- [ ] Race result processing automation
-- [ ] Survival status calculation logic
-- [ ] Comprehensive validation testing
+**Implementation Notes:** 
+- Move from client-side JavaScript to server-side Lambda execution
+- Trigger at race deadline automatically
+- Handle P15 fallback with intelligent driver selection
+- Integrate with new batch results processing system
 
-## Phase 3: Enhanced Game Logic & F1 Integration 🏎️
+### Pick Validation & Business Logic - MODIFIED SCOPE
+**Date:** July 5, 2025
+**Reason:** Scope change during development - Simplified to single elimination per league, removed solo mode complexity
 
-### F1 Data Integration Service
-- [ ] OpenF1 API client with robust error handling
-- [ ] Real-time race calendar synchronization
-- [ ] Qualifying results fetching and caching
-- [ ] Race results processing automation
-- [ ] Driver and team data management
+- [ ] **Server-side deadline enforcement** (Essential - prevent client-side manipulation)
+- [ ] **Driver already-picked validation** (Essential - prevent duplicate picks per league)
+- [ ] **Batch race result processing** (NEW - process all picks after race + 8hr buffer)
+- [ ] **Single-life elimination logic** (NEW - simplified from multi-life system)
+- [ ] **League-specific elimination tracking** (NEW - track elimination per league only)
+- [ ] **Result notification system** (NEW - email/push notifications for race outcomes)
+- [ ] **Pick change validation** (NEW - allow unlimited changes before race start)
+- [ ] **Multi-league pick isolation** (NEW - ensure picks don't conflict across leagues)
+- [ ] **Comprehensive validation testing** (Essential - test all scenarios)
 
-### Advanced League Management
-- [ ] League invitation system via email
-- [ ] Advanced league settings (custom rules, scoring)
-- [ ] League admin controls and moderation tools
-- [ ] League statistics and analytics
-- [ ] **Public league discovery and browsing system** (Future Enhancement)
-- [ ] League categories and tags for organization
-- [ ] Featured leagues and community highlights
+**Removed from scope:**
+- Multi-life elimination tracking (Simplified to single elimination)
+- Solo mode pick validation (Game is league-based only)
+- Lives management system (Simplified to ACTIVE/ELIMINATED status)
 
-### Results Processing Engine
-- [ ] Automated race result processing
-- [ ] Survival calculation and elimination logic
-- [ ] League standings calculation
-- [ ] Historical statistics generation
-- [ ] Performance analytics dashboard
+**Implementation Notes:**
+- All picks must be associated with a league (no null leagueId)
+- Simple elimination: finish outside top 10 = eliminated from league
+- Players can join multiple leagues with independent pick histories
+- Batch processing after race completion + 8-hour penalty buffer
 
-### Notification System
-- [ ] Email notifications for key events
-- [ ] Push notifications for mobile users
-- [ ] In-app notification center
-- [ ] Customizable notification preferences
-- [ ] Multi-channel notification delivery
+### Technical Debt Cleanup - IMMEDIATE PRIORITY
+**Date:** July 5, 2025
+**Reason:** Scope changes during development require code cleanup and simplification
 
-## Phase 4: User Experience & Platform Enhancement 🌟
+**IMPORTANT:**
+> **Technical Debt Cleanup must be completed before starting Auto-Pick Lambda Function and all new backend logic.** This ensures the codebase and schema are simplified and consistent for all future features.
 
-### Mobile App Development
-- [ ] Progressive Web App (PWA) implementation
-- [ ] Mobile-optimized UI components
-- [ ] Offline functionality for core features
-- [ ] Push notification support
-- [ ] App store preparation
+#### Solo Mode Removal
+**Why:** Game scope changed to league-based only during development
+**What to remove:**
+- Remove "Solo Play" option from league selector dropdown (`league-dashboard.js`)
+- Remove solo mode pick saving/loading paths (`league-integration.js`)
+- Remove solo mode AWS backend calls (`amplify-data-service.js`)
+- Remove solo mode references in multi-league context (`multi-league-context.js`)
+- Update authentication flow to require league selection
+- Remove solo mode test scenarios from test files
+- Update database schema comments about null leagueId for solo play
 
-## Technical Implementation Notes
+#### Multiple Lives System Removal  
+**Why:** Game complexity reduction - simplified to single elimination per league
+**What to remove:**
+- Remove lives-related fields from LeagueMember model (`amplify/data/resource.ts`)
+  - Remove `remainingLives`, `livesUsed`, `maxLives` fields
+  - Remove `LifeEvent` model entirely
+- Remove lives management methods from data service (`amplify-data-service.js`)
+  - Remove `updateLeagueLivesSettings()`, `getLeagueLivesConfiguration()`
+  - Remove `updateMemberLives()`, `getMemberLivesStatus()`, `createLifeEvent()`
+- Remove lives UI components (`league-modal-manager.js`)
+  - Remove lives configuration in league settings
+  - Remove lives display in member management
+  - Remove `generateLivesDisplay()` method
+- Remove lives test files (`tests/unit/test-lives-system-api.js`)
+- Simplify LeagueMember status to ACTIVE/ELIMINATED only
 
-### Current Local Storage Schema (Phase 1)
-```javascript
-// User data structure
-const userData = {
-  userId: "local-user",
-  currentSeason: "2025",
-  picks: [
-    {
-      driverId: 5,
-      raceId: "mon-2025",
-      timestamp: "2025-05-25T10:00:00Z",
-      driverName: "George Russell",
-      teamName: "Mercedes",
-      isAutoPick: false
-    }
-  ]
-};
+**Implementation Priority:**
+- **Complete all technical debt cleanup before implementing Auto-Pick Lambda Function, batch results processing, or any new backend features.**
 
-// League data structure  
-const leagueData = {
-  leagueId: "league_12345",
-  name: "My F1 League",
-  ownerId: "user123",
-  members: ["user123", "user456"],
-  inviteCode: "ABC12345",
-  picks: {
-    "user123": [/* picks array */],
-    "user456": [/* picks array */]
-  }
-};
-```
+### Week 1-2: Technical Debt Cleanup (Immediate Priority)
+- **Solo Mode Removal:** Remove all solo mode functionality and UI components
+- **Multiple Lives System Removal:** Simplify to single elimination per league
+- **Code Cleanup:** Remove deprecated methods and update database schema
+- **Testing:** Update test suites to reflect simplified game logic
 
-### AWS Amplify Gen2 Schema (Phase 2+ - Enhanced Multi-League)
+### Week 3-4: Auto-Pick Lambda Function (High Priority)
+- **(Depends on completion of Technical Debt Cleanup)**
+- Server-side auto-pick processing with OpenF1 API integration
+- P15 fallback system with intelligent driver selection
+- Error handling and retry mechanisms for reliability
+- Integration with batch processing workflow
+
+### Week 5-6: Batch Results Processing (High Priority)
+- Race completion detection and 8-hour penalty buffer timer
+- F1 results fetching via `race-results-api.js`
+- League-specific pick processing against official results
+- Single-life elimination logic and status updates
+- Multi-league result processing and standings updates
+
+### Week 7-8: Pick Validation & Business Logic (High Priority)
+- Server-side deadline enforcement (no client-side manipulation)
+- Driver validation and pick change logic (unlimited changes before race)
+- League-specific pick isolation (no cross-league conflicts)
+- Comprehensive testing suite for all scenarios
+
+### Week 9-10: Notification System (Medium Priority)
+- Email notifications for race results and eliminations
+- Push notifications for mobile users
+- Customizable notification preferences
+- Multi-channel notification delivery
+
+### Real-time League Updates (REMOVED FROM SCOPE - July 5, 2025)
+**Reason:** Batch-based game doesn't require real-time updates. May be reconsidered in Phase 4 based on user feedback.
+
+### AWS Amplify Gen2 Schema (Phase 2+ - Simplified Single-Life)
 ```typescript
-// GraphQL Schema Definition (Updated for Multi-League Support)
+// GraphQL Schema Definition (Updated July 5, 2025)
 const schema = a.schema({
   UserProfile: a.model({
     userId: a.id().required(),
-    displayName: a.string().required(),    // From Google Auth or manual input
+    displayName: a.string().required(),
     username: a.string().required(),
     email: a.string().required(),
-    googleId: a.string(),                  // Optional Google account link
+    googleId: a.string(),
     activeLeagues: a.string().array(),     // Array of league IDs (unlimited)
     defaultLeague: a.string(),             // Primary league for quick access
     totalSurvivedRaces: a.integer().default(0),
-    isEliminated: a.boolean().default(false),
     preferredTeam: a.string(),
     joinedAt: a.datetime().required()
-  }).authorization((allow) => [
-    allow.owner(),
-    allow.authenticated().to(['read'])
-  ]),
-
-  League: a.model({
-    name: a.string().required(),
-    inviteCode: a.string().required(),     // 8-character code
-    shareableUrl: a.string().required(),   // f1survivor.com/join/league-id
-    ownerId: a.id().required(),
-    maxMembers: a.integer().default(50),
-    season: a.string().required(),
-    settings: a.json().required(),         // League customization settings
-    members: a.hasMany('LeagueMember', 'leagueId'),
-    picks: a.hasMany('DriverPick', 'leagueId')
   }),
 
   LeagueMember: a.model({
-    userId: a.id().required(),
     leagueId: a.id().required(),
-    remainingLives: a.integer().default(1), // Configurable per league
-    livesUsed: a.integer().default(0),
-    isEliminated: a.boolean().default(false),
-    eliminationHistory: a.json(),           // Array of elimination events
-    joinedAt: a.datetime().required()
+    userId: a.id().required(),
+    status: a.enum(['ACTIVE', 'ELIMINATED', 'LEFT']), // Simplified status
+    joinedAt: a.datetime().required(),
+    eliminatedAt: a.datetime(),
+    leftAt: a.datetime(),
+    isOwner: a.boolean().default(false),
+    isModerator: a.boolean().default(false),
+    eliminationHistory: a.json(), // Retained for audit/history of eliminations per race
   }),
 
   DriverPick: a.model({
     userId: a.id().required(),
-    leagueId: a.id(),
+    leagueId: a.id().required(),           // Required - no solo mode
     raceId: a.string().required(),
-    driverId: a.integer().required(),
-    submittedAt: a.datetime().required(),
-    isAutoPick: a.boolean().default(false),
-    survived: a.boolean(),
-    finalPosition: a.integer()
-  }).authorization((allow) => [
-    allow.owner(),
-    allow.authenticated().to(['read'])
-  ])
+    driverId: a.string().required(),
+    // ... other fields
+  }),
+
+  // League settings field is retained for future extensibility (e.g., autoPickEnabled, isPrivate, customRules)
+  // settings: a.json(),
 });
-
-// League Settings Schema
-interface LeagueSettings {
-  maxLives: number;          // 1-5 lives per user (default: 1)
-  livesEnabled: boolean;     // Enable/disable multiple lives
-  autoPickEnabled: boolean;  // P15 auto-pick system
-  isPublic: boolean;         // Future: public league discovery
-  customRules?: string;      // Future: additional customizations
-}
 ```
 
-### Development Workflow (Updated)
-```bash
-# Local Development with Cloud Sandbox
-npx ampx sandbox          # Start cloud backend
-npm run dev              # Start frontend (Vite)
+**Changes Made July 5, 2025:**
+- Removed `LifeEvent` model (multiple lives system deprecated)
+- Removed lives-related fields from `LeagueMember` model
+- Made `leagueId` required in `DriverPick` (no solo mode)
+- Simplified `LeagueMember` status to ACTIVE/ELIMINATED/LEFT
 
-# Deploy to Production
-git push origin master   # Auto-deploys via Amplify
-```
+## Phase 3: Upcoming Work (July–August 2025)
 
-## Development Strategy
+### 1. Technical Debt Cleanup (Immediate, must be completed first)
+- **Solo Mode Removal:** Remove all solo mode functionality and UI components
+- **Multiple Lives System Removal:** Simplify to single elimination per league
+- **Code Cleanup:** Remove deprecated methods and update database schema
+- **Testing:** Update test suites to reflect simplified game logic
 
-### Week 1-2: Enhanced Authentication & User Experience (Immediate Priority - FOCUSED SCOPE)
-- Google OAuth integration via Cognito Social Identity Providers (backend already configured)
-- Mobile authentication optimization and responsive design fixes
-- Enhanced loading states and error handling
-- Basic "Remember Me" functionality implementation
-- **DEFERRED:** Profile completion flows, additional social providers, advanced features
+### 2. Auto-Pick Lambda Function
+- Server-side auto-pick processing with OpenF1 API integration
+- P15 fallback system with intelligent driver selection
+- Error handling and retry mechanisms for reliability
+- Integration with batch processing workflow
 
-### Week 3-4: Multi-League Core Architecture (Foundation Feature) ✅ COMPLETED
-- [x] ✅ **COMPLETED:** Data model redesign for unlimited league participation per user (MultiLeagueContext class implemented)
-- [x] ✅ **COMPLETED:** Enhanced data service with cross-league operations and intelligent caching
-- [x] ✅ **COMPLETED:** Comprehensive test suite with 100% pass rate and performance validation
-- [ ] League dropdown selector and multi-league UI (Phase 2)
-- [ ] Shareable league links for viral growth (Phase 2)
-- [ ] Cross-league user profile and statistics UI components (Phase 2)
+### 3. Batch Results Processing
+- Race completion detection and 8-hour penalty buffer timer
+- F1 results fetching via `race-results-api.js`
+- League-specific pick processing against official results
+- Single-life elimination logic and status updates
+- Multi-league result processing and standings updates
 
-### Week 5-6: League Operations AWS Migration (Enhanced Scope)
-- Migrate league operations to AWS backend with multi-league support
-- Test multi-user league functionality with new architecture
-- League-specific pick tracking and standings
-- Multi-user scenario testing
+### 4. Pick Validation & Business Logic
+- Server-side deadline enforcement (no client-side manipulation)
+- Driver validation and pick change logic (unlimited changes before race)
+- League-specific pick isolation (no cross-league conflicts)
+- Comprehensive testing suite for all scenarios
 
-### ✅ Week 7-8: Advanced League Customization (COMPLETED July 3, 2025)
-- [x] Multiple lives system (1-5 lives, configurable per league, default: 1 life)
-- [x] League admin controls and customization interface
-- [x] Lives tracking and elimination logic updates
-- [x] UI indicators for remaining lives per user
-- [x] Enhanced member management with audit trail system
-- [x] Bulk administrative actions and CSV export capabilities
+### 5. Notification System
+- Email notifications for race results and eliminations
+- Push notifications for mobile users
+- Customizable notification preferences
+- Multi-channel notification delivery
 
-### Week 9-10: Phase 3 - Production Hardening & Testing (July 2025)
-- Comprehensive end-to-end testing of lives system workflow
-- Performance validation and optimization (< 500ms dashboard, < 3s race processing)
-- Multi-user concurrent testing with lives system edge cases
-- Documentation and admin user guides
-
-### Week 11+: Enhanced Features & Real-time (Phase 3 Future)
-- Real-time league updates via GraphQL subscriptions
-- Server-side auto-pick Lambda implementation  
-- Advanced pick validation and business logic
-- Results processing automation
-- Notification system implementation
+## Deprecated/Historical Features
+- Real-time League Updates (removed July 5, 2025)
+- Multiple Lives System (removed July 5, 2025)
+- Solo Mode (removed July 5, 2025)
 
 ## Timeline Estimates
 

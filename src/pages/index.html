@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>F1 Survivor - Survive the Grid</title>
-    <link rel="icon" type="image/x-icon" href="public/favicon.ico">
-    <link rel="stylesheet" href="src/styles/global/styles.css">
-    <link rel="stylesheet" href="src/styles/league/league-modal.css">
-    <link rel="stylesheet" href="src/styles/league/league-selector.css">
-    <link rel="stylesheet" href="src/styles/league/league-indicator.css">
-    <link rel="stylesheet" href="src/styles/auth/auth-modal.css">
+    <link rel="icon" type="image/x-icon" href="../../public/favicon.ico">
+    <link rel="stylesheet" href="../styles/global/styles.css">
+    <link rel="stylesheet" href="../styles/league/league-modal.css">
+    <link rel="stylesheet" href="../styles/league/league-selector.css">
+    <link rel="stylesheet" href="../styles/league/league-indicator.css">
+    <link rel="stylesheet" href="../styles/auth/auth-modal.css">
 </head>
 <body>
     <nav>
@@ -22,7 +22,7 @@
         </div>
         <div class="nav-right">
             <a href="#" class="nav-link active" id="nav-pick-btn">Pick</a>
-            <a href="src/pages/dashboard.html" class="nav-link">Dashboard</a>
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
             <!-- League Selector as Nav Component -->
             <div id="league-nav-selector" class="league-nav-selector">
                 <!-- League nav component will be rendered here -->
@@ -139,28 +139,30 @@
         </div>
     </div>
 
+
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script type="module" src="src/data/RaceCalendar2025.js"></script>
-<script type="module" src="src/utils/RaceCountdown.js"></script>
+    <script type="module" src="../data/RaceCalendar2025.js"></script>
+<script type="module" src="../utils/RaceCountdown.js"></script>
     <!-- Authentication Scripts -->
-    <script type="module" src="src/services/auth/AuthManager.js"></script>
-    <script type="module" src="src/components/auth/AuthUI.js"></script>
-    <script type="module" src="src/services/auth/OAuthHandler.js"></script>
+    <script type="module" src="../services/auth/AuthManager.js"></script>
+    <script type="module" src="../components/auth/AuthUI.js"></script>
+    <script type="module" src="../services/auth/OAuthHandler.js"></script>
     <!-- Test Scripts for Development -->
-    <script type="module" src="tests/integration/test-monaco-scenarios.js"></script>
-    <script type="module" src="tests/integration/test-post-race.js"></script>
-    <script type="module" src="tests/integration/test-frontend-backend-integration.js"></script>
-    <script type="module" src="src/services/aws/AmplifyDataService.js"></script>
+    <script type="module" src="../../tests/integration/test-monaco-scenarios.js"></script>
+    <script type="module" src="../../tests/integration/test-post-race.js"></script>
+    <script type="module" src="../../tests/integration/test-frontend-backend-integration.js"></script>
+    <script type="module" src="../services/aws/AmplifyDataService.js"></script>
 
     <!-- Main Application Script -->
-    <script type="module" src="src/app.js"></script>
+    <script type="module" src="../app.js"></script>
     <!-- Test Controls (only visible in development) -->
     <script>
         // Only load test scenarios in development environment
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             const script = document.createElement('script');
             script.type = 'module';
-            script.src = 'tests/integration/test-monaco-scenarios.js';
+            script.src = '../../tests/integration/test-monaco-scenarios.js';
             document.body.appendChild(script);
         }
     </script>

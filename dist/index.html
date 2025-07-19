@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>F1 Survivor - Survive the Grid</title>
     <link rel="icon" type="image/x-icon" href="./assets/favicon-5kkBOlsy.ico">
-  <script type="module" crossorigin src="./assets/main-2x-1d69H.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/league-dashboard-BGSKMJy6.js">
-  <link rel="stylesheet" crossorigin href="./assets/league-dashboard-CBfSAJeM.css">
+  <script type="module" crossorigin src="./assets/main-C7EFGlIA.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/LeagueSelector-BZNxo9Ug.js">
+  <link rel="stylesheet" crossorigin href="./assets/LeagueSelector-Bxhg7Z93.css">
 </head>
 <body>
     <nav>
@@ -15,9 +15,16 @@
             <img src="./assets/F1-Logo-CKLcym6w.png" alt="F1 Logo" class="f1-logo-img">
             SURVIVOR
         </div>
+        <div class="nav-center">
+            <!-- Removed league selector from center -->
+        </div>
         <div class="nav-right">
             <a href="#" class="nav-link active" id="nav-pick-btn">Pick</a>
-            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="src/pages/dashboard.html" class="nav-link">Dashboard</a>
+            <!-- League Selector as Nav Component -->
+            <div id="league-nav-selector" class="league-nav-selector">
+                <!-- League nav component will be rendered here -->
+            </div>
             <a href="#" class="sign-in" onclick="showAuthModal('signin')">Sign In</a>
         </div>
     </nav>
@@ -130,8 +137,6 @@
         </div>
     </div>
 
-
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <!-- Authentication Scripts -->
     <!-- Test Scripts for Development -->
@@ -143,7 +148,7 @@
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             const script = document.createElement('script');
             script.type = 'module';
-            script.src = 'test-monaco-scenarios.js';
+            script.src = 'tests/integration/test-monaco-scenarios.js';
             document.body.appendChild(script);
         }
     </script>

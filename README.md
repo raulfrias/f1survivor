@@ -5,18 +5,22 @@
   <img src="dist/assets/images/F1-Logo.png" alt="F1 Survivor Game" width="150"> 
 </p>
 
-Welcome to **F1 Survivor**, a web-based game where your Formula 1 knowledge and a bit of luck will determine if you can outlast the competition and survive the entire F1 season!
+Welcome to **F1 Survivor**, a web-based game where your Formula 1 knowledge determines if you can outlast the competition:
 
 ## How to Play
 
-The rules are designed to be simple yet challenging:
+F1 Survivor is a league-based game where your Formula 1 knowledge determines if you can outlast the competition:
 
-1.  **Pick a Driver:** Before each GP, choose one driver from the official grid.
-2.  **No Repeats:** You cannot pick the same driver more than once throughout the season. Strategic planning is key!
-3.  **Top 10 Finish:** If your chosen driver finishes in the top 10 in that GP, you survive and advance to the next race.
-4.  **Forgot to Pick?** If you forget to make a selection for a GP, the system will automatically assign you the driver who qualified in 15th place (P15) for that race.
-5.  **Elimination:** If your chosen (or auto-assigned P15) driver finishes outside the top 10 (or does not finish - DNF), you're out of the game!
-6.  **Last One Standing:** The goal is to be the last player surviving in the league.
+1. **Join or Create a League:** Every game is played within a league. Create your own or join with an invite code.
+2. **Pick a Driver:** Before each GP, choose one driver from the official grid.
+3. **No Repeats:** You cannot pick the same driver more than once throughout the season (per league).
+4. **Change Picks Freely:** Modify your pick unlimited times before the race starts - other players won't see your changes.
+5. **Top 10 Finish:** If your chosen driver finishes in the top 10, you survive and advance to the next race.
+6. **Forgot to Pick?** Auto-assigned P15 qualifier if you miss the deadline.
+7. **Batch Results Processing:** After each race ends (plus 8-hour buffer for penalties), all picks are processed against official F1 results.
+8. **Elimination:** Finish outside top 10 = eliminated from the league (but you can still spectate).
+9. **Multiple Leagues:** Join multiple leagues simultaneously, each with independent pick histories.
+10. **Last One Standing:** Be the last player surviving in your league.
 
 ## Development Setup
 
@@ -79,49 +83,108 @@ f1survivor/
 │   │   └── resource.ts         # Cognito authentication setup
 │   ├── data/
 │   │   └── resource.ts         # GraphQL schema & DynamoDB
-│   ├── storage/
-│   │   └── resource.ts         # S3 storage configuration
 │   └── functions/              # Lambda functions
 │       ├── auto-pick-handler/
 │       ├── results-processor/
 │       └── league-manager/
-├── assets/
-│   └── images/
-│       ├── drivers/            # Driver profile images
-│       └── F1-Logo.png
+├── src/                        # Frontend source code
+│   ├── app.js                  # Core game logic
+│   ├── components/             # UI components
+│   │   ├── auth/
+│   │   │   └── AuthUI.js      # Authentication UI
+│   │   ├── dashboard/
+│   │   │   └── Dashboard.js   # Dashboard component
+│   │   ├── elimination/
+│   │   │   └── EliminationZone.js # Elimination zone
+│   │   └── league/
+│   │       ├── LeagueSelector.js
+│   │       ├── LeagueModalManager.js
+│   │       ├── LeagueDashboard.js
+│   │       └── MultiLeagueDashboard.js
+│   ├── services/               # Business logic services
+│   │   ├── auth/
+│   │   │   ├── AuthManager.js
+│   │   │   └── OAuthHandler.js
+│   │   ├── aws/
+│   │   │   └── AmplifyDataService.js
+│   │   ├── league/
+│   │   │   ├── LeagueManager.js
+│   │   │   ├── LeagueStorageManager.js
+│   │   │   ├── LeagueIntegration.js
+│   │   │   └── MultiLeagueContext.js
+│   │   ├── pick/
+│   │   │   ├── PickDeadlineManager.js
+│   │   │   └── AutoPickManager.js
+│   │   ├── race/
+│   │   │   ├── RaceStateManager.js
+│   │   │   └── QualifyingResultsManager.js
+│   │   ├── elimination/
+│   │   │   └── LivesEliminationEngine.js
+│   │   └── api/
+│   │       └── RaceResultsApi.js
+│   ├── utils/                  # Utility functions
+│   │   ├── DashboardUtils.js
+│   │   ├── StorageUtils.js
+│   │   ├── EliminationUtils.js
+│   │   ├── PickChangeUtils.js
+│   │   ├── RaceCountdown.js
+│   │   └── LoggerConfig.js
+│   ├── styles/                 # CSS stylesheets
+│   │   ├── global/
+│   │   │   └── styles.css
+│   │   ├── pages/
+│   │   │   └── dashboard.css
+│   │   ├── components/
+│   │   │   └── elimination-zone.css
+│   │   ├── auth/
+│   │   │   └── auth-modal.css
+│   │   └── league/
+│   │       ├── league-modal.css
+│   │       ├── league-selector.css
+│   │       └── league-indicator.css
+│   ├── pages/                  # HTML pages
+│   │   ├── index.html          # Landing page
+│   │   └── dashboard.html      # Dashboard page
+│   └── data/                   # Static data
+│       └── RaceCalendar2025.js
+├── tests/                      # Test files
+│   ├── integration/            # Integration tests
+│   │   ├── test-league-system.html
+│   │   ├── test-multi-user-scenarios.html
+│   │   ├── test-enhanced-auth.html
+│   │   ├── test-lives-system-phase1.html
+│   │   ├── test-phase1-multi-league.html
+│   │   ├── test-race-state-manager.html
+│   │   ├── test-auto-pick-manager.html
+│   │   ├── test-countdown.html
+│   │   ├── test-qualifying-manager.html
+│   │   ├── test-monaco-scenarios.js
+│   │   ├── test-post-race.js
+│   │   ├── test-frontend-backend-integration.js
+│   │   └── test-phase1-multi-league-architecture.js
+│   └── unit/                   # Unit tests
+│       ├── test-elimination-scenarios.js
+│       ├── test-lives-system-api.js
+│       └── test-local-storage.js
 ├── docs/                       # Project documentation
 │   ├── ROADMAP.md             # Development roadmap
+│   ├── CURRENT_STATE_SUMMARY.md # Current project status
+│   ├── testing/                # Testing documentation
+│   │   ├── PHASE1_TESTING_GUIDE.md
+│   │   └── MULTI_USER_TESTING_GUIDE.md
 │   └── implementation-plans/   # Feature implementation plans
-├── src/                        # Frontend source (if restructured)
-├── app.js                      # Core game logic
-├── auto-pick-manager.js        # Auto-pick system
-├── dashboard.js                # Dashboard functionality
-├── dashboard.html              # Dashboard page
-├── dashboard.css               # Dashboard styles
-├── dashboard-utils.js          # Dashboard utilities
-├── elimination-utils.js        # Elimination logic
-├── elimination-zone.js         # Elimination zone component
-├── elimination-zone.css        # Elimination zone styles
-├── index.html                  # Main HTML structure
-├── league-dashboard.js         # League dashboard integration
-├── league-indicator.css        # League indicator styles
-├── league-integration.js       # League system integration
-├── league-manager.js           # Core league operations
-├── league-modal.css            # League modal styles
-├── league-modal-manager.js     # League UI modals
-├── league-selector.css         # League selector styles
-├── league-storage-manager.js   # League data persistence
-├── pick-change-utils.js        # Pick change utilities
-├── pick-deadline-manager.js    # Deadline management
-├── qualifying-results-manager.js # Qualifying data
-├── race-calendar-2025.js       # F1 2025 calendar
-├── race-countdown.js           # Race countdown timer
-├── race-results-api.js         # Race results fetching
-├── race-state-manager.js       # Race state tracking
-├── storage-utils.js            # Storage utilities
-├── styles.css                  # Main styling
-├── test-league-system.html     # League testing page
-├── vite.config.js              # Vite build configuration (multi-page)
+├── scripts/                    # Build and utility scripts
+│   └── generate-placeholder.js
+├── public/                     # Static assets
+│   ├── favicon.ico
+│   └── assets/
+│       ├── images/
+│       │   ├── drivers/        # Driver profile images
+│       │   └── F1-Logo.png
+│       └── sponsors/
+├── config/                     # Configuration files
+├── index.html                  # Main entry point (redirects to src/pages/index.html)
+├── vite.config.js              # Vite build configuration
 ├── amplify_outputs.json        # Generated backend configuration
 ├── package.json                # Dependencies and scripts
 └── README.md
@@ -172,17 +235,23 @@ f1survivor/
   - Navigation between Pick and Dashboard pages
   - Fixed production 404 issues with proper Vite multi-page configuration
 
-✅ **League System (Prototype):**
+✅ **League System:**
   - Create private leagues with custom names and settings
   - Join leagues using 8-character invite codes
   - League management interface for owners and members
-  - Separate pick tracking per league
+  - Independent pick tracking per league
   - League standings and member status display
-  - Switch between solo play and league modes
-  - League-specific dashboard views
-  - Multi-user simulation for testing (within same browser)
+  - Multi-league participation support
   - Owner controls: member management, settings updates
-  - Persistent league data using localStorage
+  - Persistent league data using AWS DynamoDB
+
+✅ **Multi-League Support:**
+  - Join unlimited leagues simultaneously
+  - Independent pick history per league
+  - League-specific survival tracking
+  - Cross-league statistics and performance
+  - League switching interface in navigation
+  - Multi-league dashboard with league tabs
 
 ✅ **Mobile Responsiveness & Production Ready:**
   - Complete mobile-first responsive design (768px, 480px breakpoints)
@@ -254,45 +323,12 @@ f1survivor/
 
 ## Development Roadmap
 
-Our development is organized into manageable phases with modular features:
+Our development is organized into manageable phases with modular features. See [ROADMAP.md](docs/ROADMAP.md) for details.
 
-1. **User Flow Foundation** ✅ (Completed)
-   - Driver selection with team-colored cards
-   - Race countdown and P15 auto-pick system
-   - User dashboard with pick history
-   - League system prototype with local storage
+**Project Structure:** The project underwent a complete reorganization in July 2025. See [Migration Log](docs/MIGRATION_LOG.md) for detailed changes and [Project Structure Guide](docs/development/project-structure.md) for current architecture.
 
-1.5. **Mobile Responsiveness & Production Polish** ✅ (Completed June 2025)
-   - Complete mobile-first responsive design
-   - Production deployment fixes with Vite configuration
-   - Enhanced UX with track animation removal
-   - All 404 issues resolved (dashboard, favicon, assets)
-
-2. **AWS Amplify Gen2 Backend Foundation** ✅ (COMPLETE)
-   - AWS Amplify Gen2 project initialization ✅
-   - Core Data Schema Definition (9-model GraphQL schema) ✅
-   - Cognito authentication integration ✅ 
-   - OpenF1 API integration fixes ✅
-   - Production build and deployment configuration ✅
-   - Frontend-Backend Integration (user picks via AWS GraphQL) ✅
-   - Enhanced Authentication & User Experience (Google OAuth) ✅
-   - Multi-League Core Architecture (unlimited leagues) ✅
-   - **League Operations Backend Integration (localStorage removal)** ✅
-   - **Multi-user capability with data isolation validation** ✅
-
-3. **Enhanced Game Logic & F1 Integration** 🏎️
-   - OpenF1 API integration with robust error handling
-   - Advanced league management features
-   - Automated results processing engine
-   - Multi-channel notification system
-
-4. **User Experience & Platform Enhancement** 🌟
-   - Advanced dashboard analytics and visualizations
-   - Progressive Web App (PWA) implementation
-   - Social features and community building
-   - Advanced competition features and tournaments
-
-See [ROADMAP.md](docs/ROADMAP.md) for detailed development plans.
+**Note:**
+- Technical debt cleanup (removal of solo mode and multiple lives system) is required before implementing new backend features such as Auto-Pick Lambda and batch results processing. See the updated roadmap for details.
 
 ## Technologies Used
 
@@ -330,6 +366,7 @@ See [ROADMAP.md](docs/ROADMAP.md) for detailed development plans.
 - Test locally with Amplify sandbox before pushing
 - Focus on direct AWS integration (users start fresh with complete system)
 - Document GraphQL operations and backend integrations
+- **New developers:** See [Project Structure Guide](docs/development/project-structure.md) for detailed architecture and development workflow
 
 ## License
 

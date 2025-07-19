@@ -57,10 +57,20 @@ class EliminationZone {
       if (!leagueId) {
         const activeLeague = await leagueManager.getActiveLeague();
         if (!activeLeague) {
-          this.showError('No active league found. Please join or create a league.');
-          return;
+          // Check if user has any leagues at all
+          const userLeagues = await amplifyDataService.getUserLeagues();
+          if (!userLeagues || userLeagues.length === 0) {
+            this.showError('No leagues found. Please create or join a league to view elimination data.');
+            return;
+          } else {
+            // User has leagues but no active one - set the first one as active
+            console.log('User has leagues but no active one, setting first league as active:', userLeagues[0]);
+            await leagueManager.setActiveLeague(userLeagues[0].leagueId);
+            this.leagueId = userLeagues[0].leagueId;
+          }
+        } else {
+          this.leagueId = activeLeague.leagueId;
         }
-        this.leagueId = activeLeague.leagueId;
       } else {
         this.leagueId = leagueId;
       }

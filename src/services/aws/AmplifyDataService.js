@@ -727,22 +727,26 @@ export class AmplifyDataService {
 
       // Process league picks
       for (const result of leaguePickResults) {
+        const validPicks = result.picks.filter(pick => pick !== null);
         byLeague[result.leagueId] = {
           leagueName: result.leagueName,
-          picks: result.picks,
-          count: result.picks.length
+          picks: validPicks,
+          count: validPicks.length
         };
-        totalPicks += result.picks.length;
+        totalPicks += validPicks.length;
       }
 
       // Add solo picks if any
       if (soloPicks.length > 0) {
-        byLeague['solo'] = {
-          leagueName: 'Solo Mode',
-          picks: soloPicks,
-          count: soloPicks.length
-        };
-        totalPicks += soloPicks.length;
+        const validSoloPicks = soloPicks.filter(pick => pick !== null);
+        if (validSoloPicks.length > 0) {
+          byLeague['solo'] = {
+            leagueName: 'Solo Mode',
+            picks: validSoloPicks,
+            count: validSoloPicks.length
+          };
+          totalPicks += validSoloPicks.length;
+        }
       }
 
       console.log(`Retrieved ${totalPicks} picks across ${Object.keys(byLeague).length} contexts`);
@@ -782,14 +786,14 @@ export class AmplifyDataService {
 
       // Calculate per-league statistics
       for (const [leagueId, leagueData] of Object.entries(pickHistory.byLeague)) {
-        const picks = leagueData.picks;
-        const raceCount = new Set(picks.map(p => p.raceId)).size;
+        const picks = leagueData.picks.filter(p => p !== null); // Filter out null picks
+        const raceCount = new Set(picks.map(p => p?.raceId).filter(raceId => raceId != null)).size;
         
         stats.leagueBreakdown[leagueId] = {
           leagueName: leagueData.leagueName,
           totalPicks: picks.length,
           raceCount: raceCount,
-          autoPickCount: picks.filter(p => p.isAutoPick).length,
+          autoPickCount: picks.filter(p => p?.isAutoPick).length,
           recentPicks: picks
             .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
             .slice(0, 3)
@@ -797,8 +801,10 @@ export class AmplifyDataService {
 
         // Track driver usage across leagues
         for (const pick of picks) {
-          const count = stats.driverUsage.get(pick.driverName) || 0;
-          stats.driverUsage.set(pick.driverName, count + 1);
+          if (pick?.driverName) {
+            const count = stats.driverUsage.get(pick.driverName) || 0;
+            stats.driverUsage.set(pick.driverName, count + 1);
+          }
         }
       }
 

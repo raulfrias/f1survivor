@@ -39,8 +39,7 @@ const schema = a.schema({
     // Relationships
     picks: a.hasMany('DriverPick', 'userId'),
     leagueMemberships: a.hasMany('LeagueMember', 'userId'),
-    ownedLeagues: a.hasMany('League', 'ownerId'),
-    lifeEvents: a.hasMany('LifeEvent', 'userId')
+    ownedLeagues: a.hasMany('League', 'ownerId')
   }).authorization((allow) => [
     allow.owner().identityClaim("sub"),
     allow.authenticated().to(["read"])
@@ -71,24 +70,21 @@ const schema = a.schema({
     createdAt: a.datetime().required(),
     lastActiveAt: a.datetime(),
     
-    // Enhanced settings with lives configuration
+    // Simplified settings - league-only single elimination
     settings: a.json(),
     /*
     {
-      maxLives: 1-5,           // Default: 1 (backward compatible)
-      livesEnabled: boolean,   // Default: false (single life)
+      maxMembers: integer,
       autoPickEnabled: boolean,
-      isPrivate: boolean,
-      livesLockDate: string,   // ISO date when lives can no longer be changed
-      customRules: string      // Optional additional rules text
+      isPrivate: boolean
+      // REMOVED: maxLives, livesEnabled, livesLockDate, customRules
     }
     */
     
     // Relationships
     owner: a.belongsTo('UserProfile', 'ownerId'),
     members: a.hasMany('LeagueMember', 'leagueId'),
-    picks: a.hasMany('DriverPick', 'leagueId'),
-    lifeEvents: a.hasMany('LifeEvent', 'leagueId')
+    picks: a.hasMany('DriverPick', 'leagueId')
   })
   .secondaryIndexes((index) => [
     index('ownerId').name('byOwner'),
@@ -107,7 +103,7 @@ const schema = a.schema({
     leagueId: a.id().required(),
     userId: a.id().required(),
     
-    // Member status
+    // Member status - simplified to single elimination
     status: a.enum(['ACTIVE', 'ELIMINATED', 'LEFT']),
     joinedAt: a.datetime().required(),
     eliminatedAt: a.datetime(),
@@ -118,25 +114,11 @@ const schema = a.schema({
     totalPicks: a.integer().default(0),
     autoPickCount: a.integer().default(0),
     
-    // Lives tracking fields (NEW)
-    remainingLives: a.integer().default(1),
-    livesUsed: a.integer().default(0),
-    maxLives: a.integer().default(1), // Copy from league settings at join time
-    
-    // Enhanced elimination tracking (NEW)
-    eliminationHistory: a.json(), // Array of elimination events
-    /*
-    [
-      {
-        raceId: string,
-        raceName: string,
-        driverPicked: string,
-        finalPosition: number,
-        eliminatedAt: string,
-        livesLostCount: number
-      }
-    ]
-    */
+    // REMOVED: Lives tracking fields
+    // remainingLives: a.integer().default(1),
+    // livesUsed: a.integer().default(0),
+    // maxLives: a.integer().default(1),
+    // eliminationHistory: a.json(),
     
     // Member role
     isOwner: a.boolean().default(false),
@@ -147,39 +129,10 @@ const schema = a.schema({
     user: a.belongsTo('UserProfile', 'userId')
   }).authorization((allow) => [
     allow.owner(),
-    allow.authenticated().to(['read'])
+    allow.authenticated().to(['read']) // CRITICAL: Preserve for eliminated user spectator access
   ]),
 
-  // ========================================
-  // LIFE EVENTS TRACKING (NEW)
-  // ========================================
-  
-  LifeEvent: a.model({
-    userId: a.id().required(),
-    leagueId: a.id().required(),
-    raceId: a.string().required(),
-    
-    eventType: a.enum(['LIFE_LOST', 'LIFE_RESTORED', 'FINAL_ELIMINATION']),
-    livesRemaining: a.integer().required(),
-    
-    // Event details
-    driverPicked: a.string(),
-    finalPosition: a.integer(),
-    eventDate: a.datetime().required(),
-    
-    // Admin action tracking
-    adminUserId: a.id(), // If life restored by admin
-    adminReason: a.string(),
-    
-    // Relationships
-    user: a.belongsTo('UserProfile', 'userId'),
-    league: a.belongsTo('League', 'leagueId')
-  }).authorization((allow) => [
-    allow.authenticated().to(['read']),
-    allow.ownerDefinedIn('userId'),
-    allow.ownerDefinedIn('adminUserId')
-  ]),
-
+  // REMOVED: LifeEvent model entirely
   // ========================================
   // F1 REFERENCE DATA
   // ========================================
@@ -287,10 +240,10 @@ const schema = a.schema({
     pickId: a.id().required(),
     userId: a.id().required(),
     
-    // Context
+    // Context - REQUIRE league context, no solo mode
     seasonId: a.id().required(),
     raceId: a.string().required(),
-    leagueId: a.id(), // Null for solo play
+    leagueId: a.id().required(), // REQUIRED - no solo mode support
     
     // Pick details
     driverId: a.string().required(),

@@ -60,7 +60,7 @@ const mockDrivers = [
         name: "Max Verstappen",
         team: "Red Bull Racing",
         teamColor: "#3671C6",
-        imageUrl: "assets/images/drivers/verstappen.png",
+        imageUrl: "/assets/images/drivers/verstappen.png",
         isAlreadyPicked: false
     },
     {
@@ -69,7 +69,7 @@ const mockDrivers = [
         name: "Yuki Tsunoda",
         team: "Red Bull Racing",
         teamColor: "#3671C6",
-        imageUrl: "assets/images/drivers/tsunoda.png",
+        imageUrl: "/assets/images/drivers/tsunoda.png",
         isAlreadyPicked: false
     },
     // Ferrari
@@ -79,7 +79,7 @@ const mockDrivers = [
         name: "Charles Leclerc",
         team: "Ferrari",
         teamColor: "#E80020",
-        imageUrl: "assets/images/drivers/leclerc.png",
+        imageUrl: "/assets/images/drivers/leclerc.png",
         isAlreadyPicked: false
     },
     {
@@ -88,7 +88,7 @@ const mockDrivers = [
         name: "Lewis Hamilton",
         team: "Ferrari",
         teamColor: "#E80020",
-        imageUrl: "assets/images/drivers/hamilton.png",
+        imageUrl: "/assets/images/drivers/hamilton.png",
         isAlreadyPicked: false
     },
     // Mercedes
@@ -98,7 +98,7 @@ const mockDrivers = [
         name: "George Russell",
         team: "Mercedes",
         teamColor: "#27F4D2",
-        imageUrl: "assets/images/drivers/russell.png",
+        imageUrl: "/assets/images/drivers/russell.png",
         isAlreadyPicked: false
     },
     {
@@ -107,7 +107,7 @@ const mockDrivers = [
         name: "Kimi Antonelli",
         team: "Mercedes",
         teamColor: "#27F4D2",
-        imageUrl: "assets/images/drivers/antonelli.png",
+        imageUrl: "/assets/images/drivers/antonelli.png",
         isAlreadyPicked: false
     },
     // McLaren
@@ -117,7 +117,7 @@ const mockDrivers = [
         name: "Lando Norris",
         team: "McLaren",
         teamColor: "#FF8000",
-        imageUrl: "assets/images/drivers/norris.png",
+        imageUrl: "/assets/images/drivers/norris.png",
         isAlreadyPicked: false
     },
     {
@@ -126,7 +126,7 @@ const mockDrivers = [
         name: "Oscar Piastri",
         team: "McLaren",
         teamColor: "#FF8000",
-        imageUrl: "assets/images/drivers/piastri.png",
+        imageUrl: "/assets/images/drivers/piastri.png",
         isAlreadyPicked: false
     },
     // Aston Martin
@@ -136,7 +136,7 @@ const mockDrivers = [
         name: "Fernando Alonso",
         team: "Aston Martin",
         teamColor: "#229971",
-        imageUrl: "assets/images/drivers/alonso.png",
+        imageUrl: "/assets/images/drivers/alonso.png",
         isAlreadyPicked: false
     },
     {
@@ -145,7 +145,7 @@ const mockDrivers = [
         name: "Lance Stroll",
         team: "Aston Martin",
         teamColor: "#229971",
-        imageUrl: "assets/images/drivers/stroll.png",
+        imageUrl: "/assets/images/drivers/stroll.png",
         isAlreadyPicked: false
     },
     // Alpine
@@ -155,7 +155,7 @@ const mockDrivers = [
         name: "Pierre Gasly",
         team: "Alpine",
         teamColor: "#0093CC",
-        imageUrl: "assets/images/drivers/gasly.png",
+        imageUrl: "/assets/images/drivers/gasly.png",
         isAlreadyPicked: false
     },
     {
@@ -164,7 +164,7 @@ const mockDrivers = [
         name: "Franco Colapinto",
         team: "Alpine",
         teamColor: "#0093CC",
-        imageUrl: "assets/images/drivers/colapinto.png",
+        imageUrl: "/assets/images/drivers/colapinto.png",
         isAlreadyPicked: false
     },
     // Williams
@@ -174,7 +174,7 @@ const mockDrivers = [
         name: "Alexander Albon",
         team: "Williams",
         teamColor: "#64C4FF",
-        imageUrl: "assets/images/drivers/albon.png",
+        imageUrl: "/assets/images/drivers/albon.png",
         isAlreadyPicked: false
     },
     {
@@ -183,7 +183,7 @@ const mockDrivers = [
         name: "Carlos Sainz",
         team: "Williams",
         teamColor: "#64C4FF",
-        imageUrl: "assets/images/drivers/sainz.png",
+        imageUrl: "/assets/images/drivers/sainz.png",
         isAlreadyPicked: false
     },
     // Racing Bulls
@@ -193,7 +193,7 @@ const mockDrivers = [
         name: "Isack Hadjar",
         team: "Racing Bulls",
         teamColor: "#6692FF",
-        imageUrl: "assets/images/drivers/hadjar.png",
+        imageUrl: "/assets/images/drivers/hadjar.png",
         isAlreadyPicked: false
     },
     {
@@ -202,7 +202,7 @@ const mockDrivers = [
         name: "Liam Lawson",
         team: "Racing Bulls",
         teamColor: "#6692FF",
-        imageUrl: "assets/images/drivers/lawson.png",
+        imageUrl: "/assets/images/drivers/lawson.png",
         isAlreadyPicked: false
     },
     // Kick Sauber
@@ -212,7 +212,7 @@ const mockDrivers = [
         name: "Nico Hulkenberg",
         team: "Kick Sauber",
         teamColor: "#52E252",
-        imageUrl: "assets/images/drivers/hulkenberg.png",
+        imageUrl: "/assets/images/drivers/hulkenberg.png",
         isAlreadyPicked: false
     },
     {
@@ -221,7 +221,7 @@ const mockDrivers = [
         name: "Gabriel Bortoleto",
         team: "Kick Sauber",
         teamColor: "#52E252",
-        imageUrl: "assets/images/drivers/bortoleto.png",
+        imageUrl: "/assets/images/drivers/bortoleto.png",
         isAlreadyPicked: false
     },
     // Haas F1 Team
@@ -231,7 +231,7 @@ const mockDrivers = [
         name: "Esteban Ocon",
         team: "Haas F1 Team",
         teamColor: "#B6BABD",
-        imageUrl: "assets/images/drivers/ocon.png",
+        imageUrl: "/assets/images/drivers/ocon.png",
         isAlreadyPicked: false
     },
     {
@@ -240,7 +240,7 @@ const mockDrivers = [
         name: "Oliver Bearman",
         team: "Haas F1 Team",
         teamColor: "#B6BABD",
-        imageUrl: "assets/images/drivers/bearman.png",
+        imageUrl: "/assets/images/drivers/bearman.png",
         isAlreadyPicked: false
     }
 ];
@@ -548,7 +548,7 @@ async function renderDriverGrid() {
             }
             
             card.innerHTML = `
-                <img src="${driver.imageUrl}" alt="${driver.name}" onerror="this.src='assets/images/drivers/default.svg'">
+                <img src="${driver.imageUrl}" alt="${driver.name}" onerror="this.src='/assets/images/drivers/default.svg'">
                 <div class="driver-name">${driver.name}</div>
                 <div class="driver-team" style="color: ${driver.teamColor}">${driver.team}</div>
                 ${driver.isAlreadyPicked ? '<div class="tooltip">Already picked in a previous race</div>' : ''}

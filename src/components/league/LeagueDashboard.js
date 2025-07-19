@@ -120,23 +120,6 @@ export class LeagueDashboard {
       // Get league standings and settings
       const standings = await this.leagueManager.getLeagueStandings(this.currentLeague.leagueId);
       const leagueSettings = amplifyDataService.parseLeagueSettings(this.currentLeague);
-      const livesEnabled = leagueSettings.livesEnabled || false;
-      
-      // Get lives status for all members if lives are enabled
-      let membersLivesStatus = {};
-      if (livesEnabled) {
-        const members = await amplifyDataService.getLeagueMembers(this.currentLeague.leagueId);
-        for (const member of members) {
-          try {
-            const livesStatus = await amplifyDataService.getMemberLivesStatus(this.currentLeague.leagueId, member.userId);
-            if (livesStatus) {
-              membersLivesStatus[member.userId] = livesStatus;
-            }
-          } catch (error) {
-            console.warn(`Failed to get lives status for member ${member.userId}:`, error);
-          }
-        }
-      }
       
       const user = await authManager.getCurrentUser();
       const currentUserId = user?.userId || user?.username;
@@ -148,53 +131,33 @@ export class LeagueDashboard {
         const playersList = eliminationZone.querySelector('.players-container');
         if (playersList) {
           playersList.innerHTML = standings.map((player, index) => {
-            const memberLives = membersLivesStatus[player.userId];
-            const isEliminated = livesEnabled ? (memberLives?.remainingLives === 0) : player.isEliminated;
-            
             return `
-              <div class="player-card enhanced ${player.userId === currentUserId ? 'current-user' : ''} ${isEliminated ? 'eliminated' : ''}">
-                <div class="player-rank ${isEliminated ? 'eliminated' : ''}">${index + 1}</div>
+              <div class="player-card enhanced ${player.userId === currentUserId ? 'current-user' : ''} ${player.isEliminated ? 'eliminated' : ''}">
+                <div class="player-rank ${player.isEliminated ? 'eliminated' : ''}">${index + 1}</div>
                 <div class="player-info">
                   <h3>${this.escapeHtml(player.username)} ${player.isOwner ? '<span class="owner-badge">👑</span>' : ''}</h3>
                   <div class="player-stats">
                     <p class="races-survived">${player.survivedRaces} races survived</p>
-                    ${livesEnabled && memberLives ? `
-                      <div class="player-lives">
-                        <span class="lives-label">Lives:</span>
-                        <div class="lives-display-small">
-                          ${this.generateLivesDisplayMini(memberLives.remainingLives, memberLives.maxLives)}
-                        </div>
-                        <span class="lives-count">${memberLives.remainingLives}/${memberLives.maxLives}</span>
-                      </div>
-                    ` : ''}
                     ${player.lastPick ? `<p class="last-pick">Last pick: ${player.lastPick.driverName}</p>` : ''}
                   </div>
                 </div>
                 <div class="player-status">
-                  ${isEliminated ? '<div class="status eliminated">ELIMINATED</div>' : '<div class="status active">ACTIVE</div>'}
+                  ${player.isEliminated ? '<div class="status eliminated">ELIMINATED</div>' : '<div class="status active">ACTIVE</div>'}
                 </div>
               </div>
             `;
           }).join('');
         }
 
-        // Update the title with lives information
+        // Update the title
         const zoneTitle = eliminationZone.querySelector('h2');
         if (zoneTitle) {
-          const activeCount = standings.filter(s => {
-            if (livesEnabled) {
-              const memberLives = membersLivesStatus[s.userId];
-              return memberLives?.remainingLives > 0;
-            }
-            return !s.isEliminated;
-          }).length;
-          
-          const livesInfo = livesEnabled ? ` (${leagueSettings.maxLives} Lives System)` : '';
-          zoneTitle.innerHTML = `League Standings - ${this.escapeHtml(this.currentLeague.name)}${livesInfo}`;
+          const activeCount = standings.filter(s => !s.isEliminated).length;
+          zoneTitle.innerHTML = `League Standings - ${this.escapeHtml(this.currentLeague.name)}`;
         }
 
         // Add summary statistics
-        await this.addEliminationZoneSummary(standings, membersLivesStatus, livesEnabled);
+        await this.addEliminationZoneSummary(standings);
       }
     } catch (error) {
       console.error('Failed to update elimination zone for league:', error);
@@ -202,7 +165,7 @@ export class LeagueDashboard {
   }
 
   // Add summary statistics to elimination zone
-  async addEliminationZoneSummary(standings, membersLivesStatus, livesEnabled) {
+  async addEliminationZoneSummary(standings) {
     const eliminationZone = document.querySelector('.elimination-zone');
     if (!eliminationZone) return;
 
@@ -213,15 +176,8 @@ export class LeagueDashboard {
     }
 
     const totalMembers = standings.length;
-    let activeMembers, eliminatedMembers;
-
-    if (livesEnabled) {
-      activeMembers = Object.values(membersLivesStatus).filter(status => status.remainingLives > 0).length;
-      eliminatedMembers = Object.values(membersLivesStatus).filter(status => status.remainingLives === 0).length;
-    } else {
-      activeMembers = standings.filter(s => !s.isEliminated).length;
-      eliminatedMembers = standings.filter(s => s.isEliminated).length;
-    }
+    const activeMembers = standings.filter(s => !s.isEliminated).length;
+    const eliminatedMembers = standings.filter(s => s.isEliminated).length;
 
     const summaryHTML = `
       <div class="league-summary">
@@ -261,15 +217,8 @@ export class LeagueDashboard {
       const user = await authManager.getCurrentUser();
       const currentUserId = user?.userId || user?.username;
       
-      // Get league settings for lives configuration
+      // Get league settings
       const leagueSettings = amplifyDataService.parseLeagueSettings(this.currentLeague);
-      const livesEnabled = leagueSettings.livesEnabled || false;
-      
-      // Get user's lives status if lives are enabled
-      let userLivesStatus = null;
-      if (livesEnabled) {
-        userLivesStatus = await amplifyDataService.getMemberLivesStatus(this.currentLeague.leagueId, currentUserId);
-      }
       
       // Update races survived stat
       const racesSurvivedElement = document.querySelector('[data-stat="races-survived"]');
@@ -298,10 +247,7 @@ export class LeagueDashboard {
         }
       }
 
-      // Add lives statistics if lives system is enabled
-      if (livesEnabled && userLivesStatus) {
-        await this.updateLivesStatistics(userLivesStatus, leagueSettings);
-      }
+
 
       // Add league overview statistics
       await this.updateLeagueOverviewStats(standings, leagueSettings);
@@ -311,44 +257,7 @@ export class LeagueDashboard {
     }
   }
 
-  // Update lives-specific statistics
-  async updateLivesStatistics(userLivesStatus, leagueSettings) {
-    const statsGrid = document.querySelector('.stats-grid');
-    if (!statsGrid) return;
 
-    // Remove existing lives stats to avoid duplicates
-    const existingLivesStats = statsGrid.querySelectorAll('[data-stat-type="lives"]');
-    existingLivesStats.forEach(stat => stat.remove());
-
-    // Current Lives stat card
-    const livesCard = document.createElement('div');
-    livesCard.className = 'stat-card lives-stat';
-    livesCard.setAttribute('data-stat-type', 'lives');
-    livesCard.innerHTML = `
-      <div class="stat-icon">❤️</div>
-      <div class="stat-content">
-        <h3>Lives Remaining</h3>
-        <p class="stat-value" data-stat="lives-remaining">${userLivesStatus.remainingLives}/${userLivesStatus.maxLives}</p>
-        <div class="lives-display-mini">
-          ${this.generateLivesDisplayMini(userLivesStatus.remainingLives, userLivesStatus.maxLives)}
-        </div>
-      </div>
-    `;
-    statsGrid.appendChild(livesCard);
-
-    // Status card (Active/Eliminated)
-    const statusCard = document.createElement('div');
-    statusCard.className = `stat-card status-stat ${userLivesStatus.status.toLowerCase()}`;
-    statusCard.setAttribute('data-stat-type', 'lives');
-    statusCard.innerHTML = `
-      <div class="stat-icon">${userLivesStatus.status === 'ACTIVE' ? '🟢' : '🔴'}</div>
-      <div class="stat-content">
-        <h3>Status</h3>
-        <p class="stat-value status-${userLivesStatus.status.toLowerCase()}">${userLivesStatus.status}</p>
-      </div>
-    `;
-    statsGrid.appendChild(statusCard);
-  }
 
   // Update league overview statistics
   async updateLeagueOverviewStats(standings, leagueSettings) {
@@ -375,34 +284,10 @@ export class LeagueDashboard {
     `;
     statsGrid.appendChild(membersCard);
 
-    // Lives enabled indicator
-    if (leagueSettings.livesEnabled) {
-      const livesSystemCard = document.createElement('div');
-      livesSystemCard.className = 'stat-card lives-system-stat';
-      livesSystemCard.setAttribute('data-stat-type', 'league-overview');
-      livesSystemCard.innerHTML = `
-        <div class="stat-icon">💙</div>
-        <div class="stat-content">
-          <h3>Lives System</h3>
-          <p class="stat-value">${leagueSettings.maxLives} Lives</p>
-        </div>
-      `;
-      statsGrid.appendChild(livesSystemCard);
-    }
+
   }
 
-  // Generate mini lives display for stats
-  generateLivesDisplayMini(remainingLives, maxLives) {
-    let display = '';
-    for (let i = 0; i < maxLives; i++) {
-      if (i < remainingLives) {
-        display += '<span class="life-mini remaining">❤️</span>';
-      } else {
-        display += '<span class="life-mini lost">🖤</span>';
-      }
-    }
-    return display;
-  }
+
 
   // Get pick context (league or solo) - AWS BACKEND
   async getPickContext() {

@@ -90,38 +90,14 @@ export async function savePickWithContext(driverId, driverInfo, targetLeagueId =
         throw new Error('No active league selected. Please select a league or specify targetLeagueId.');
       }
     }
-    // If no leagues, leagueId remains null for solo mode
+    // REQUIRE league context - no solo mode support
   }
 
-  console.log(`Saving pick to ${leagueId ? `league: ${leagueId}` : 'solo mode'}`);
+  console.log(`Saving pick to league: ${leagueId}`);
 
-  if (leagueId) {
-    // League mode - use existing league storage manager for now
-    // TODO: Phase 2 will replace this with unified AWS backend
-    return leagueStorageManager.saveLeaguePick(leagueId, driverId, driverInfo);
-  } else {
-    // Solo mode via AWS backend
-    const raceData = JSON.parse(localStorage.getItem('nextRaceData'));
-    if (!raceData || !raceData.raceId) {
-      throw new Error('No valid race data found. Cannot save pick.');
-    }
-    
-    const pickData = {
-      raceId: raceData.raceId,
-      driverId: parseInt(driverId),
-      driverName: driverInfo?.driverName || null,
-      teamName: driverInfo?.teamName || null,
-      raceName: raceData.raceName || 'Unknown Race',
-      isAutoPick: driverInfo?.isAutoPick || false
-    };
-    
-    const result = await amplifyDataService.saveUserPick(pickData);
-    
-    // Clear pick cache for this league
-    multiLeagueContext.clearCache('picks', leagueId);
-    
-    return result;
-  }
+  // League mode - use existing league storage manager for now
+  // TODO: Phase 2 will replace this with unified AWS backend
+  return leagueStorageManager.saveLeaguePick(leagueId, driverId, driverInfo);
 }
 
 // Load picks with automatic league context detection
@@ -140,17 +116,11 @@ export async function loadPicksWithContext(targetLeagueId = null) {
     leagueId = context.activeLeague;
   }
 
-  console.log(`Loading picks from ${leagueId ? `league: ${leagueId}` : 'solo mode'}`);
+  console.log(`Loading picks from league: ${leagueId}`);
 
-  if (leagueId) {
-    // League mode - use cached method
-    const picks = await multiLeagueContext.getLeaguePicks(leagueId);
-    return amplifyDataService.transformPicksForUI(picks);
-  } else {
-    // Solo mode via AWS backend
-    const picks = await amplifyDataService.getUserPicks();
-    return amplifyDataService.transformPicksForUI(picks);
-  }
+  // League mode - use cached method
+  const picks = await multiLeagueContext.getLeaguePicks(leagueId);
+  return amplifyDataService.transformPicksForUI(picks);
 }
 
 // Check if driver is already picked with league context
@@ -166,13 +136,8 @@ export async function isDriverAlreadyPickedWithContext(driverId, targetLeagueId 
     leagueId = context.activeLeague;
   }
 
-  if (leagueId) {
-    // Check specific league
-    return amplifyDataService.isDriverAlreadyPicked(driverId, leagueId);
-  } else {
-    // Check solo mode
-    return amplifyDataService.isDriverAlreadyPicked(driverId);
-  }
+  // Check specific league
+  return amplifyDataService.isDriverAlreadyPicked(driverId, leagueId);
 }
 
 // Check if driver is picked in ANY league (cross-league validation)
@@ -193,13 +158,8 @@ export async function getCurrentRacePickWithContext(targetLeagueId = null) {
     leagueId = context.activeLeague;
   }
 
-  if (leagueId) {
-    // League mode - use existing league storage manager for now
-    return leagueStorageManager.getCurrentRacePickForLeague(leagueId);
-  } else {
-    // Solo mode via AWS backend
-    return amplifyDataService.getCurrentRacePick();
-  }
+  // League mode - use existing league storage manager for now
+  return leagueStorageManager.getCurrentRacePickForLeague(leagueId);
 }
 
 // Display league indicator in UI (enhanced for multi-league)
@@ -238,18 +198,8 @@ export function displayLeagueIndicator() {
       `;
       mainHeader.appendChild(mainIndicator);
     }
-  } else {
-    // Solo mode indicator
-    const mainHeader = document.querySelector('.hero-section');
-    if (mainHeader) {
-      const soloIndicator = document.createElement('div');
-      soloIndicator.className = 'league-indicator main-page solo-mode';
-      soloIndicator.innerHTML = `
-        <span>Mode: <strong>Solo</strong></span>
-      `;
-      mainHeader.appendChild(soloIndicator);
-    }
   }
+  // REMOVED: Solo mode indicator - league-only system
 }
 
 // League management functions
@@ -335,7 +285,7 @@ export async function initializeLeagueIntegration() {
     if (context.hasLeagues) {
       console.log(`Multi-league mode active: ${context.leagueCount} leagues, active: ${context.activeLeagueData?.name || 'None'}`);
     } else {
-      console.log('Solo mode active');
+      console.log('No leagues available - user needs to create or join a league');
     }
   } catch (error) {
     console.error('Failed to initialize league integration:', error);

@@ -74,33 +74,7 @@ export class LeagueModalManager {
               </label>
             </div>
             
-            <div class="form-group lives-configuration">
-              <h4>Lives Configuration</h4>
-              
-              <div class="form-row">
-                <label>
-                  <input type="checkbox" id="lives-enabled" />
-                  Enable Multiple Lives System
-                </label>
-              </div>
-              
-              <div id="lives-options" class="lives-options" style="display: none;">
-                <div class="form-row">
-                  <label for="max-lives">Lives per Player</label>
-                  <select id="max-lives">
-                    <option value="1">1 Life (Classic)</option>
-                    <option value="2">2 Lives</option>
-                    <option value="3" selected>3 Lives</option>
-                    <option value="4">4 Lives</option>
-                    <option value="5">5 Lives (Maximum)</option>
-                  </select>
-                </div>
-                
-                <div class="lives-explanation">
-                  <p>Players will be eliminated when they lose all their lives. Lives are lost when picked drivers finish outside the top 10.</p>
-                </div>
-              </div>
-            </div>
+            <!-- REMOVED: Lives Configuration - Simplified to single elimination -->
             
             <div class="form-actions">
               <button type="button" id="cancel-create">Cancel</button>
@@ -262,37 +236,7 @@ export class LeagueModalManager {
               </label>
             </div>
             
-            <div class="form-group lives-settings">
-              <h4>Lives System</h4>
-              
-              <div class="current-lives-status">
-                <p><strong>Current Setting:</strong> <span id="current-lives-display">${settings?.maxLives || 1} Lives per Player</span></p>
-                <p class="lives-lock-info" id="lives-lock-info">${settings?.livesLockDate ? 'Lives settings are locked for this season' : 'Lives can be configured until season starts'}</p>
-              </div>
-              
-              <div id="lives-modification" class="lives-modification" ${settings?.livesLockDate && new Date() > new Date(settings.livesLockDate) ? 'style="display: none;"' : ''}>
-                <div class="form-row">
-                  <label>
-                    <input type="checkbox" id="lives-enabled-setting" ${settings?.livesEnabled ? 'checked' : ''}>
-                    Enable Multiple Lives System
-                  </label>
-                </div>
-                
-                <div id="lives-options-setting" class="lives-options" ${!settings?.livesEnabled ? 'style="display: none;"' : ''}>
-                  <div class="form-row">
-                    <label for="max-lives-setting">Lives per Player</label>
-                    <select id="max-lives-setting">
-                      <option value="1" ${settings?.maxLives === 1 ? 'selected' : ''}>1 Life (Classic)</option>
-                      <option value="2" ${settings?.maxLives === 2 ? 'selected' : ''}>2 Lives</option>
-                      <option value="3" ${settings?.maxLives === 3 ? 'selected' : ''}>3 Lives</option>
-                      <option value="4" ${settings?.maxLives === 4 ? 'selected' : ''}>4 Lives</option>
-                      <option value="5" ${settings?.maxLives === 5 ? 'selected' : ''}>5 Lives (Maximum)</option>
-                    </select>
-                    <small>Changes affect all current and future members</small>
-                  </div>
-                </div>
-              </div>
-            </div>
+
             
             <div class="form-actions">
               <button type="button" id="cancel-settings">Cancel</button>
@@ -311,22 +255,10 @@ export class LeagueModalManager {
                       <span class="member-picks">${member.totalPicks || 0} picks</span>
                       <span class="member-status status-${member.status?.toLowerCase() || 'active'}">${member.status || 'Active'}</span>
                     </div>
-                    <div class="member-lives" data-league-id="${leagueId}" data-user-id="${member.userId}">
-                      <span class="lives-label">Lives:</span>
-                      <div class="lives-display">
-                        ${this.generateLivesDisplay(member.remainingLives || settings?.maxLives || 1, member.maxLives || settings?.maxLives || 1)}
-                      </div>
-                      <span class="lives-count">${member.remainingLives || settings?.maxLives || 1}/${member.maxLives || settings?.maxLives || 1}</span>
-                    </div>
+
                   </div>
                   <div class="member-actions">
-                    ${settings?.livesEnabled && !member.isOwner ? `
-                      <div class="lives-controls">
-                        <button class="lives-btn subtract" data-action="subtract" data-user-id="${member.userId}" title="Remove Life">-</button>
-                        <button class="lives-btn add" data-action="add" data-user-id="${member.userId}" title="Add Life">+</button>
-                        <button class="lives-btn reset" data-action="reset" data-user-id="${member.userId}" title="Reset Lives">↻</button>
-                      </div>
-                    ` : ''}
+
                     ${!member.isOwner && member.userId !== this.leagueManager.currentUserId ? 
                       `<button class="kick-member" data-user-id="${member.userId}">Remove</button>` : ''}
                   </div>
@@ -334,26 +266,7 @@ export class LeagueModalManager {
               `).join('')}
             </div>
             
-            ${settings?.livesEnabled ? `
-              <div class="bulk-actions">
-                <h5>Bulk Actions</h5>
-                <div class="bulk-controls">
-                  <button class="bulk-btn" data-action="reset-all-lives">Reset All Lives</button>
-                  <button class="bulk-btn" data-action="eliminate-inactive">Eliminate Inactive</button>
-                </div>
-              </div>
-              
-              <div class="audit-trail-section">
-                <h5>Lives Audit Trail</h5>
-                <div class="audit-trail-controls">
-                  <button class="audit-btn" id="view-audit-trail">View Recent Activity</button>
-                  <button class="audit-btn" id="export-audit-trail">Export Full History</button>
-                </div>
-                <div class="audit-trail-container" id="audit-trail-display" style="display: none;">
-                  <div class="audit-loading">Loading audit trail...</div>
-                </div>
-              </div>
-            ` : ''}
+
           </div>
         </div>
       </div>
@@ -374,13 +287,7 @@ export class LeagueModalManager {
     closeBtn.addEventListener('click', () => this.closeActiveModal());
     cancelBtn.addEventListener('click', () => this.closeActiveModal());
 
-    // Handle lives configuration toggle
-    const livesEnabledCheckbox = modal.querySelector('#lives-enabled');
-    const livesOptionsDiv = modal.querySelector('#lives-options');
-    
-    livesEnabledCheckbox.addEventListener('change', (e) => {
-      livesOptionsDiv.style.display = e.target.checked ? 'block' : 'none';
-    });
+    // REMOVED: Lives configuration toggle - Simplified to single elimination
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -389,9 +296,7 @@ export class LeagueModalManager {
       const maxMembers = parseInt(document.getElementById('max-members').value);
       const autoPickEnabled = document.getElementById('auto-pick-enabled').checked;
       
-      // Capture lives configuration
-      const livesEnabled = document.getElementById('lives-enabled').checked;
-      const maxLives = livesEnabled ? parseInt(document.getElementById('max-lives').value) : 1;
+      // REMOVED: Lives configuration - Simplified to single elimination
       
       // Get form submit button and show loading state
       const submitBtn = form.querySelector('button[type="submit"]');
@@ -403,9 +308,7 @@ export class LeagueModalManager {
       try {
         const league = await this.leagueManager.createLeague(leagueName, {
           maxMembers,
-          autoPickEnabled,
-          livesEnabled,
-          maxLives
+          autoPickEnabled
         });
 
         // Check if league creation was successful
@@ -673,7 +576,7 @@ export class LeagueModalManager {
             // Show enhanced success message with deletion details
             if (isOwner) {
               const deletionSummary = result.deletedItems ? 
-                ` (${result.deletedItems.members} members, ${result.deletedItems.picks} picks, ${result.deletedItems.lifeEvents} events removed)` : '';
+                ` (${result.deletedItems.members} members, ${result.deletedItems.picks} picks removed)` : '';
               this.showQuickNotification(
                 `League "${league.name}" completely deleted${deletionSummary}`,
                 'success'
@@ -736,15 +639,7 @@ export class LeagueModalManager {
     closeBtn.addEventListener('click', () => this.closeActiveModal());
     cancelBtn.addEventListener('click', () => this.closeActiveModal());
 
-    // Handle lives configuration toggle in settings
-    const livesEnabledSettingCheckbox = modal.querySelector('#lives-enabled-setting');
-    const livesOptionsSettingDiv = modal.querySelector('#lives-options-setting');
-    
-    if (livesEnabledSettingCheckbox && livesOptionsSettingDiv) {
-      livesEnabledSettingCheckbox.addEventListener('change', (e) => {
-        livesOptionsSettingDiv.style.display = e.target.checked ? 'block' : 'none';
-      });
-    }
+
 
     // Copy invite code
     copyBtn.addEventListener('click', (e) => {
@@ -764,20 +659,10 @@ export class LeagueModalManager {
       const maxMembers = parseInt(document.getElementById('max-members-setting').value);
       const autoPickEnabled = document.getElementById('auto-pick-enabled-setting').checked;
       
-      // Capture lives configuration if available
-      const livesEnabledSetting = document.getElementById('lives-enabled-setting');
-      const maxLivesSetting = document.getElementById('max-lives-setting');
-      
       const settings = {
         maxMembers,
         autoPickEnabled
       };
-      
-      // Add lives settings if the controls exist (not locked)
-      if (livesEnabledSetting && maxLivesSetting) {
-        settings.livesEnabled = livesEnabledSetting.checked;
-        settings.maxLives = settings.livesEnabled ? parseInt(maxLivesSetting.value) : 1;
-      }
 
       try {
         await this.leagueManager.updateLeagueSettings(leagueId, settings);
@@ -792,86 +677,9 @@ export class LeagueModalManager {
       }
     });
 
-    // Lives control buttons
-    modal.querySelectorAll('.lives-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const action = e.target.dataset.action;
-        const userId = e.target.dataset.userId;
-        
-        // Disable button during operation
-        btn.disabled = true;
-        const originalText = btn.textContent;
-        btn.textContent = '...';
-        
-        try {
-          await this.handleLivesAdjustment(leagueId, userId, action);
-        } catch (error) {
-          // Error already handled in handleLivesAdjustment
-        } finally {
-          // Re-enable button
-          btn.disabled = false;
-          btn.textContent = originalText;
-        }
-      });
-    });
 
-    // Bulk action buttons
-    modal.querySelectorAll('.bulk-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const action = e.target.dataset.action;
-        
-        let confirmMessage = '';
-        switch (action) {
-          case 'reset-all-lives':
-            confirmMessage = 'Are you sure you want to reset all members\' lives to maximum? This cannot be undone.';
-            break;
-          case 'eliminate-inactive':
-            confirmMessage = 'Are you sure you want to eliminate all inactive members? This cannot be undone.';
-            break;
-        }
-        
-        if (confirm(confirmMessage)) {
-          btn.disabled = true;
-          const originalText = btn.textContent;
-          btn.textContent = 'Processing...';
-          
-          try {
-            await this.handleBulkAction(leagueId, action);
-            this.showQuickNotification('Bulk action completed successfully', 'success');
-            
-            // Refresh the modal to show updated data
-            setTimeout(async () => {
-              await this.showLeagueSettingsModal(leagueId);
-            }, 1000);
-          } catch (error) {
-            this.showError(error.message);
-          } finally {
-            btn.disabled = false;
-            btn.textContent = originalText;
-          }
-        }
-      });
-    });
 
-    // Audit trail buttons
-    const viewAuditBtn = modal.querySelector('#view-audit-trail');
-    const exportAuditBtn = modal.querySelector('#export-audit-trail');
-    
-    if (viewAuditBtn) {
-      viewAuditBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await this.toggleAuditTrail(leagueId);
-      });
-    }
-    
-    if (exportAuditBtn) {
-      exportAuditBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await this.exportAuditTrail(leagueId);
-      });
-    }
+
 
     // Kick members
     modal.querySelectorAll('.kick-member').forEach(btn => {
@@ -1087,345 +895,11 @@ Pick one driver each race, can't pick the same driver twice. Last player standin
     }
   }
 
-  // Generate lives display for member management
-  generateLivesDisplay(remainingLives, maxLives) {
-    let display = '';
-    for (let i = 0; i < maxLives; i++) {
-      if (i < remainingLives) {
-        display += '<span class="life-indicator remaining">❤️</span>';
-      } else {
-        display += '<span class="life-indicator lost">🖤</span>';
-      }
-    }
-    return display;
-  }
+  // REMOVED: Lives display generation - Simplified to single elimination
 
-  // Handle member lives adjustment
-  async handleLivesAdjustment(leagueId, userId, action) {
-    try {
-      let operation;
-      let value = 1;
-      let reason = '';
+  // REMOVED: Lives adjustment methods - Simplified to single elimination
 
-      switch (action) {
-        case 'add':
-          operation = 'ADD';
-          reason = 'Admin granted additional life';
-          break;
-        case 'subtract':
-          operation = 'SUBTRACT';
-          reason = 'Admin removed life';
-          break;
-        case 'reset':
-          operation = 'SET';
-          value = await this.getMaxLivesForLeague(leagueId);
-          reason = 'Admin reset lives to maximum';
-          break;
-        default:
-          throw new Error('Invalid lives action');
-      }
-
-      // Use amplifyDataService to update member lives
-      const result = await amplifyDataService.updateMemberLives(leagueId, userId, {
-        operation,
-        value,
-        reason
-      });
-
-      if (result.success) {
-        // Update the UI immediately
-        this.updateMemberLivesDisplay(userId, result.remainingLives);
-        this.showQuickNotification(`Lives updated successfully`, 'success');
-      }
-
-      return result;
-    } catch (error) {
-      console.error('Failed to adjust member lives:', error);
-      this.showError(error.message);
-      throw error;
-    }
-  }
-
-  // Get max lives for a league
-  async getMaxLivesForLeague(leagueId) {
-    try {
-      const league = await amplifyDataService.getLeague(leagueId);
-      const settings = amplifyDataService.parseLeagueSettings(league);
-      return settings.maxLives || 1;
-    } catch (error) {
-      console.error('Failed to get max lives for league:', error);
-      return 1;
-    }
-  }
-
-  // Update member lives display in UI
-  updateMemberLivesDisplay(userId, remainingLives) {
-    const memberElement = document.querySelector(`[data-user-id="${userId}"]`);
-    if (memberElement) {
-      const livesDisplayElement = memberElement.querySelector('.lives-display');
-      const livesCountElement = memberElement.querySelector('.lives-count');
-      
-      if (livesDisplayElement && livesCountElement) {
-        const maxLives = parseInt(livesCountElement.textContent.split('/')[1]);
-        livesDisplayElement.innerHTML = this.generateLivesDisplay(remainingLives, maxLives);
-        livesCountElement.textContent = `${remainingLives}/${maxLives}`;
-        
-        // Update member status if eliminated
-        const statusElement = memberElement.querySelector('.member-status');
-        if (statusElement && remainingLives === 0) {
-          statusElement.textContent = 'Eliminated';
-          statusElement.className = 'member-status status-eliminated';
-        } else if (statusElement && remainingLives > 0) {
-          statusElement.textContent = 'Active';
-          statusElement.className = 'member-status status-active';
-        }
-      }
-    }
-  }
-
-  // Handle bulk actions for member management
-  async handleBulkAction(leagueId, action) {
-    try {
-      const league = await amplifyDataService.getLeague(leagueId);
-      const members = await amplifyDataService.getLeagueMembers(leagueId);
-      const settings = amplifyDataService.parseLeagueSettings(league);
-      
-      switch (action) {
-        case 'reset-all-lives':
-          const maxLives = settings.maxLives || 1;
-          const resetPromises = members
-            .filter(member => !member.isOwner) // Don't reset owner lives
-            .map(member => 
-              amplifyDataService.updateMemberLives(leagueId, member.userId, {
-                operation: 'SET',
-                value: maxLives,
-                reason: 'Admin bulk reset - all lives restored'
-              })
-            );
-          
-          await Promise.all(resetPromises);
-          console.log(`Reset lives for ${resetPromises.length} members in league ${leagueId}`);
-          break;
-          
-        case 'eliminate-inactive':
-          // Find members with no recent picks (you can customize this logic)
-          const inactiveMembers = members.filter(member => {
-            return !member.isOwner && (member.totalPicks || 0) === 0;
-          });
-          
-          const eliminatePromises = inactiveMembers.map(member =>
-            amplifyDataService.updateMemberLives(leagueId, member.userId, {
-              operation: 'SET',
-              value: 0,
-              reason: 'Admin bulk elimination - inactive member'
-            })
-          );
-          
-          await Promise.all(eliminatePromises);
-          console.log(`Eliminated ${inactiveMembers.length} inactive members in league ${leagueId}`);
-          break;
-          
-        default:
-          throw new Error('Unknown bulk action');
-      }
-      
-      return { success: true };
-    } catch (error) {
-      console.error('Bulk action failed:', error);
-      throw error;
-    }
-  }
-
-  // Toggle audit trail display
-  async toggleAuditTrail(leagueId) {
-    const auditContainer = document.getElementById('audit-trail-display');
-    const viewBtn = document.getElementById('view-audit-trail');
-    
-    if (!auditContainer || !viewBtn) return;
-    
-    if (auditContainer.style.display === 'none') {
-      // Show audit trail
-      auditContainer.style.display = 'block';
-      viewBtn.textContent = 'Hide Activity';
-      
-      try {
-        await this.loadAuditTrail(leagueId);
-      } catch (error) {
-        this.showError('Failed to load audit trail: ' + error.message);
-        auditContainer.style.display = 'none';
-        viewBtn.textContent = 'View Recent Activity';
-      }
-    } else {
-      // Hide audit trail
-      auditContainer.style.display = 'none';
-      viewBtn.textContent = 'View Recent Activity';
-    }
-  }
-
-  // Load and display audit trail
-  async loadAuditTrail(leagueId) {
-    const auditContainer = document.getElementById('audit-trail-display');
-    if (!auditContainer) return;
-    
-    try {
-      // Get recent life events for the league
-      const auditEvents = await this.getLeagueAuditTrail(leagueId, 20); // Get last 20 events
-      
-      if (auditEvents.length === 0) {
-        auditContainer.innerHTML = `
-          <div class="audit-empty">
-            <p>No recent lives activity found.</p>
-          </div>
-        `;
-        return;
-      }
-      
-      const auditHTML = `
-        <div class="audit-trail-list">
-          ${auditEvents.map(event => this.renderAuditEvent(event)).join('')}
-        </div>
-      `;
-      
-      auditContainer.innerHTML = auditHTML;
-    } catch (error) {
-      console.error('Failed to load audit trail:', error);
-      auditContainer.innerHTML = `
-        <div class="audit-error">
-          <p>Failed to load audit trail. Please try again.</p>
-        </div>
-      `;
-    }
-  }
-
-  // Get audit trail for a league
-  async getLeagueAuditTrail(leagueId, limit = 20) {
-    try {
-      // This would query the LifeEvent model to get recent events
-      // For now, we'll create a mock implementation since the backend method isn't exposed
-      const events = await amplifyDataService.client.models.LifeEvent.list({
-        filter: {
-          leagueId: { eq: leagueId }
-        },
-        limit: limit,
-        authMode: 'userPool'
-      });
-      
-      // Sort by date (most recent first)
-      if (events.data) {
-        return events.data.sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate));
-      }
-      
-      return [];
-    } catch (error) {
-      console.error('Failed to get audit trail:', error);
-      return [];
-    }
-  }
-
-  // Render a single audit event
-  renderAuditEvent(event) {
-    const eventDate = new Date(event.eventDate);
-    const formattedDate = eventDate.toLocaleDateString() + ' ' + eventDate.toLocaleTimeString();
-    
-    let eventIcon = '📝';
-    let eventClass = '';
-    let eventDescription = '';
-    
-    switch (event.eventType) {
-      case 'LIFE_LOST':
-        eventIcon = '💔';
-        eventClass = 'life-lost';
-        eventDescription = `Lost a life - ${event.livesRemaining} remaining`;
-        break;
-      case 'LIFE_RESTORED':
-        eventIcon = '💚';
-        eventClass = 'life-restored';
-        eventDescription = `Life restored - ${event.livesRemaining} remaining`;
-        break;
-      case 'FINAL_ELIMINATION':
-        eventIcon = '❌';
-        eventClass = 'elimination';
-        eventDescription = 'Eliminated from league (0 lives remaining)';
-        break;
-      case 'ADMIN_ADJUSTMENT':
-        eventIcon = '⚙️';
-        eventClass = 'admin-action';
-        eventDescription = `Admin adjustment - ${event.livesRemaining} lives remaining`;
-        break;
-      default:
-        eventDescription = `Lives update - ${event.livesRemaining} remaining`;
-    }
-    
-    return `
-      <div class="audit-event ${eventClass}">
-        <div class="event-icon">${eventIcon}</div>
-        <div class="event-details">
-          <div class="event-header">
-            <span class="event-user">${this.escapeHtml(event.userId)}</span>
-            <span class="event-date">${formattedDate}</span>
-          </div>
-          <div class="event-description">${eventDescription}</div>
-          ${event.adminUserId ? `<div class="event-admin">By admin: ${this.escapeHtml(event.adminUserId)}</div>` : ''}
-          ${event.adminReason ? `<div class="event-reason">"${this.escapeHtml(event.adminReason)}"</div>` : ''}
-        </div>
-      </div>
-    `;
-  }
-
-  // Export audit trail to CSV
-  async exportAuditTrail(leagueId) {
-    const exportBtn = document.getElementById('export-audit-trail');
-    if (!exportBtn) return;
-    
-    const originalText = exportBtn.textContent;
-    exportBtn.disabled = true;
-    exportBtn.textContent = 'Exporting...';
-    
-    try {
-      // Get full audit trail (no limit)
-      const auditEvents = await this.getLeagueAuditTrail(leagueId, 1000);
-      
-      if (auditEvents.length === 0) {
-        this.showQuickNotification('No audit events to export', 'warning');
-        return;
-      }
-      
-      // Create CSV content
-      const headers = ['Date', 'User', 'Event Type', 'Lives Remaining', 'Admin User', 'Reason'];
-      const csvContent = [
-        headers.join(','),
-        ...auditEvents.map(event => [
-          new Date(event.eventDate).toISOString(),
-          `"${event.userId}"`,
-          `"${event.eventType}"`,
-          event.livesRemaining,
-          `"${event.adminUserId || ''}"`,
-          `"${event.adminReason || ''}"`
-        ].join(','))
-      ].join('\n');
-      
-      // Download CSV file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      
-      link.setAttribute('href', url);
-      link.setAttribute('download', `league_${leagueId}_audit_trail_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      this.showQuickNotification('Audit trail exported successfully', 'success');
-    } catch (error) {
-      console.error('Failed to export audit trail:', error);
-      this.showError('Failed to export audit trail: ' + error.message);
-    } finally {
-      exportBtn.disabled = false;
-      exportBtn.textContent = originalText;
-    }
-  }
+  // REMOVED: Audit trail methods - Simplified to single elimination
 
   // Show quick notification
   showQuickNotification(message, type = 'info') {

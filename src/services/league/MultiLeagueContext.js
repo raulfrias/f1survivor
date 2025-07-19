@@ -115,7 +115,7 @@ export class MultiLeagueContext {
       activeLeague: this.activeLeagueId,
       activeLeagueData: activeLeague,
       leagueCount: this.userLeagues.size,
-      soloMode: this.userLeagues.size === 0,
+      hasLeagues: this.userLeagues.size > 0,
       isMultiLeague: this.userLeagues.size > 1,
       hasLeagues: this.userLeagues.size > 0
     };
@@ -128,7 +128,7 @@ export class MultiLeagueContext {
         isLeagueMode: false,
         leagueId: null,
         league: null,
-        soloMode: true
+        hasLeagues: false
       };
     }
 
@@ -137,7 +137,7 @@ export class MultiLeagueContext {
       isLeagueMode: true,
       leagueId: this.activeLeagueId,
       league: league,
-      soloMode: false
+      hasLeagues: true
     };
   }
 
@@ -203,13 +203,13 @@ export class MultiLeagueContext {
       this.memberCache.delete(leagueId);
       this.pickCache.delete(leagueId);
       
-      // If this was the active league, switch to another or go solo
+      // If this was the active league, switch to another or clear active
       if (this.activeLeagueId === leagueId) {
         const remainingLeagues = Array.from(this.userLeagues.keys());
         if (remainingLeagues.length > 0) {
           this.setActiveLeague(remainingLeagues[0]);
         } else {
-          this.setActiveLeague(null); // Solo mode
+          this.setActiveLeague(null); // No leagues available
         }
       }
       

@@ -2,7 +2,7 @@
 
 <p align="center">
   <!-- Consider adding a custom logo for your game here -->
-  <img src="dist/assets/images/F1-Logo.png" alt="F1 Survivor Game" width="150"> 
+  <img src="/assets/images/F1-Logo.png" alt="F1 Survivor Game" width="150"> 
 </p>
 
 Welcome to **F1 Survivor**, a web-based game where your Formula 1 knowledge determines if you can outlast the competition:

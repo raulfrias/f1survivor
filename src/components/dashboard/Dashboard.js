@@ -322,7 +322,7 @@ async function initializeDashboard() {
     const eliminationZoneContainer = document.getElementById('elimination-zone-container');
     if (eliminationZoneContainer) {
       const eliminationZone = new EliminationZone(eliminationZoneContainer);
-      await eliminationZone.initialize('league-demo', 'user123');
+      await eliminationZone.initialize(); // Will use current user and active league
     }
     
     // REMOVED: Static element updates - now handled by MultiLeagueDashboard.js

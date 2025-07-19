@@ -5,9 +5,11 @@ import {
   formatEliminations, 
   getEliminationForecast,
   calculateLeagueStandings,
-  generateStrategicRecommendations,
-  createMockLeagueData
+  generateStrategicRecommendations
 } from '@/utils/EliminationUtils.js';
+import { amplifyDataService } from '@/services/aws/AmplifyDataService.js';
+import { leagueManager } from '@/services/league/LeagueManager.js';
+import { authManager } from '@/services/auth/AuthManager.js';
 
 class EliminationZone {
   constructor(containerElement) {
@@ -21,19 +23,36 @@ class EliminationZone {
     this.userId = 'user123'; // Default user ID for demo
   }
 
-  async initialize(leagueId = 'league-demo', userId = 'user123') {
-    this.leagueId = leagueId;
-    this.userId = userId;
-    
+  async initialize(leagueId = null, userId = null) {
     try {
       console.log('Initializing Elimination Zone...');
       
       // Show loading state
       this.showLoading();
       
-      // For demo purposes, use mock data
-      // In production, this would fetch from API
-      await this.loadMockData();
+      // Get current user
+      const user = await authManager.getCurrentUser();
+      if (!user) {
+        this.showError('Authentication required to view league data');
+        return;
+      }
+      
+      this.userId = userId || user.userId || user.username;
+      
+      // Get active league if not provided
+      if (!leagueId) {
+        const activeLeague = await leagueManager.getActiveLeague();
+        if (!activeLeague) {
+          this.showError('No active league found. Please join or create a league.');
+          return;
+        }
+        this.leagueId = activeLeague.leagueId;
+      } else {
+        this.leagueId = leagueId;
+      }
+      
+      // Load real league data from AWS
+      await this.loadRealData();
       
       // Render the component
       this.render();
@@ -49,17 +68,60 @@ class EliminationZone {
     }
   }
 
-  async loadMockData() {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const mockData = createMockLeagueData(this.userId);
-    this.leagueData = mockData.leagueData;
-    this.userStatus = mockData.userStatus;
-    this.eliminations = mockData.eliminations;
-    this.standings = mockData.standings;
-    
-    console.log('Mock league data loaded:', mockData);
+  async loadRealData() {
+    try {
+      // Get league details
+      const league = await amplifyDataService.getLeague(this.leagueId);
+      if (!league) {
+        throw new Error('League not found');
+      }
+      
+      // Get league members
+      const members = await amplifyDataService.getLeagueMembers(this.leagueId);
+      
+      // Get league standings
+      const standings = await leagueManager.getLeagueStandings(this.leagueId);
+      
+      // Get user's picks for this league
+      const userPicks = await amplifyDataService.getUserPicks(this.userId, this.leagueId);
+      
+      // Calculate eliminations (for now, we'll use a simplified approach)
+      // In a real implementation, this would be based on race results
+      const eliminations = this.calculateEliminations(standings, userPicks);
+      
+      // Build league data structure
+      this.leagueData = {
+        leagueId: league.leagueId,
+        leagueName: league.name,
+        lastProcessedRace: {
+          raceName: 'Bahrain Grand Prix', // TODO: Get from race results
+          processedAt: new Date().toISOString()
+        },
+        eliminatedPlayers: eliminations.length,
+        activePlayers: members.length - eliminations.length
+      };
+      
+      this.userStatus = {
+        userId: this.userId,
+        isEliminated: eliminations.some(e => e.userId === this.userId),
+        survivedRaces: userPicks.length,
+        totalPicks: userPicks.length
+      };
+      
+      this.eliminations = eliminations;
+      this.standings = standings;
+      
+      console.log('Real league data loaded:', {
+        leagueData: this.leagueData,
+        userStatus: this.userStatus,
+        eliminations: this.eliminations,
+        standings: this.standings
+      });
+      
+    } catch (error) {
+      console.error('Failed to load real league data:', error);
+      throw error;
+    }
   }
 
   render() {
@@ -241,7 +303,7 @@ class EliminationZone {
 
   async refresh() {
     try {
-      await this.loadMockData();
+      await this.loadRealData();
       this.render();
     } catch (error) {
       console.error('Failed to refresh elimination zone:', error);
@@ -257,19 +319,20 @@ class EliminationZone {
     return 'th';
   }
 
+  calculateEliminations(standings, userPicks) {
+    // For now, return empty eliminations since we don't have race results yet
+    // In a real implementation, this would be based on actual race results
+    // and would check if drivers finished outside the top 10
+    return [];
+  }
+
   getLastPickForPlayer(username) {
-    // Mock implementation for demo purposes
-    // In production, this would fetch from actual player data
-    const mockPicks = {
-      'AlphaDriver': 'Verstappen',
-      'F1Prophet': 'Leclerc', 
-      'GridWarrior': 'Hamilton',
-      'SpeedKing': 'Norris',
-      'RaceAce': 'Russell',
-      'YOU': 'Norris'
-    };
-    
-    return mockPicks[username] || 'Unknown';
+    // Find the player's last pick from standings
+    const player = this.standings.find(s => s.username === username);
+    if (player && player.lastPick) {
+      return player.lastPick.driverName;
+    }
+    return 'No pick';
   }
 
   destroy() {

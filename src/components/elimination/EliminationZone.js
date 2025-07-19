@@ -30,13 +30,27 @@ class EliminationZone {
       // Show loading state
       this.showLoading();
       
-      // Get current user
-      const user = await authManager.getCurrentUser();
+      // Wait for authentication to be properly established
+      let user = null;
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      while (!user && attempts < maxAttempts) {
+        user = await authManager.getCurrentUser();
+        if (!user) {
+          console.log(`Authentication attempt ${attempts + 1}/${maxAttempts} - waiting for auth...`);
+          await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
+          attempts++;
+        }
+      }
+      
       if (!user) {
+        console.log('Authentication timeout - user not authenticated');
         this.showError('Authentication required to view league data');
         return;
       }
       
+      console.log('User authenticated:', user);
       this.userId = userId || user.userId || user.username;
       
       // Get active league if not provided

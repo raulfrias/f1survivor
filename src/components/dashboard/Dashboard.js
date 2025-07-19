@@ -318,11 +318,30 @@ async function initializeDashboard() {
     dashboardData = await getDashboardData();
     console.log('Dashboard data loaded:', dashboardData);
     
-    // Initialize Elimination Zone
+    // Initialize Elimination Zone with authentication check
     const eliminationZoneContainer = document.getElementById('elimination-zone-container');
     if (eliminationZoneContainer) {
       const eliminationZone = new EliminationZone(eliminationZoneContainer);
-      await eliminationZone.initialize(); // Will use current user and active league
+      
+      // Wait for authentication to be established before initializing
+      let authAttempts = 0;
+      const maxAuthAttempts = 20; // 10 seconds total
+      
+      const initializeEliminationZone = async () => {
+        const isAuth = await authManager.isAuthenticated();
+        if (isAuth) {
+          console.log('Authentication confirmed, initializing elimination zone...');
+          await eliminationZone.initialize();
+        } else if (authAttempts < maxAuthAttempts) {
+          console.log(`Waiting for authentication... (${authAttempts + 1}/${maxAuthAttempts})`);
+          authAttempts++;
+          setTimeout(initializeEliminationZone, 500);
+        } else {
+          console.log('Authentication timeout, skipping elimination zone initialization');
+        }
+      };
+      
+      initializeEliminationZone();
     }
     
     // REMOVED: Static element updates - now handled by MultiLeagueDashboard.js

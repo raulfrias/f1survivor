@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Driver - F1 Survivor</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="../styles/global/styles.css">
+    <link rel="stylesheet" href="../styles/pages/driver-selection.css">
+    <link rel="stylesheet" href="../styles/components/driver-cards.css">
+    <link rel="stylesheet" href="../styles/league/league-selector.css">
+    <link rel="stylesheet" href="../styles/auth/auth-modal.css">
+</head>
+<body>
+    <nav class="main-nav">
+        <div class="nav-brand">
+            <img src="/assets/images/F1-Logo.png" alt="F1 Logo" class="f1-logo-img">
+            <span class="brand-text">SURVIVOR</span>
+        </div>
+        
+        <div class="nav-breadcrumb">
+            <div id="breadcrumb-container">
+                <!-- Breadcrumbs populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="nav-actions">
+            <button class="nav-btn secondary" id="dashboard-btn">
+                <span class="btn-icon">📊</span>
+                Dashboard
+            </button>
+            <div id="league-nav-selector" class="league-nav-selector">
+                <!-- League selector populated by JavaScript -->
+            </div>
+            <button class="nav-btn primary" id="auth-btn">Sign In</button>
+        </div>
+        
+        <!-- Mobile menu button -->
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle mobile menu">
+            <span class="hamburger"></span>
+        </button>
+    </nav>
+
+    <!-- Mobile navigation overlay -->
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay">
+        <div class="mobile-nav-content">
+            <div class="mobile-nav-header">
+                <span class="mobile-brand">F1 SURVIVOR</span>
+                <button class="mobile-close-btn" id="mobile-close-btn" aria-label="Close menu">&times;</button>
+            </div>
+            <div class="mobile-nav-links">
+                <a href="/dashboard" class="mobile-nav-link">📊 Dashboard</a>
+                <a href="/driver-selection" class="mobile-nav-link active">🏎️ Select Driver</a>
+                <a href="/league-hub" class="mobile-nav-link">🏆 My Leagues</a>
+                <a href="/help" class="mobile-nav-link">❓ Help</a>
+            </div>
+        </div>
+    </div>
+
+    <main class="driver-selection-main">
+        <!-- Race header with deadline -->
+        <div class="race-header">
+            <div class="race-info">
+                <h1 class="race-title" id="race-title">Select Your Driver</h1>
+                <div class="race-details" id="race-details">
+                    <span class="race-location" id="race-location">Loading race information...</span>
+                    <span class="race-date" id="race-date"></span>
+                </div>
+            </div>
+            
+            <!-- Deadline banner -->
+            <div class="deadline-banner" id="deadline-banner">
+                <div class="deadline-content">
+                    <div class="deadline-icon">⏰</div>
+                    <div class="deadline-info">
+                        <div class="deadline-label">Pick Deadline</div>
+                        <div class="deadline-countdown" id="deadline-countdown">Loading...</div>
+                    </div>
+                    <div class="deadline-warning" id="deadline-warning" style="display: none;">
+                        <div class="warning-icon">⚠️</div>
+                        <div class="warning-text">Less than 1 hour remaining!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current pick status -->
+        <div class="current-pick-status" id="current-pick-status" style="display: none;">
+            <div class="current-pick-card">
+                <div class="current-pick-header">
+                    <span class="status-icon">✅</span>
+                    <span class="status-text">Current Pick</span>
+                    <button class="change-pick-btn" id="change-pick-btn">Change Pick</button>
+                </div>
+                <div class="current-pick-details" id="current-pick-details">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Driver selection grid -->
+        <div class="driver-selection-container">
+            <div class="section-header">
+                <h2>Choose Your Driver</h2>
+                <div class="selection-tips">
+                    <div class="tip">
+                        <span class="tip-icon">💡</span>
+                        <span class="tip-text">You can only pick each driver once per season</span>
+                    </div>
+                    <div class="tip">
+                        <span class="tip-icon">🏁</span>
+                        <span class="tip-text">Driver must finish in top 10 to survive</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team filters -->
+            <div class="team-filters" id="team-filters">
+                <button class="filter-btn active" data-team="all">All Teams</button>
+                <!-- Team filter buttons populated by JavaScript -->
+            </div>
+
+            <!-- Driver grid -->
+            <div class="enhanced-driver-grid" id="enhanced-driver-grid">
+                <!-- Driver cards populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Loading state -->
+        <div class="loading-container" id="loading-container">
+            <!-- Loading state populated by JavaScript -->
+        </div>
+    </main>
+
+    <!-- Pick confirmation modal -->
+    <div class="pick-confirmation-modal" id="pick-confirmation-modal" style="display: none;">
+        <div class="modal-overlay" id="confirmation-overlay"></div>
+        <div class="modal-content">
+            <div class="confirmation-header">
+                <h3>Confirm Your Pick</h3>
+                <button class="modal-close-btn" id="confirmation-close-btn" aria-label="Close">&times;</button>
+            </div>
+            
+            <div class="confirmation-body" id="confirmation-body">
+                <!-- Confirmation content populated by JavaScript -->
+            </div>
+            
+            <div class="confirmation-actions">
+                <button class="btn secondary" id="confirmation-cancel-btn">Go Back</button>
+                <button class="btn primary" id="confirmation-confirm-btn">
+                    <span class="btn-text">Confirm Pick</span>
+                    <span class="btn-spinner" style="display: none;">⏳</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success modal -->
+    <div class="pick-success-modal" id="pick-success-modal" style="display: none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="success-header">
+                <div class="success-icon">🎉</div>
+                <h3>Pick Confirmed!</h3>
+            </div>
+            
+            <div class="success-body" id="success-body">
+                <!-- Success content populated by JavaScript -->
+            </div>
+            
+            <div class="success-actions">
+                <button class="btn secondary" id="success-dashboard-btn">View Dashboard</button>
+                <button class="btn primary" id="success-close-btn">Stay Here</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error notification -->
+    <div class="error-notification" id="error-notification" style="display: none;">
+        <div class="error-content">
+            <div class="error-icon">⚠️</div>
+            <div class="error-message" id="error-message"></div>
+            <button class="error-close-btn" id="error-close-btn" aria-label="Close">&times;</button>
+        </div>
+        <div class="error-actions" id="error-actions">
+            <!-- Error actions populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="../store/AppStore.js"></script>
+    <script type="module" src="../services/error/ErrorHandler.js"></script>
+    <script type="module" src="../components/ui/LoadingStates.js"></script>
+    
+    <!-- Auth and League -->
+    <script type="module" src="../services/auth/AuthManager.js"></script>
+    <script type="module" src="../services/auth/OAuthHandler.js"></script>
+    <script type="module" src="../components/auth/AuthUI.js"></script>
+    <script type="module" src="../services/league/LeagueManager.js"></script>
+    <script type="module" src="../components/league/LeagueSelector.js"></script>
+    
+    <!-- Driver Selection -->
+    <script type="module" src="../components/driver/EnhancedDriverCard.js"></script>
+    <script type="module" src="../components/driver/PickConfirmation.js"></script>
+    <script type="module" src="../services/deadline/DeadlineManager.js"></script>
+    
+    <!-- Navigation and UI -->
+    <script type="module" src="../components/navigation/Breadcrumbs.js"></script>
+    <script type="module" src="../components/navigation/MobileNav.js"></script>
+    
+    <!-- Data services -->
+    <script type="module" src="../services/aws/AmplifyDataService.js"></script>
+    <script type="module" src="../data/RaceCalendar2025.js"></script>
+    
+    <!-- Main driver selection logic -->
+    <script type="module" src="../pages/driver-selection.js"></script>
+</body>
+</html>

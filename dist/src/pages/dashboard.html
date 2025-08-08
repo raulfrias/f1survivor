@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>F1 Survivor - Dashboard</title>
-    <link rel="icon" type="image/x-icon" href="../../assets/favicon-5kkBOlsy.ico">
-  <script type="module" crossorigin src="../../assets/dashboard-CINgiHBZ.js"></script>
-  <link rel="modulepreload" crossorigin href="../../assets/LeagueSelector-BZNxo9Ug.js">
+    <link rel="icon" type="image/x-icon" href="../../favicon.ico">
+  <script type="module" crossorigin src="../../assets/dashboard-BVbaapsX.js"></script>
+  <link rel="modulepreload" crossorigin href="../../assets/LeagueSelector-CtewzLvi.js">
   <link rel="modulepreload" crossorigin href="../../assets/RaceResultsApi-BOSDOCeH.js">
-  <link rel="modulepreload" crossorigin href="../../assets/DashboardUtils-BfpSW8sh.js">
+  <link rel="modulepreload" crossorigin href="../../assets/DashboardUtils-BhayWyzZ.js">
   <link rel="stylesheet" crossorigin href="../../assets/LeagueSelector-Bxhg7Z93.css">
   <link rel="stylesheet" crossorigin href="../../assets/dashboard-Cab1tUCm.css">
 </head>
 <body>
     <nav>
         <div class="logo">
-            <img src="assets/images/F1-Logo.png" alt="F1 Logo" class="f1-logo-img">
+            <img src="../../assets/images/F1-Logo.png" alt="F1 Logo" class="f1-logo-img">
             SURVIVOR
         </div>
         <div class="nav-right">
@@ -31,67 +31,15 @@
     
     <main class="dashboard-main">
         <div class="dashboard-container">
-            <!-- Top Row: Player Status and Season Progress -->
-            <div class="dashboard-top-row">
-                <div class="player-status-card">
-                    <h2>Player Status</h2>
-                    <div class="status-info">
-                        <div class="player-header">
-                            <div class="player-name">Player 1</div>
-                            <div class="survival-status" id="survival-status">
-                                <span class="status-indicator alive"></span>
-                                <span class="status-text">ALIVE</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="season-progress-card">
-                    <h2>Season & Next Race</h2>
-                    <div class="progress-info">
-                        <div class="progress-stats">
-                            <div class="stat-item">
-                                <span class="stat-label">Races Completed</span>
-                                <span class="stat-value"><span id="races-completed">0</span>/<span id="total-races">24</span></span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Remaining Drivers</span>
-                                <span class="stat-value" id="remaining-drivers">20</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Next Race</span>
-                                <span class="stat-value next-race-name" id="next-race-name">Australian GP</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- All content dynamically rendered by components -->
+            <div id="dynamic-dashboard-content">
+                <!-- MultiLeagueDashboard.js will populate this -->
             </div>
             
-            <!-- Elimination Zone Section -->
-            <div id="elimination-zone-container">
-                <!-- Elimination Zone will be dynamically populated -->
-            </div>
+            <!-- Elimination zone -->
+            <div id="elimination-zone-container"></div>
             
-            <!-- Pick History Section -->
-            <div class="pick-history-section">
-                <h2>Pick History</h2>
-                <div class="pick-history-container">
-                    <div class="pick-history-header">
-                        <div class="header-cell">Race</div>
-                        <div class="header-cell">Driver</div>
-                        <div class="header-cell">Position</div>
-                        <div class="header-cell">Status</div>
-                    </div>
-                    <div class="pick-history-body" id="pick-history-body">
-                        <!-- Pick history rows will be dynamically populated -->
-                        <div class="no-picks-message" id="no-picks-message">
-                            No picks made yet. <a href="index.html">Make your first pick!</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Loading overlay -->
+            <!-- Loading state -->
             <div id="dashboard-loading" class="dashboard-loading">
                 <div class="loading-spinner"></div>
                 <p>Loading dashboard...</p>

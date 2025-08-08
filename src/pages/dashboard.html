@@ -32,15 +32,12 @@
     
     <main class="dashboard-main">
         <div class="dashboard-container">
-            <!-- League selector nav (already dynamic) -->
-            <div id="league-nav-selector"></div>
-            
             <!-- All content dynamically rendered by components -->
             <div id="dynamic-dashboard-content">
                 <!-- MultiLeagueDashboard.js will populate this -->
             </div>
             
-            <!-- Elimination zone (already dynamic) -->
+            <!-- Elimination zone -->
             <div id="elimination-zone-container"></div>
             
             <!-- Loading state -->
@@ -68,7 +65,9 @@
     <!-- Dashboard Scripts -->
     <script type="module" src="../utils/StorageUtils.js"></script>
     <script type="module" src="../utils/DashboardUtils.js"></script>
-<script type="module" src="../services/api/RaceResultsApi.js"></script>
+    <script type="module" src="../utils/EliminationUtils.js"></script>
+    <script type="module" src="../services/api/RaceResultsApi.js"></script>
+    <script type="module" src="../components/elimination/EliminationZone.js"></script>
     <script type="module" src="../components/league/LeagueDashboard.js"></script>
     <script type="module" src="../components/league/MultiLeagueDashboard.js"></script>
     <script type="module" src="../components/dashboard/Dashboard.js"></script>

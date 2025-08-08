@@ -95,9 +95,9 @@ export async function savePickWithContext(driverId, driverInfo, targetLeagueId =
 
   console.log(`Saving pick to league: ${leagueId}`);
 
-  // League mode - use existing league storage manager for now
-  // TODO: Phase 2 will replace this with unified AWS backend
-  return leagueStorageManager.saveLeaguePick(leagueId, driverId, driverInfo);
+    // League mode - use existing league storage manager for now
+    // TODO: Phase 2 will replace this with unified AWS backend
+    return leagueStorageManager.saveLeaguePick(leagueId, driverId, driverInfo);
 }
 
 // Load picks with automatic league context detection
@@ -118,9 +118,9 @@ export async function loadPicksWithContext(targetLeagueId = null) {
 
   console.log(`Loading picks from league: ${leagueId}`);
 
-  // League mode - use cached method
-  const picks = await multiLeagueContext.getLeaguePicks(leagueId);
-  return amplifyDataService.transformPicksForUI(picks);
+    // League mode - use cached method
+    const picks = await multiLeagueContext.getLeaguePicks(leagueId);
+    return amplifyDataService.transformPicksForUI(picks);
 }
 
 // Check if driver is already picked with league context
@@ -136,8 +136,8 @@ export async function isDriverAlreadyPickedWithContext(driverId, targetLeagueId 
     leagueId = context.activeLeague;
   }
 
-  // Check specific league
-  return amplifyDataService.isDriverAlreadyPicked(driverId, leagueId);
+    // Check specific league
+    return amplifyDataService.isDriverAlreadyPicked(driverId, leagueId);
 }
 
 // Check if driver is picked in ANY league (cross-league validation)
@@ -158,8 +158,8 @@ export async function getCurrentRacePickWithContext(targetLeagueId = null) {
     leagueId = context.activeLeague;
   }
 
-  // League mode - use existing league storage manager for now
-  return leagueStorageManager.getCurrentRacePickForLeague(leagueId);
+    // League mode - use existing league storage manager for now
+    return leagueStorageManager.getCurrentRacePickForLeague(leagueId);
 }
 
 // Display league indicator in UI (enhanced for multi-league)

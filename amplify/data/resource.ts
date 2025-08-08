@@ -131,7 +131,7 @@ const schema = a.schema({
     allow.owner(),
     allow.authenticated().to(['read']) // CRITICAL: Preserve for eliminated user spectator access
   ]),
-
+    
   // REMOVED: LifeEvent model entirely
   // ========================================
   // F1 REFERENCE DATA

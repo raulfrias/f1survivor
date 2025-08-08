@@ -6,6 +6,7 @@
     <title>F1 Survivor - Survive the Grid</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="stylesheet" href="src/styles/global/styles.css">
+    <link rel="stylesheet" href="src/styles/components/enhanced-ui.css">
     <link rel="stylesheet" href="src/styles/league/league-modal.css">
     <link rel="stylesheet" href="src/styles/league/league-selector.css">
     <link rel="stylesheet" href="src/styles/league/league-indicator.css">
@@ -67,7 +68,7 @@
             <div class="next-race">
                 <!-- Main Action Area (for auth prompts or Make Your Pick) -->
                 <div id="main-action-area" class="main-action-area">
-                    <button class="cta-button" id="make-pick-btn">MAKE YOUR PICK</button>
+                    <button class="cta-button" id="make-pick-btn" onclick="window.location.href='src/pages/driver-selection.html'">MAKE YOUR PICK</button>
                 </div>
                 
                 <!-- Race Countdown Timer -->
@@ -140,20 +141,52 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    
+    <!-- Enhanced UI/UX System Scripts -->
+    <script type="module" src="src/store/AppStore.js"></script>
+    <script type="module" src="src/services/error/ErrorHandler.js"></script>
+    <script type="module" src="src/components/ui/LoadingStates.js"></script>
+    <script type="module" src="src/components/accessibility/AccessibilityEnhancer.js"></script>
+
     <script type="module" src="src/data/RaceCalendar2025.js"></script>
-<script type="module" src="src/utils/RaceCountdown.js"></script>
+    <script type="module" src="src/utils/RaceCountdown.js"></script>
+    
     <!-- Authentication Scripts -->
     <script type="module" src="src/services/auth/AuthManager.js"></script>
     <script type="module" src="src/components/auth/AuthUI.js"></script>
     <script type="module" src="src/services/auth/OAuthHandler.js"></script>
+    
     <!-- Test Scripts for Development -->
     <script type="module" src="tests/integration/test-monaco-scenarios.js"></script>
     <script type="module" src="tests/integration/test-post-race.js"></script>
     <script type="module" src="tests/integration/test-frontend-backend-integration.js"></script>
     <script type="module" src="src/services/aws/AmplifyDataService.js"></script>
 
+    <!-- Enhanced Components -->
+    <script type="module" src="src/components/onboarding/WelcomeFlow.js"></script>
+
     <!-- Main Application Script -->
     <script type="module" src="src/app.js"></script>
+    
+    <!-- Initialize Enhanced Features -->
+    <script type="module">
+        import { WelcomeFlow } from './src/components/onboarding/WelcomeFlow.js';
+        import { appStore } from './src/store/AppStore.js';
+
+        // Initialize enhanced features when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 F1 Survivor Enhanced - Loading...');
+            
+            try {
+                // Initialize welcome flow for new users
+                const welcomeFlow = new WelcomeFlow();
+                
+                console.log('✅ Enhanced features loaded successfully');
+            } catch (error) {
+                console.error('❌ Error loading enhanced features:', error);
+            }
+        });
+    </script>
     <!-- Test Controls (only visible in development) -->
     <script>
         // Only load test scenarios in development environment

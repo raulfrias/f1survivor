@@ -6,33 +6,69 @@
     <title>F1 Survivor - Dashboard</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="stylesheet" href="../styles/global/styles.css">
-<link rel="stylesheet" href="../styles/pages/dashboard.css">
-<link rel="stylesheet" href="../styles/components/elimination-zone.css">
+    <link rel="stylesheet" href="../styles/pages/dashboard.css">
+    <link rel="stylesheet" href="../styles/components/elimination-zone.css">
+    <link rel="stylesheet" href="../styles/components/dashboard-cards.css">
+    <link rel="stylesheet" href="../styles/components/enhanced-ui.css">
     <link rel="stylesheet" href="../styles/league/league-modal.css">
     <link rel="stylesheet" href="../styles/league/league-selector.css">
     <link rel="stylesheet" href="../styles/league/league-indicator.css">
     <link rel="stylesheet" href="../styles/auth/auth-modal.css">
 </head>
 <body>
-    <nav>
-        <div class="logo">
+    <nav class="main-nav" id="main-nav">
+        <div class="nav-brand">
             <img src="/assets/images/F1-Logo.png" alt="F1 Logo" class="f1-logo-img">
-            SURVIVOR
+            <span class="brand-text">SURVIVOR</span>
         </div>
-        <div class="nav-right">
-            <a href="index.html" class="nav-link">Pick</a>
-            <a href="dashboard.html" class="nav-link active">Dashboard</a>
-            <!-- League Selector as Nav Component -->
+        
+        <div class="nav-breadcrumb">
+            <div id="breadcrumb-container">
+                <!-- Breadcrumbs populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="nav-actions">
+            <button class="nav-btn secondary" onclick="window.location.href='driver-selection.html'">
+                <span class="btn-icon">🏎️</span>
+                Select Driver
+            </button>
             <div id="league-nav-selector" class="league-nav-selector">
                 <!-- League nav component will be rendered here -->
             </div>
-            <a href="#" class="sign-in" onclick="showAuthModal('signin')">Sign In</a>
+            <button class="nav-btn primary" id="auth-btn">Sign In</button>
         </div>
+        
+        <!-- Mobile menu button -->
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle mobile menu">
+            <span class="hamburger"></span>
+        </button>
     </nav>
+
+    <!-- Mobile navigation overlay -->
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay">
+        <div class="mobile-nav-content">
+            <div class="mobile-nav-header">
+                <span class="mobile-brand">F1 SURVIVOR</span>
+                <button class="mobile-close-btn" id="mobile-close-btn" aria-label="Close menu">&times;</button>
+            </div>
+            <div class="mobile-nav-links">
+                <a href="/dashboard" class="mobile-nav-link active">📊 Dashboard</a>
+                <a href="/driver-selection" class="mobile-nav-link">🏎️ Select Driver</a>
+                <a href="/league-hub" class="mobile-nav-link">🏆 My Leagues</a>
+                <a href="/help" class="mobile-nav-link">❓ Help</a>
+            </div>
+        </div>
+    </div>
     
-    <main class="dashboard-main">
+    <main class="dashboard-main" id="main-content">
         <div class="dashboard-container">
-            <!-- All content dynamically rendered by components -->
+            <!-- Enhanced Dashboard Cards -->
+            <div id="dashboard-cards-container">
+                <!-- DashboardCards.js will populate this -->
+            </div>
+            
+            <!-- Original content for backward compatibility -->
             <div id="dynamic-dashboard-content">
                 <!-- MultiLeagueDashboard.js will populate this -->
             </div>
@@ -41,14 +77,29 @@
             <div id="elimination-zone-container"></div>
             
             <!-- Loading state -->
-            <div id="dashboard-loading" class="dashboard-loading">
-                <div class="loading-spinner"></div>
-                <p>Loading dashboard...</p>
+            <div id="dashboard-loading" class="dashboard-loading" style="display: none;">
+                <!-- LoadingStates.js will populate this -->
             </div>
         </div>
     </main>
 
-    <script type="module" src="../data/RaceCalendar2025.js"></script>
+    <!-- Error notification -->
+    <div class="error-notification" id="error-notification" style="display: none;">
+        <div class="error-content">
+            <div class="error-icon">⚠️</div>
+            <div class="error-message" id="error-message"></div>
+            <button class="error-close-btn" id="error-close-btn" aria-label="Close">&times;</button>
+        </div>
+        <div class="error-actions" id="error-actions">
+            <!-- Error actions populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Enhanced UI/UX System Scripts -->
+    <script type="module" src="../store/AppStore.js"></script>
+    <script type="module" src="../services/error/ErrorHandler.js"></script>
+    <script type="module" src="../components/ui/LoadingStates.js"></script>
+    <script type="module" src="../components/accessibility/AccessibilityEnhancer.js"></script>
 
     <!-- Authentication Scripts -->
     <script type="module" src="../services/auth/AuthManager.js"></script>
@@ -56,13 +107,21 @@
     <script type="module" src="../services/auth/OAuthHandler.js"></script>
     
     <!-- Multi-League System Scripts -->
+    <script type="module" src="../data/RaceCalendar2025.js"></script>
     <script type="module" src="../services/aws/AmplifyDataService.js"></script>
     <script type="module" src="../services/league/MultiLeagueContext.js"></script>
     <script type="module" src="../components/league/LeagueSelector.js"></script>
     <script type="module" src="../components/league/LeagueModalManager.js"></script>
     <script type="module" src="../services/league/LeagueIntegration.js"></script>
     
-    <!-- Dashboard Scripts -->
+    <!-- Enhanced Dashboard Components -->
+    <script type="module" src="../components/dashboard/DashboardCards.js"></script>
+    <script type="module" src="../components/navigation/Breadcrumbs.js"></script>
+    <script type="module" src="../components/navigation/MobileNav.js"></script>
+    <script type="module" src="../components/onboarding/WelcomeFlow.js"></script>
+    <script type="module" src="../components/ui/EmptyStates.js"></script>
+    
+    <!-- Original Dashboard Scripts (for compatibility) -->
     <script type="module" src="../utils/StorageUtils.js"></script>
     <script type="module" src="../utils/DashboardUtils.js"></script>
     <script type="module" src="../utils/EliminationUtils.js"></script>
@@ -71,5 +130,71 @@
     <script type="module" src="../components/league/LeagueDashboard.js"></script>
     <script type="module" src="../components/league/MultiLeagueDashboard.js"></script>
     <script type="module" src="../components/dashboard/Dashboard.js"></script>
+
+    <!-- Initialize Enhanced Dashboard -->
+    <script type="module">
+        import { DashboardCards } from '../components/dashboard/DashboardCards.js';
+        import { Breadcrumbs } from '../components/navigation/Breadcrumbs.js';
+        import { MobileNav } from '../components/navigation/MobileNav.js';
+        import { WelcomeFlow } from '../components/onboarding/WelcomeFlow.js';
+        import { appStore } from '../store/AppStore.js';
+        import LoadingStates from '../components/ui/LoadingStates.js';
+
+        // Initialize enhanced dashboard when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Initializing Enhanced Dashboard...');
+
+            // Show loading state
+            const cardsContainer = document.getElementById('dashboard-cards-container');
+            if (cardsContainer) {
+                LoadingStates.showLoading(cardsContainer, 'dashboard');
+            }
+
+            // Initialize components
+            try {
+                // Enhanced Dashboard Cards
+                const dashboardCards = new DashboardCards();
+                if (cardsContainer) {
+                    dashboardCards.createCardsGrid(cardsContainer);
+                }
+
+                // Navigation enhancements
+                const breadcrumbContainer = document.getElementById('breadcrumb-container');
+                if (breadcrumbContainer) {
+                    new Breadcrumbs(breadcrumbContainer);
+                }
+
+                // Mobile navigation
+                new MobileNav();
+
+                // Welcome flow for new users
+                const welcomeFlow = new WelcomeFlow();
+
+                console.log('✅ Enhanced Dashboard initialized successfully');
+                
+                // Hide loading state after brief delay
+                setTimeout(() => {
+                    if (cardsContainer) {
+                        LoadingStates.hideLoading(cardsContainer);
+                    }
+                }, 1500);
+
+            } catch (error) {
+                console.error('❌ Error initializing Enhanced Dashboard:', error);
+                
+                // Show error state
+                if (cardsContainer) {
+                    LoadingStates.hideLoading(cardsContainer);
+                    cardsContainer.innerHTML = `
+                        <div class="initialization-error">
+                            <h3>⚠️ Dashboard Enhancement Error</h3>
+                            <p>The enhanced dashboard couldn't load. Falling back to original dashboard.</p>
+                            <button onclick="window.location.reload()">Retry</button>
+                        </div>
+                    `;
+                }
+            }
+        });
+    </script>
 </body>
 </html> 

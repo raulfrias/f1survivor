@@ -68,7 +68,7 @@ F1 Survivor is a league-based game where your Formula 1 knowledge determines if 
    ```
 
 ### Production Deployment
-- **Automatic Deployment:** Connected to GitHub, deploys on push to `master` branch via Vercel
+- **Automatic Deployment:** Connected to GitHub via AWS Amplify hosting with branch-based deployments
 - **Frontend:** Vite build system with multi-page configuration
 - **Backend:** AWS Amplify Gen2 (serverless infrastructure, auto-managed)
 - **Build Output:** Optimized `dist/` directory with proper asset bundling
@@ -345,7 +345,7 @@ Our development is organized into manageable phases with modular features. See [
 *   **Functions:** AWS Lambda (Node.js/TypeScript)
 *   **Storage:** Amazon S3 (driver images, assets)
 *   **Hosting:** AWS Amplify Hosting
-*   **CI/CD:** GitHub integration with automatic deployments
+*   **CI/CD:** AWS Amplify hosting with GitHub integration and automatic branch deployments
 
 ### External Integrations
 *   **F1 Data:** [OpenF1 API](https://openf1.org/) for real-time race data
